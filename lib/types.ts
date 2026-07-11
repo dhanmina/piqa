@@ -344,28 +344,34 @@ export type Database = {
           comeback_pending: boolean
           current_weeks: number
           days_this_week: number
+          is_alive: boolean
           last_active: string | null
           shields: number
           updated_at: string
           user_id: string
+          week_anchor: string | null
         }
         Insert: {
           comeback_pending?: boolean
           current_weeks?: number
           days_this_week?: number
+          is_alive?: boolean
           last_active?: string | null
           shields?: number
           updated_at?: string
           user_id: string
+          week_anchor?: string | null
         }
         Update: {
           comeback_pending?: boolean
           current_weeks?: number
           days_this_week?: number
+          is_alive?: boolean
           last_active?: string | null
           shields?: number
           updated_at?: string
           user_id?: string
+          week_anchor?: string | null
         }
         Relationships: [
           {
@@ -542,6 +548,10 @@ export type Database = {
       }
       dev_status: { Args: never; Returns: Json }
       drop_prompt: { Args: { p_region?: string }; Returns: Json }
+      evaluate_streak: {
+        Args: { p_as_of: string; p_uid: string }
+        Returns: undefined
+      }
       get_gallery: { Args: { p_drop?: string }; Returns: Json }
       get_home_state: { Args: never; Returns: Json }
       get_latest_gallery: { Args: never; Returns: Json }

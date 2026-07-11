@@ -27,6 +27,7 @@ export type DevStatus = {
   streak_weeks?: number;
   days_this_week?: number;
   shields?: number;
+  is_alive?: boolean;
   comeback_pending?: boolean;
 };
 

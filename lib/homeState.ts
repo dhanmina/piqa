@@ -38,6 +38,7 @@ export type HomeStreak = {
   current_weeks: number;
   days_this_week: number;
   shields: number;
+  is_alive: boolean;
 };
 
 export type HomeState = {

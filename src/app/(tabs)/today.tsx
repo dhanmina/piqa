@@ -229,7 +229,8 @@ export default function TodayScreen() {
             <StreakFlame
               weeks={streak?.current_weeks ?? 0}
               daysThisWeek={streak?.days_this_week ?? 0}
-              alive={!brandNew}
+              alive={streak?.is_alive ?? false}
+              shields={streak?.shields ?? 0}
             />
             {brandNew && <Text style={styles.dayZero}>Day 0 — your first shot starts it</Text>}
           </View>

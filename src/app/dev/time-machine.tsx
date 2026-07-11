@@ -85,8 +85,9 @@ export default function TimeMachine() {
   const level = status?.my_xp == null ? null : levelFromXp(status.my_xp);
   const retentionRows: [string, string | number | boolean | null | undefined][] = [
     ['xp / level', status?.my_xp == null ? null : `${status.my_xp} · Lv ${level}`],
+    ['flame', status?.is_alive == null ? null : status.is_alive ? 'alive' : 'out'],
     ['streak weeks', status?.streak_weeks],
-    ['days this week', status?.days_this_week],
+    ['days in window', status?.days_this_week],
     ['shields', status?.shields],
     ['comeback', status?.comeback_pending == null ? null : status.comeback_pending ? 'pending' : 'no'],
   ];

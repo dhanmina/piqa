@@ -1,4 +1,4 @@
-import { Flame } from 'lucide-react-native';
+import { Flame, Shield } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
 import { Mono } from '@/components/atoms/Mono';
@@ -8,15 +8,17 @@ type StreakFlameProps = {
   weeks: number;
   daysThisWeek: number; // 0–7; the weekly goal is 4 of 7
   alive?: boolean;
+  shields?: number; // a held shield rides one missed day; shown only when > 0
 };
 
 const WEEK_GOAL_DOT = 3; // 4th dot = goal met
 
 /**
  * No guilt state: a dead streak is just an unfilled flame, never a broken one.
- * Streak is a safelight surface (spec: accent = actions, streak, live).
+ * Streak is a safelight surface (spec: accent = actions, streak, live). A held
+ * shield reads as protection (paper, calm), never as a warning.
  */
-export function StreakFlame({ weeks, daysThisWeek, alive = true }: StreakFlameProps) {
+export function StreakFlame({ weeks, daysThisWeek, alive = true, shields = 0 }: StreakFlameProps) {
   return (
     <View style={styles.row}>
       <Flame
@@ -44,6 +46,16 @@ export function StreakFlame({ weeks, daysThisWeek, alive = true }: StreakFlamePr
           );
         })}
       </View>
+      {shields > 0 && (
+        <View style={styles.shield}>
+          <Shield size={13} strokeWidth={icons.strokeWidth} color={colors.paper60} fill={colors.paper60} />
+          {shields > 1 && (
+            <Mono size={typeScale.caption} color={colors.paper60}>
+              {shields}
+            </Mono>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -58,6 +70,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    marginLeft: 4,
+  },
+  shield: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
     marginLeft: 4,
   },
   dot: {
