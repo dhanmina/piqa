@@ -131,6 +131,32 @@ export type Database = {
           },
         ]
       }
+      galleries: {
+        Row: {
+          created_at: string
+          drop_id: string
+          payload: Json
+        }
+        Insert: {
+          created_at?: string
+          drop_id: string
+          payload: Json
+        }
+        Update: {
+          created_at?: string
+          drop_id?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "galleries_drop_id_fkey"
+            columns: ["drop_id"]
+            isOneToOne: true
+            referencedRelation: "prompt_drops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -315,6 +341,7 @@ export type Database = {
       }
       streaks: {
         Row: {
+          comeback_pending: boolean
           current_weeks: number
           days_this_week: number
           last_active: string | null
@@ -323,6 +350,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          comeback_pending?: boolean
           current_weeks?: number
           days_this_week?: number
           last_active?: string | null
@@ -331,6 +359,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          comeback_pending?: boolean
           current_weeks?: number
           days_this_week?: number
           last_active?: string | null
@@ -475,17 +504,48 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cast_vote: {
+        Args: { p_drop: string; p_loser: string; p_winner: string }
+        Returns: Json
+      }
+      cfg_bool: {
+        Args: { p_default: boolean; p_key: string }
+        Returns: boolean
+      }
+      cfg_int: { Args: { p_default: number; p_key: string }; Returns: number }
+      cfg_num: { Args: { p_default: number; p_key: string }; Returns: number }
+      close_day: { Args: { p_drop: string }; Returns: Json }
+      close_due_drops: { Args: never; Returns: Json }
+      dev_advance_day: { Args: { p_i_submitted?: boolean }; Returns: Json }
+      dev_break_streak: { Args: never; Returns: Json }
+      dev_current_drop: { Args: never; Returns: string }
+      dev_fill_vote_cap: { Args: never; Returns: Json }
+      dev_force_comeback: { Args: never; Returns: Json }
+      dev_force_drop: { Args: never; Returns: Json }
+      dev_grant_xp: { Args: { p_amount?: number }; Returns: Json }
+      dev_guard: { Args: never; Returns: undefined }
+      dev_reset_day: { Args: never; Returns: Json }
+      dev_reset_drop: { Args: { p_drop: string }; Returns: undefined }
+      dev_run_close_day: { Args: never; Returns: Json }
+      dev_seed_votes: { Args: never; Returns: Json }
+      dev_sim_game: {
+        Args: {
+          a_id: string
+          a_q: number
+          a_uid: string
+          b_id: string
+          b_q: number
+          b_uid: string
+          p_drop: string
+        }
+        Returns: boolean
+      }
+      dev_status: { Args: never; Returns: Json }
+      drop_prompt: { Args: { p_region?: string }; Returns: Json }
+      get_gallery: { Args: { p_drop?: string }; Returns: Json }
       get_home_state: { Args: never; Returns: Json }
       get_latest_gallery: { Args: never; Returns: Json }
-      get_gallery: { Args: { p_drop?: string | null }; Returns: Json }
       get_matchup: { Args: never; Returns: Json }
-      cast_vote: { Args: { p_winner: string; p_loser: string; p_drop: string }; Returns: Json }
-      // dev time machine (beta-only, guarded server-side by config.beta_mode)
-      dev_force_drop: { Args: never; Returns: Json }
-      dev_seed_votes: { Args: never; Returns: Json }
-      dev_run_close_day: { Args: never; Returns: Json }
-      dev_reset_day: { Args: never; Returns: Json }
-      dev_status: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never

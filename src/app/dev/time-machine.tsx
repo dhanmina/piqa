@@ -13,20 +13,35 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { devForceDrop, devResetDay, devRunCloseDay, devSeedVotes, devStatus, type DevStatus } from '@lib/dev';
+import {
+  devAdvanceDay,
+  devBreakStreak,
+  devFillVoteCap,
+  devForceComeback,
+  devForceDrop,
+  devGrantXp,
+  devResetDay,
+  devRunCloseDay,
+  devSeedVotes,
+  devStatus,
+  type DevStatus,
+} from '@lib/dev';
+import { levelFromXp } from '@lib/xp';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
+import { Toggle } from '@/components/atoms/Toggle';
 import { displayFamily } from '@/components/fonts';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, space, typeScale } from '@/components/tokens';
 
-type Action = 'force' | 'seed' | 'close' | 'reset';
+type Action = 'force' | 'seed' | 'close' | 'reset' | 'advance' | 'xp' | 'break' | 'comeback' | 'fillcap';
 
 export default function TimeMachine() {
   const router = useRouter();
   const [status, setStatus] = useState<DevStatus | null>(null);
   const [busy, setBusy] = useState<Action | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [iShot, setIShot] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
@@ -63,6 +78,17 @@ export default function TimeMachine() {
     ['in gallery', status?.in_gallery],
     ['closed', status?.closed ? 'yes' : 'no'],
     ['PotD', status?.potd_shooter ?? '—'],
+    ['I shot today', status?.my_submitted == null ? null : status.my_submitted ? 'yes' : 'no'],
+    ['my votes', status?.my_votes],
+  ];
+
+  const level = status?.my_xp == null ? null : levelFromXp(status.my_xp);
+  const retentionRows: [string, string | number | boolean | null | undefined][] = [
+    ['xp / level', status?.my_xp == null ? null : `${status.my_xp} · Lv ${level}`],
+    ['streak weeks', status?.streak_weeks],
+    ['days this week', status?.days_this_week],
+    ['shields', status?.shields],
+    ['comeback', status?.comeback_pending == null ? null : status.comeback_pending ? 'pending' : 'no'],
   ];
 
   return (
@@ -90,6 +116,7 @@ export default function TimeMachine() {
           )}
         </View>
 
+        <Text style={styles.sectionLabel}>ONE DAY CYCLE</Text>
         <View style={styles.actions}>
           <Button
             label="① Force drop now"
@@ -126,6 +153,66 @@ export default function TimeMachine() {
           />
         </View>
 
+        <View style={styles.statusCard}>
+          {retentionRows.map(([k, v]) => (
+            <View key={k} style={styles.statusRow}>
+              <Mono size={typeScale.caption} color={colors.paper60}>
+                {k}
+              </Mono>
+              <Mono size={typeScale.caption} color={colors.paper}>
+                {v === undefined || v === null ? '—' : String(v)}
+              </Mono>
+            </View>
+          ))}
+        </View>
+
+        <Text style={styles.sectionLabel}>RETENTION · SIMULATE A WEEK</Text>
+        <View style={styles.actions}>
+          <View style={styles.toggleRow}>
+            <Toggle label="I shot today (counts toward streak)" value={iShot} onChange={setIShot} />
+          </View>
+          <Button
+            label="⏭ Advance day"
+            fullWidth
+            loading={busy === 'advance'}
+            onPress={() =>
+              void run(
+                'advance',
+                () => devAdvanceDay(iShot),
+                (r) => `Day ${r.drop_date ?? ''} live · I ${r.i_submitted ? 'shot' : 'skipped'}`,
+              )
+            }
+          />
+          <Button
+            label="Grant +200 XP"
+            variant="ghost"
+            fullWidth
+            loading={busy === 'xp'}
+            onPress={() => void run('xp', () => devGrantXp(200), (r) => `XP now ${r.xp ?? 0}`)}
+          />
+          <Button
+            label="Trigger streak break"
+            variant="ghost"
+            fullWidth
+            loading={busy === 'break'}
+            onPress={() => void run('break', devBreakStreak, () => 'Streak broken · shield spent')}
+          />
+          <Button
+            label="Force comeback state"
+            variant="ghost"
+            fullWidth
+            loading={busy === 'comeback'}
+            onPress={() => void run('comeback', devForceComeback, () => 'Comeback armed · next shot pays double')}
+          />
+          <Button
+            label="Fill vote cap"
+            variant="ghost"
+            fullWidth
+            loading={busy === 'fillcap'}
+            onPress={() => void run('fillcap', devFillVoteCap, (r) => `My votes ${r.my_votes ?? 0} / ${r.cap ?? 50}`)}
+          />
+        </View>
+
         <View style={styles.links}>
           <Button label="Refresh status" variant="text" onPress={() => void refresh()} />
           <Button label="Darkroom Kit →" variant="text" onPress={() => router.push('/dev/kit')} />
@@ -149,6 +236,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  sectionLabel: {
+    fontFamily: fonts.sansMedium,
+    fontSize: typeScale.caption,
+    color: colors.paper60,
+    letterSpacing: 0.5,
+    marginTop: 4,
+  },
   actions: { gap: 12 },
+  toggleRow: { paddingBottom: 2 },
   links: { gap: 4, alignItems: 'flex-start', paddingTop: 8 },
 });

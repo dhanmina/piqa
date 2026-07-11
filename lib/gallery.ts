@@ -166,7 +166,8 @@ export function useGallery(dropId: string | null) {
     async (alive: () => boolean) => {
       setLoading(true);
       try {
-        const { data: res, error } = await supabase.rpc("get_gallery", { p_drop: dropId });
+        // null (latest) → omit the arg so the RPC's `default null` applies.
+        const { data: res, error } = await supabase.rpc("get_gallery", { p_drop: dropId ?? undefined });
         if (error) throw error;
         const result = res as unknown as GetGalleryResult;
 

@@ -20,10 +20,30 @@ export type DevStatus = {
   in_gallery?: number;
   closed?: boolean;
   potd_shooter?: string | null;
+  // Phase 4 retention state
+  my_submitted?: boolean;
+  my_votes?: number;
+  my_xp?: number;
+  streak_weeks?: number;
+  days_this_week?: number;
+  shields?: number;
+  comeback_pending?: boolean;
 };
 
-async function call<T>(fn: "dev_force_drop" | "dev_seed_votes" | "dev_run_close_day" | "dev_reset_day" | "dev_status"): Promise<T> {
-  const { data, error } = await supabase.rpc(fn);
+type DevRpc =
+  | "dev_force_drop"
+  | "dev_seed_votes"
+  | "dev_run_close_day"
+  | "dev_reset_day"
+  | "dev_status"
+  | "dev_grant_xp"
+  | "dev_break_streak"
+  | "dev_force_comeback"
+  | "dev_fill_vote_cap"
+  | "dev_advance_day";
+
+async function call<T>(fn: DevRpc, args?: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.rpc(fn, args as never);
   if (error) throw new Error(error.message);
   return data as unknown as T;
 }
@@ -33,3 +53,12 @@ export const devSeedVotes = () => call<Record<string, unknown>>("dev_seed_votes"
 export const devRunCloseDay = () => call<Record<string, unknown>>("dev_run_close_day");
 export const devResetDay = () => call<Record<string, unknown>>("dev_reset_day");
 export const devStatus = () => call<DevStatus>("dev_status");
+
+// Phase 4 · Step 0 — retention levers (simulate a week of behaviour in minutes).
+export const devAdvanceDay = (iSubmitted: boolean) =>
+  call<Record<string, unknown>>("dev_advance_day", { p_i_submitted: iSubmitted });
+export const devGrantXp = (amount = 100) =>
+  call<Record<string, unknown>>("dev_grant_xp", { p_amount: amount });
+export const devBreakStreak = () => call<Record<string, unknown>>("dev_break_streak");
+export const devForceComeback = () => call<Record<string, unknown>>("dev_force_comeback");
+export const devFillVoteCap = () => call<Record<string, unknown>>("dev_fill_vote_cap");
