@@ -126,7 +126,7 @@ export default function TodayScreen() {
               label="Curate today’s shots"
               variant="ghost"
               fullWidth
-              onPress={() => router.push(`/vote?drop=${drop.id}`)}
+              onPress={() => router.push('/curate')}
             />
           </View>
         )}
@@ -151,7 +151,7 @@ export default function TodayScreen() {
               label="Curate today’s shots"
               variant="ghost"
               fullWidth
-              onPress={() => router.push(`/vote?drop=${drop.id}`)}
+              onPress={() => router.push('/curate')}
             />
           </View>
         )}
@@ -206,7 +206,7 @@ export default function TodayScreen() {
             <Button
               label="Curate today’s shots"
               variant="ghost"
-              onPress={() => router.push(`/vote?drop=${drop.id}`)}
+              onPress={() => router.push('/curate')}
               fullWidth
             />
           ) : (
@@ -244,6 +244,17 @@ export default function TodayScreen() {
           </Mono>
         </View>
         {body}
+        {__DEV__ && (
+          <Pressable
+            accessibilityRole="button"
+            style={styles.devLink}
+            onPress={() => router.push('/dev/time-machine')}
+          >
+            <Mono size={typeScale.caption} color={colors.paper30}>
+              dev · time machine
+            </Mono>
+          </Pressable>
+        )}
       </ScrollView>
       <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} />
     </SafeAreaView>
@@ -338,5 +349,10 @@ const styles = StyleSheet.create({
   },
   actionBlock: {
     gap: 10,
+  },
+  devLink: {
+    alignItems: 'center',
+    paddingTop: space.gutter,
+    paddingBottom: 4,
   },
 });

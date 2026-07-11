@@ -1,6 +1,6 @@
 import { Crown } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
@@ -17,12 +17,19 @@ export type GalleryPhoto = {
   isPotd?: boolean;
   /** Shooter name — shown only on the PotD cover (appreciation is signed). */
   shooter?: string;
+  /** Owner id — lets the morning reveal single out the viewer's own tile. */
+  userId?: string;
 };
 
 type GalleryGridProps = {
   photos: GalleryPhoto[];
   /** Stagger tiles in — first reveal only, never on re-visits. */
   reveal?: boolean;
+  /** Gold eyebrow above the PotD cover, e.g. "PHOTO OF THE DAY · JUL 11". */
+  potdLabel?: string;
+  /** During a reveal, the viewer's own tile enters last with gold brackets. */
+  highlightUserId?: string;
+  onPress?: (photo: GalleryPhoto) => void;
 };
 
 /**
@@ -30,33 +37,62 @@ type GalleryGridProps = {
  * then an unnumbered 2-col grid. Finite by construction — galleries are bounded,
  * so this renders a plain wrapped grid, never an infinite list.
  */
-export function GalleryGrid({ photos, reveal = false }: GalleryGridProps) {
+export function GalleryGrid({ photos, reveal = false, potdLabel, highlightUserId, onPress }: GalleryGridProps) {
   const potd = photos.find((p) => p.isPotd);
-  const rest = photos.filter((p) => !p.isPotd);
+  let rest = photos.filter((p) => !p.isPotd);
 
-  const tile = (photo: GalleryPhoto, i: number, child: ReactNode) =>
-    reveal ? (
-      <Animated.View
-        key={photo.id}
-        entering={FadeInUp.duration(300).delay(i * motion.revealStaggerMs)}
-        style={styles.cell}
-      >
+  // Reveal choreography: the viewer's own tile enters LAST, framed in gold.
+  const ownIdx = highlightUserId ? rest.findIndex((p) => p.userId === highlightUserId) : -1;
+  if (reveal && ownIdx >= 0) {
+    const [own] = rest.splice(ownIdx, 1);
+    rest = [...rest, own];
+  }
+
+  const wrap = (photo: GalleryPhoto, child: ReactNode) =>
+    onPress ? (
+      <Pressable accessibilityRole="button" onPress={() => onPress(photo)}>
         {child}
+      </Pressable>
+    ) : (
+      <>{child}</>
+    );
+
+  const tile = (photo: GalleryPhoto, i: number, isOwn: boolean) => {
+    const inner = isOwn ? (
+      <Brackets color={colors.crown}>
+        <PhotoTile uri={photo.uri} hearts={photo.hearts} aspectRatio={1} />
+      </Brackets>
+    ) : (
+      <PhotoTile uri={photo.uri} hearts={photo.hearts} aspectRatio={1} />
+    );
+    const body = wrap(photo, inner);
+    return reveal ? (
+      <Animated.View key={photo.id} entering={FadeInUp.duration(300).delay(i * motion.revealStaggerMs)} style={styles.cell}>
+        {body}
       </Animated.View>
     ) : (
       <View key={photo.id} style={styles.cell}>
-        {child}
+        {body}
       </View>
     );
+  };
 
   return (
     <View style={styles.container}>
       {potd && (
         <View style={styles.potdBlock}>
-          <Brackets color={colors.crown}>
-            {/* hearts stay out of the bracket frame — they join the caption row */}
-            <PhotoTile uri={potd.uri} aspectRatio={1} />
-          </Brackets>
+          {potdLabel && (
+            <Mono size={typeScale.caption} color={colors.crown} weight="medium">
+              {potdLabel}
+            </Mono>
+          )}
+          {wrap(
+            potd,
+            <Brackets color={colors.crown}>
+              {/* hearts stay out of the bracket frame — they join the caption row */}
+              <PhotoTile uri={potd.uri} aspectRatio={1} />
+            </Brackets>,
+          )}
           <View style={styles.potdCaption}>
             <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
             {potd.shooter && <Text style={styles.shooter}>{potd.shooter}</Text>}
@@ -69,11 +105,7 @@ export function GalleryGrid({ photos, reveal = false }: GalleryGridProps) {
           </View>
         </View>
       )}
-      <View style={styles.grid}>
-        {rest.map((photo, i) =>
-          tile(photo, i, <PhotoTile uri={photo.uri} hearts={photo.hearts} aspectRatio={1} />),
-        )}
-      </View>
+      <View style={styles.grid}>{rest.map((photo, i) => tile(photo, i, reveal && ownIdx >= 0 && i === rest.length - 1))}</View>
     </View>
   );
 }
@@ -85,6 +117,7 @@ const styles = StyleSheet.create({
   potdBlock: {
     alignItems: 'stretch',
     marginBottom: 4,
+    gap: 8,
   },
   potdCaption: {
     flexDirection: 'row',

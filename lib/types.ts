@@ -477,6 +477,15 @@ export type Database = {
     Functions: {
       get_home_state: { Args: never; Returns: Json }
       get_latest_gallery: { Args: never; Returns: Json }
+      get_gallery: { Args: { p_drop?: string | null }; Returns: Json }
+      get_matchup: { Args: never; Returns: Json }
+      cast_vote: { Args: { p_winner: string; p_loser: string; p_drop: string }; Returns: Json }
+      // dev time machine (beta-only, guarded server-side by config.beta_mode)
+      dev_force_drop: { Args: never; Returns: Json }
+      dev_seed_votes: { Args: never; Returns: Json }
+      dev_run_close_day: { Args: never; Returns: Json }
+      dev_reset_day: { Args: never; Returns: Json }
+      dev_status: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never

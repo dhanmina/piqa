@@ -1,25 +1,129 @@
 /**
- * Gallery (Phase 2 subset) — never blank. Shows the most recent revealed
- * gallery, or the seed house-account gallery as a fallback with "The first
- * galleries are rolling in." Full World/Following + past galleries land in Phase 3.
+ * Gallery — the ONLY sub-tabs in the app: World · Following (spec §11c).
+ * World reads a materialized JSON blob (never a live query for the day's
+ * photos): date + prompt → PotD full-width cover (gold brackets, crown, gold
+ * eyebrow, shooter) → unnumbered 2-col grid → end card (past back-issues ·
+ * what's live · tomorrow teaser). First open plays the morning reveal once; if
+ * my shot made it, my tile enters last in gold brackets. Past galleries are
+ * immutable and re-open identically. Following is a pull surface — invitation
+ * until Profile/Follow lands in Phase 4.
  */
-import { Image as ImageIcon } from 'lucide-react-native';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Image as ImageIcon, Users } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useLatestGallery } from '@lib/gallery';
+import {
+  isRevealSeen,
+  markRevealSeen,
+  useGallery,
+  type GalleryDetailPhoto,
+} from '@lib/gallery';
+import { useSession } from '@lib/session';
+import { Button } from '@/components/atoms/Button';
+import { Countdown } from '@/components/atoms/Countdown';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { EmptyState } from '@/components/molecules/EmptyState';
-import { GalleryGrid } from '@/components/molecules/GalleryGrid';
+import { GalleryGrid, type GalleryPhoto } from '@/components/molecules/GalleryGrid';
 import { colors, fonts, space, typeScale } from '@/components/tokens';
 
-export default function GalleryScreen() {
-  const { data, loading } = useLatestGallery();
+const shortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
 
-  if (loading) {
+const longDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+export default function GalleryScreen() {
+  const router = useRouter();
+  const { session } = useSession();
+  const myId = session?.user.id;
+
+  const [tab, setTab] = useState<'world' | 'following'>('world');
+  const [selectedDropId, setSelectedDropId] = useState<string | null>(null);
+  const [showPast, setShowPast] = useState(false);
+
+  const { data, loading } = useGallery(selectedDropId);
+
+  // Reveal decision must be settled BEFORE the grid mounts (entering animations
+  // only fire on mount). Gate the grid on `ready`.
+  const [reveal, setReveal] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    setReady(false);
+    const d = data?.drop;
+    if (!d) {
+      if (data) setReady(true);
+      return;
+    }
+    // Only the latest, real (non-seed) gallery gets the one-time reveal.
+    if (selectedDropId !== null || data.isSeed) {
+      setReveal(false);
+      setReady(true);
+      return;
+    }
+    void isRevealSeen(d.id).then((seen) => {
+      if (!alive) return;
+      setReveal(!seen);
+      if (!seen) void markRevealSeen(d.id);
+      setReady(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [data, selectedDropId]);
+
+  const openPhoto = (p: GalleryPhoto) => {
+    const full = data?.photos.find((x) => x.id === p.id) as GalleryDetailPhoto | undefined;
+    router.push({
+      pathname: '/photo/[id]',
+      params: {
+        id: p.id,
+        path: full?.imagePath ?? full?.thumbPath ?? '',
+        shooter: full?.shooter ?? '',
+        hearts: String(full?.hearts ?? 0),
+        captured: full?.capturedAt ?? '',
+        potd: full?.isPotd ? '1' : '',
+      },
+    });
+  };
+
+  const segmented = (
+    <View style={styles.segmented}>
+      {(['world', 'following'] as const).map((t) => (
+        <Pressable key={t} accessibilityRole="button" style={styles.segment} onPress={() => setTab(t)}>
+          <Text style={[styles.segmentLabel, tab === t ? styles.segmentActive : styles.segmentInactive]}>
+            {t === 'world' ? 'World' : 'Following'}
+          </Text>
+          <View style={[styles.segmentBar, tab === t && styles.segmentBarActive]} />
+        </Pressable>
+      ))}
+    </View>
+  );
+
+  if (tab === 'following') {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
+        {segmented}
+        <View style={styles.center}>
+          <EmptyState
+            icon={Users}
+            line="Follow shooters and their winning galleries land here"
+            ctaLabel="Explore World"
+            onCta={() => setTab('world')}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loading || !ready) {
+    return (
+      <SafeAreaView style={styles.root} edges={['top']}>
+        {segmented}
         <View style={styles.skeleton} />
       </SafeAreaView>
     );
@@ -28,6 +132,7 @@ export default function GalleryScreen() {
   if (!data?.drop || data.photos.length === 0) {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
+        {segmented}
         <View style={styles.center}>
           <EmptyState icon={ImageIcon} line="The first galleries are rolling in." />
         </View>
@@ -35,58 +140,123 @@ export default function GalleryScreen() {
     );
   }
 
-  const dateLine = new Date(data.drop.drop_date).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
+  const viewingPast = selectedDropId !== null;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
+      {segmented}
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Mono size={typeScale.caption} color={colors.paper60}>
-            {dateLine}
-          </Mono>
+          <View style={styles.headerRow}>
+            <Mono size={typeScale.caption} color={colors.paper60}>
+              {longDate(data.drop.drop_date)}
+            </Mono>
+            {viewingPast && (
+              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setSelectedDropId(null)}>
+                <Mono size={typeScale.caption} color={colors.safelight}>
+                  ← Latest
+                </Mono>
+              </Pressable>
+            )}
+          </View>
           {data.drop.prompt && <Text style={styles.prompt}>{data.drop.prompt}</Text>}
           {data.isSeed && <Text style={styles.rollingIn}>The first galleries are rolling in.</Text>}
         </View>
-        <GalleryGrid photos={data.photos} />
+
+        <GalleryGrid
+          key={`${data.drop.id}:${reveal}`}
+          photos={data.photos}
+          reveal={reveal}
+          potdLabel={`PHOTO OF THE DAY · ${shortDate(data.drop.drop_date)}`}
+          highlightUserId={myId}
+          onPress={openPhoto}
+        />
+
+        {/* End card — the real bottom of the magazine (spec §11c). */}
+        <View style={styles.endCard}>
+          <View style={styles.rule} />
+
+          {data.past.length > 0 && (
+            <>
+              <Button
+                label={showPast ? 'Hide past galleries' : 'View past galleries'}
+                variant="ghost"
+                fullWidth
+                onPress={() => setShowPast((s) => !s)}
+              />
+              {showPast &&
+                data.past.map((g) => (
+                  <Pressable
+                    key={g.drop_id}
+                    accessibilityRole="button"
+                    style={styles.pastRow}
+                    onPress={() => {
+                      setSelectedDropId(g.drop_id);
+                      setShowPast(false);
+                    }}
+                  >
+                    <Mono size={typeScale.caption} color={colors.paper60}>
+                      {shortDate(g.drop_date)}
+                    </Mono>
+                    <Text style={styles.pastPrompt} numberOfLines={1}>
+                      {g.prompt ?? '—'}
+                    </Text>
+                  </Pressable>
+                ))}
+            </>
+          )}
+
+          <View style={styles.teaser}>
+            {data.nextDropAt ? (
+              <>
+                <Mono size={typeScale.caption} color={colors.paper60}>
+                  NEXT SHOT IN
+                </Mono>
+                <Countdown until={data.nextDropAt} size={typeScale.title} />
+              </>
+            ) : (
+              <Text style={styles.teaserSoft}>Tomorrow’s shot is loading</Text>
+            )}
+            <Button label="See what’s live →" variant="text" onPress={() => router.push('/(tabs)/today')} />
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.ink,
+  root: { flex: 1, backgroundColor: colors.ink },
+  content: { padding: space.gutter, gap: space.gutter, paddingBottom: 48 },
+  segmented: {
+    flexDirection: 'row',
+    paddingHorizontal: space.gutter,
+    paddingTop: 8,
+    gap: 24,
   },
-  content: {
-    padding: space.gutter,
-    gap: space.gutter,
+  segment: { alignItems: 'center', gap: 6 },
+  segmentLabel: { fontSize: typeScale.sub },
+  segmentActive: { fontFamily: fonts.sansMedium, color: colors.paper },
+  segmentInactive: { fontFamily: fonts.sans, color: colors.paper60 },
+  segmentBar: { height: 2, width: 20, backgroundColor: 'transparent', borderRadius: 1 },
+  segmentBarActive: { backgroundColor: colors.safelight },
+  header: { gap: 6 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  prompt: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper },
+  rollingIn: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
+  center: { flex: 1, justifyContent: 'center' },
+  skeleton: { flex: 1, margin: space.gutter, borderRadius: 12, backgroundColor: colors.ink2 },
+  endCard: { gap: 14 },
+  rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginTop: 8 },
+  pastRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.ink2,
   },
-  header: {
-    gap: 6,
-  },
-  prompt: {
-    fontFamily: displayFamily,
-    fontSize: typeScale.title,
-    color: colors.paper,
-  },
-  rollingIn: {
-    fontFamily: fonts.sans,
-    fontSize: typeScale.sub,
-    color: colors.paper60,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  skeleton: {
-    flex: 1,
-    margin: space.gutter,
-    borderRadius: 12,
-    backgroundColor: colors.ink2,
-  },
+  pastPrompt: { flex: 1, fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper },
+  teaser: { alignItems: 'center', gap: 6, paddingTop: 8 },
+  teaserSoft: { fontFamily: displayFamily, fontSize: typeScale.sub, color: colors.paper60 },
 });

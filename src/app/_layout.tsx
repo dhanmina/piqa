@@ -32,7 +32,10 @@ function RootNavigator() {
           name="camera"
           options={{ presentation: 'fullScreenModal', animation: 'fade' }}
         />
-        <Stack.Screen name="vote" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="curate" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="photo/[id]" options={{ presentation: 'modal' }} />
+        {__DEV__ && <Stack.Screen name="dev/time-machine" />}
+        {__DEV__ && <Stack.Screen name="dev/kit" />}
       </Stack.Protected>
     </Stack>
   );
