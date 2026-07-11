@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "piqa",
+    "slug": "piqa",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "piqa",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#141210",
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#141210",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.piqa"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Piqa needs the camera — every photo is shot in-app, today."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#141210",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

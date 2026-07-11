@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<rect width="1200" height="630" fill="#141210"/><g transform="translate(158.0,253.0) scale(0.62)"><g stroke="#F2EDE4" fill="none" stroke-width="18" stroke-linecap="round">
+<path d="M20 52 L20 20 L52 20"/>
+<path d="M148 20 L180 20 L180 52"/>
+<path d="M20 148 L20 180 L52 180"/>
+</g>
+<circle cx="166" cy="166" r="22" fill="#FF5A36"/></g><text x="330" y="352" font-family="Clash Display, sans-serif" font-weight="600" font-size="120" letter-spacing="-3" fill="#F2EDE4">piqa</text><text x="336" y="432" font-family="Clash Display, sans-serif" font-weight="500" font-size="34" fill="#F2EDE4" opacity="0.65">One shot. Every day.</text>
+</svg>
