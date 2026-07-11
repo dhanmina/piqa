@@ -50,16 +50,15 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      if (__DEV__) {
-        console.log(
-          '[fonts] useFonts loaded:', fontsLoaded,
-          '| error:', fontError ?? null,
-          '| ClashDisplay-Semibold registered:', Font.isLoaded(fonts.display),
-        );
-      }
-      SplashScreen.hideAsync();
+    if (!fontsLoaded && !fontError) return;
+
+    if (fontError) {
+      console.warn('[fonts] bundled fonts failed to load:', fontError);
+    } else if (__DEV__ && !Font.isLoaded(fonts.display)) {
+      console.log(`[fonts] ${fonts.display} not bundled — display text falls back to ${fonts.displayFallback}`);
     }
+
+    SplashScreen.hideAsync();
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) {
