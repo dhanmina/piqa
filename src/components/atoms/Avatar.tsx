@@ -9,13 +9,15 @@ type AvatarProps = {
   username: string;
   size?: number;
   /** Cosmetic frame = a simple ring; frames are config, not art. */
-  frameColor?: string;
+  frameColor?: string | null;
+  /** Ring thickness for the equipped frame (defaults to 2). */
+  frameWidth?: number;
 };
 
-export function Avatar({ uri, username, size = 40, frameColor }: AvatarProps) {
+export function Avatar({ uri, username, size = 40, frameColor, frameWidth = 2 }: AvatarProps) {
   const initials = username.slice(0, 2).toUpperCase();
   const ring = frameColor
-    ? { borderWidth: 2, borderColor: frameColor, padding: 2 }
+    ? { borderWidth: frameWidth, borderColor: frameColor, padding: 2 }
     : null;
 
   return (

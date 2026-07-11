@@ -9,8 +9,9 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { frameForLevel, titleForLevel } from '@lib/cosmetics';
 import { supabase } from '@lib/supabase';
-import { levelFromXp } from '@lib/xp';
+import { levelProgress } from '@lib/xp';
 import { Avatar } from '@/components/atoms/Avatar';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
@@ -64,20 +65,40 @@ export default function ProfileScreen() {
     }, []),
   );
 
-  const level = profile ? levelFromXp(profile.xp) : 1;
+  const prog = levelProgress(profile?.xp ?? 0);
+  const frame = frameForLevel(prog.level);
+  const title = titleForLevel(prog.level);
+  const xpPct = prog.toNext > 0 ? Math.min(100, (prog.into / prog.toNext) * 100) : 0;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.identity}>
-          <Avatar username={profile?.username ?? '·'} uri={profile?.avatar_url} size={72} />
+          <Avatar
+            username={profile?.username ?? '·'}
+            uri={profile?.avatar_url}
+            size={72}
+            frameColor={frame.color}
+            frameWidth={frame.width}
+          />
           <Text style={styles.username}>{profile?.username ?? ' '}</Text>
           <View style={styles.levelRow}>
-            <Text style={styles.title}>Shutterbug</Text>
+            <Text style={styles.title}>{title}</Text>
             <Mono size={typeScale.caption} color={colors.paper60}>
-              LV {level}
+              LV {prog.level}
             </Mono>
           </View>
+          {/* Quiet-mode XP: shown here (and, later, the morning reveal) only. */}
+          {!prog.atMax && (
+            <View style={styles.xpWrap}>
+              <View style={styles.xpTrack}>
+                <View style={[styles.xpFill, { width: `${xpPct}%` }]} />
+              </View>
+              <Mono size={typeScale.caption} color={colors.paper60}>
+                {prog.into} / {prog.toNext} XP
+              </Mono>
+            </View>
+          )}
         </View>
 
         <View style={styles.statStrip}>
@@ -139,6 +160,24 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: typeScale.sub,
     color: colors.paper60,
+  },
+  xpWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 4,
+  },
+  xpTrack: {
+    width: 120,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.ink2,
+    overflow: 'hidden',
+  },
+  xpFill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.safelight,
   },
   statStrip: {
     flexDirection: 'row',
