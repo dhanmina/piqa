@@ -107,8 +107,8 @@ select
   md5('piqa-seed-submission-' || i)::uuid,
   d.id,
   md5('piqa-seed-user-' || i)::uuid,
-  d.id::text || '/' || md5('piqa-seed-user-' || i) || '.jpg',
-  d.id::text || '/' || md5('piqa-seed-user-' || i) || '_thumb.jpg',
+  d.id::text || '/' || (md5('piqa-seed-user-' || i)::uuid)::text || '.jpg',
+  d.id::text || '/' || (md5('piqa-seed-user-' || i)::uuid)::text || '_thumb.jpg',
   d.drops_at + make_interval(mins => mins.m),
   1000 + (vc.v - 12) * 15 + floor(random() * 80 - 40)::int,
   vc.v,
@@ -118,4 +118,65 @@ cross join lateral (select id, drops_at from public.prompt_drops
                     where id = md5('piqa-seed-drop-1')::uuid) d
 cross join lateral (select (4 + floor(random() * 18))::int as v) vc
 cross join lateral (select (3 + floor(random() * 167))::int as m) mins
+on conflict (drop_id, user_id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Yesterday's REVEALED gallery — gives Today's waiting state a "Yesterday's
+-- winner" card and the Gallery tab a non-blank zero state before close-day
+-- exists (Phase 3). House accounts (i<=4) score highest so liwanag takes PotD;
+-- top 10 by votes are flagged in_gallery, #1 is is_potd.
+-- ---------------------------------------------------------------------------
+insert into public.prompts (id, text, category, used_at)
+values (
+  md5('piqa-seed-prompt-0')::uuid,
+  'The color of morning',
+  'light',
+  ((now() at time zone 'Asia/Manila')::date - 1)
+)
+on conflict (id) do nothing;
+
+insert into public.prompt_drops
+  (id, prompt_id, region, drop_date, drops_at, submit_closes_at, voting_closes_at, status)
+select
+  md5('piqa-seed-ydrop-1')::uuid,
+  md5('piqa-seed-prompt-0')::uuid,
+  'BETA',
+  d - 1,
+  (((d - 1) + time '19:00') at time zone 'Asia/Manila'),
+  ((d + time '00:00') at time zone 'Asia/Manila'),
+  ((d + time '08:00') at time zone 'Asia/Manila'),
+  'revealed'
+from (select (now() at time zone 'Asia/Manila')::date as d) t
+on conflict (region, drop_date) do nothing;
+
+insert into public.submissions
+  (id, drop_id, user_id, image_path, thumb_path, captured_at,
+   rating, bt_score, vote_count, reaction_count, in_gallery, is_potd, quick_draw)
+with base as (
+  select
+    i,
+    md5('piqa-seed-user-' || i)::uuid as uid,
+    case when i <= 4 then 30 - i else 4 + ((i * 7) % 13) end as vc
+  from generate_series(1, 30) as i
+),
+ranked as (
+  select base.*, row_number() over (order by vc desc, i) as rnk from base
+)
+select
+  md5('piqa-seed-ysub-' || r.i)::uuid,
+  yd.id,
+  r.uid,
+  yd.id::text || '/' || (md5('piqa-seed-user-' || r.i)::uuid)::text || '.jpg',
+  yd.id::text || '/' || (md5('piqa-seed-user-' || r.i)::uuid)::text || '_thumb.jpg',
+  yd.drops_at + make_interval(mins => (r.i * 11) % 300),
+  1000 + (r.vc - 12) * 15,
+  (r.vc::float8) / (r.vc + 5),
+  r.vc,
+  r.vc % 4,
+  r.rnk <= 10,
+  r.rnk = 1,
+  false
+from ranked r
+cross join (select id, drops_at from public.prompt_drops
+            where id = md5('piqa-seed-ydrop-1')::uuid) yd
 on conflict (drop_id, user_id) do nothing;

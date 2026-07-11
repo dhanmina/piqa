@@ -1,22 +1,26 @@
-// Placeholder — the month-grouped private journal ships in Phase 4.
+/**
+ * Curating — placeholder. The blind head-to-head voting screen (get-matchup
+ * sets of 10, tap-to-pick) is built in Phase 3. Framed as anticipation, never
+ * a dead end: the door is open, the room is being built.
+ */
 import { useRouter } from 'expo-router';
-import { BookImage } from 'lucide-react-native';
+import { Aperture } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { colors } from '@/components/tokens';
 
-export default function ArchiveScreen() {
+export default function VoteScreen() {
   const router = useRouter();
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
+    <SafeAreaView style={styles.root}>
       <View style={styles.center}>
         <EmptyState
-          icon={BookImage}
-          line="Your journal starts with one shot"
-          ctaLabel="Take a practice shot"
-          onCta={() => router.push('/camera?practice=1')}
+          icon={Aperture}
+          line="Curating opens with the next update — your picks will shape the gallery"
+          ctaLabel="Back to Today"
+          onCta={() => router.back()}
         />
       </View>
     </SafeAreaView>

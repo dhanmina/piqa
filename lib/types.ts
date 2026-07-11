@@ -476,6 +476,7 @@ export type Database = {
     }
     Functions: {
       get_home_state: { Args: never; Returns: Json }
+      get_latest_gallery: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never

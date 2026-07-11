@@ -19,9 +19,18 @@ export type HomeSubmission = {
   image_path: string | null;
   thumb_path: string | null;
   vote_count: number;
+  reaction_count: number;
   quick_draw: boolean;
   in_gallery: boolean;
   is_potd: boolean;
+};
+
+export type YesterdayPotd = {
+  submission_id: string;
+  drop_id: string;
+  thumb_path: string | null;
+  hearts: number;
+  shooter: string;
 };
 
 export type HomeStreak = {
@@ -31,8 +40,12 @@ export type HomeStreak = {
 };
 
 export type HomeState = {
+  /** Active cycle drop (submit window through 8am voting tail), or null. */
   drop: HomeDrop | null;
+  /** Countdown target for the waiting state; null when nothing is scheduled. */
+  next_drop_at: string | null;
   submission: HomeSubmission | null;
+  yesterday_potd: YesterdayPotd | null;
   streak: HomeStreak | null;
 };
 

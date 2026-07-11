@@ -7,7 +7,7 @@
 import { CameraView, useCameraPermissions, type CameraType, type FlashMode } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera as CameraIcon, SwitchCamera, X, Zap, ZapOff } from 'lucide-react-native';
 import { useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -38,6 +38,10 @@ export default function CameraScreen() {
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const { data } = useHomeState();
+  // Practice mode (from Today's "while you wait" / Archive CTA): always a
+  // free shot to the archive, even if a drop is live. Same offline queue.
+  const { practice } = useLocalSearchParams<{ practice?: string }>();
+  const practiceMode = practice === '1';
 
   const [facing, setFacing] = useState<CameraType>('back');
   const [flash, setFlash] = useState<FlashMode>('off');
@@ -46,7 +50,7 @@ export default function CameraScreen() {
   const [toast, setToast] = useState<string | null>(null);
 
   const drop = data?.drop ?? null;
-  const live = Boolean(drop?.is_live) && !data?.submission;
+  const live = !practiceMode && Boolean(drop?.is_live) && !data?.submission;
   // Default ON during the live window, OFF otherwise → archive (free_shots).
   const [submitDaily, setSubmitDaily] = useState<boolean | null>(null);
   const submitAsDaily = submitDaily ?? live;

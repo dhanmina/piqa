@@ -32,6 +32,7 @@ function RootNavigator() {
           name="camera"
           options={{ presentation: 'fullScreenModal', animation: 'fade' }}
         />
+        <Stack.Screen name="vote" options={{ presentation: 'modal' }} />
       </Stack.Protected>
     </Stack>
   );

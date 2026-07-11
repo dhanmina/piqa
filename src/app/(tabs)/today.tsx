@@ -1,49 +1,31 @@
 /**
- * Today — a state machine, no sub-tabs (spec §11c, v1 subset):
- *   no drop   → teaser + free-shooting invitation
- *   live      → ShotCard (prompt, mono countdown, the one Primary)
- *   submitted → bracket-framed shot + queue status line
- * The offline queue drives the status line: connectivity is NEVER an error.
+ * Today — a state machine, no sub-tabs (spec §11c). Three shapes:
+ *   (a) no live drop  → WAITING: countdown to next drop + yesterday's winner +
+ *                        one "while you wait" action (curate or practice shot)
+ *   (b) live, unsubmitted → ShotCard
+ *   (c) submitted     → bracket-framed shot + queue status line
+ * Empty is never absence: the waiting state is anticipation, per spec law.
  */
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Aperture } from 'lucide-react-native';
+import { Crown } from 'lucide-react-native';
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getPendingItemForDrop, retryBlocked, subscribeQueue, type QueueItem } from '@lib/captureQueue';
+import { useSignedThumb } from '@lib/gallery';
 import { useHomeState } from '@lib/homeState';
-import { supabase } from '@lib/supabase';
 import { Button } from '@/components/atoms/Button';
+import { Countdown } from '@/components/atoms/Countdown';
+import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { Mono } from '@/components/atoms/Mono';
 import { StreakFlame } from '@/components/atoms/StreakFlame';
+import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
-import { EmptyState } from '@/components/molecules/EmptyState';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { ShotCard } from '@/components/molecules/ShotCard';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, space, typeScale } from '@/components/tokens';
-
-function useSignedThumb(path: string | null | undefined) {
-  const [uri, setUri] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    if (!path) {
-      setUri(null);
-      return;
-    }
-    supabase.storage
-      .from('submissions')
-      .createSignedUrl(path, 3600)
-      .then(({ data }) => {
-        if (alive && data) setUri(data.signedUrl);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [path]);
-  return uri;
-}
+import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -56,15 +38,9 @@ export default function TodayScreen() {
     () =>
       subscribeQueue((event) => {
         setQueueTick((t) => t + 1);
-        if (event.type === 'blocked') {
-          setToast('Upload hit a wall — tap Retry below');
-        }
-        if (event.type === 'duplicate') {
-          setToast('Already submitted for today');
-        }
-        if (event.type === 'done' && event.item.kind === 'daily') {
-          setToast('In the running ✓');
-        }
+        if (event.type === 'blocked') setToast('Upload hit a wall — tap Retry below');
+        if (event.type === 'duplicate') setToast('Already submitted for today');
+        if (event.type === 'done' && event.item.kind === 'daily') setToast('In the running ✓');
       }),
     [],
   );
@@ -78,8 +54,14 @@ export default function TodayScreen() {
   const drop = data?.drop ?? null;
   const submission = data?.submission ?? null;
   const streak = data?.streak ?? null;
+  const potd = data?.yesterday_potd ?? null;
   const pending: QueueItem | undefined = drop ? getPendingItemForDrop(drop.id) : undefined;
-  const signedThumb = useSignedThumb(!pending ? submission?.thumb_path : null);
+  const signedSubThumb = useSignedThumb(!pending ? submission?.thumb_path : null);
+  const signedPotdThumb = useSignedThumb(potd?.thumb_path);
+
+  const submitted = Boolean(submission || pending);
+  const votingOpen = Boolean(drop) && Date.now() < Date.parse(drop!.voting_closes_at);
+  const brandNew = (streak?.current_weeks ?? 0) === 0 && (streak?.days_this_week ?? 0) === 0;
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -96,8 +78,8 @@ export default function TodayScreen() {
   let body: ReactElement;
   if (loading) {
     body = <View style={styles.skeletonCard} />;
-  } else if (drop && (submission || pending)) {
-    // SUBMITTED — bracket-framed shot; the print is the hero.
+  } else if (submitted) {
+    // (c) SUBMITTED — the print is the hero; status comes from the queue.
     const queued = pending?.lastErrorKind === 'network';
     const blocked = pending?.status === 'blocked';
     const statusLine = submission
@@ -109,9 +91,9 @@ export default function TodayScreen() {
           : 'Shot saved ✓ — uploading';
     body = (
       <View style={styles.submittedWrap}>
-        <Brackets color={colors.paper} style={styles.submittedBrackets}>
+        <Brackets color={colors.paper} style={styles.stretch}>
           <PhotoTile
-            uri={pending?.originalUri ?? signedThumb}
+            uri={pending?.originalUri ?? signedSubThumb}
             badge={queued || blocked ? 'queued' : undefined}
             aspectRatio={3 / 4}
           />
@@ -123,13 +105,13 @@ export default function TodayScreen() {
           </Mono>
         )}
         {blocked && <Button label="Retry upload" variant="ghost" onPress={() => void retryBlocked()} />}
-        {!blocked && drop.is_live && (
+        {!blocked && drop?.is_live && (
           <Text style={styles.subNote}>Curators are already picking — results at 9am</Text>
         )}
       </View>
     );
   } else if (drop?.is_live) {
-    // LIVE — the loudest composition, the one Primary on this screen.
+    // (b) LIVE — the loudest composition, the one Primary on this screen.
     body = (
       <ShotCard
         prompt={drop.prompt}
@@ -138,19 +120,64 @@ export default function TodayScreen() {
       />
     );
   } else {
-    // NO DROP (or window closed without a submission) — invitation, not absence.
+    // (a) WAITING — anticipation, never absence.
     body = (
-      <View style={styles.teaserWrap}>
-        <EmptyState
-          icon={Aperture}
-          line={
-            drop
-              ? 'Today’s window has closed — tomorrow’s Shot is coming'
-              : 'Today’s Shot hasn’t dropped yet — the camera never closes'
-          }
-          ctaLabel="Free shooting"
-          onCta={() => router.push('/camera')}
-        />
+      <View style={styles.waitingWrap}>
+        <View style={styles.countdownBlock}>
+          <Mono size={typeScale.caption} color={colors.paper60}>
+            NEXT SHOT IN
+          </Mono>
+          {data?.next_drop_at ? (
+            <Countdown until={data.next_drop_at} size={typeScale.display} onDone={() => void refresh()} />
+          ) : (
+            <Text style={styles.softLine}>Next shot drops soon</Text>
+          )}
+        </View>
+
+        {potd && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="View yesterday's winning gallery"
+            onPress={() => router.push('/(tabs)/gallery')}
+          >
+            <Mono size={typeScale.caption} color={colors.paper60}>
+              YESTERDAY’S WINNER
+            </Mono>
+            <View style={styles.potdSpacer} />
+            <Brackets color={colors.crown} style={styles.stretch}>
+              <PhotoTile uri={signedPotdThumb} aspectRatio={3 / 4} />
+            </Brackets>
+            <View style={styles.potdCaption}>
+              <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
+              <Text style={styles.shooter}>{potd.shooter}</Text>
+              <View style={styles.potdHearts}>
+                <HeartGlyph size={13} color={colors.paper60} strokeWidth={2} />
+                <Mono size={typeScale.caption} color={colors.paper60}>
+                  {potd.hearts}
+                </Mono>
+              </View>
+            </View>
+          </Pressable>
+        )}
+
+        <View style={styles.actionBlock}>
+          <Mono size={typeScale.caption} color={colors.paper60}>
+            WHILE YOU WAIT
+          </Mono>
+          {votingOpen && drop ? (
+            <Button
+              label="Curate today’s shots"
+              variant="ghost"
+              onPress={() => router.push(`/vote?drop=${drop.id}`)}
+            />
+          ) : (
+            <Button
+              label="Take a practice shot"
+              variant="ghost"
+              onPress={() => router.push('/camera?practice=1')}
+            />
+          )}
+        </View>
       </View>
     );
   }
@@ -164,11 +191,14 @@ export default function TodayScreen() {
         }
       >
         <View style={styles.header}>
-          <StreakFlame
-            weeks={streak?.current_weeks ?? 0}
-            daysThisWeek={streak?.days_this_week ?? 0}
-            alive={(streak?.current_weeks ?? 0) > 0 || (streak?.days_this_week ?? 0) > 0}
-          />
+          <View style={styles.headerLeft}>
+            <StreakFlame
+              weeks={streak?.current_weeks ?? 0}
+              daysThisWeek={streak?.days_this_week ?? 0}
+              alive={!brandNew}
+            />
+            {brandNew && <Text style={styles.dayZero}>Day 0 — your first shot starts it</Text>}
+          </View>
           <Mono size={typeScale.caption} color={colors.paper60}>
             {dateLine}
           </Mono>
@@ -191,21 +221,29 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     minHeight: 32,
+  },
+  headerLeft: {
+    gap: 6,
+  },
+  dayZero: {
+    fontFamily: fonts.sans,
+    fontSize: typeScale.caption,
+    color: colors.paper60,
   },
   skeletonCard: {
     height: 220,
     borderRadius: 12,
     backgroundColor: colors.ink2,
   },
+  stretch: {
+    alignSelf: 'stretch',
+  },
   submittedWrap: {
     alignItems: 'center',
     gap: 12,
-  },
-  submittedBrackets: {
-    alignSelf: 'stretch',
   },
   statusLine: {
     fontFamily: fonts.sansMedium,
@@ -217,7 +255,40 @@ const styles = StyleSheet.create({
     fontSize: typeScale.caption,
     color: colors.paper60,
   },
-  teaserWrap: {
-    paddingTop: space.gutter * 2,
+  waitingWrap: {
+    gap: space.gutter * 1.5,
+  },
+  countdownBlock: {
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: space.gutter,
+  },
+  softLine: {
+    fontFamily: displayFamily,
+    fontSize: typeScale.title,
+    color: colors.paper,
+  },
+  potdSpacer: {
+    height: 8,
+  },
+  potdCaption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+  },
+  shooter: {
+    fontFamily: displayFamily,
+    fontSize: typeScale.body,
+    color: colors.paper,
+  },
+  potdHearts: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  actionBlock: {
+    gap: 10,
   },
 });
