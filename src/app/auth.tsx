@@ -106,6 +106,7 @@ export default function AuthScreen() {
                 onPress={() => void submit()}
                 loading={busy}
                 disabled={!email.trim() || password.length < 6}
+                fullWidth
               />
             </View>
 

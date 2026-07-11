@@ -133,7 +133,9 @@ export default function DarkroomKit() {
             <Button label="Text button" variant="text" />
             <Button label="Text disabled" variant="text" disabled />
           </View>
-          <Caption>press = scale 0.97 + light haptic — no ripples</Caption>
+          <Button label="Full-width primary (block CTA)" fullWidth onPress={() => setToast('Primary CTA')} />
+          <Button label="Full-width ghost" variant="ghost" fullWidth />
+          <Caption>press = scale 0.97 + light haptic · lone buttons center · fullWidth = block CTA</Caption>
         </Section>
 
         <Section title="Chip — selected inverts paper/ink">

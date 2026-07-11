@@ -12,6 +12,8 @@ type ButtonProps = {
   variant?: ButtonVariant;
   disabled?: boolean;
   loading?: boolean;
+  /** Block button: stretches to fill its container. Use for the primary CTA. */
+  fullWidth?: boolean;
 };
 
 /**
@@ -19,7 +21,14 @@ type ButtonProps = {
  * Loading state: mono ellipsis with the width locked so the pill never resizes.
  * Press = scale 0.97 + light haptic; no ripples anywhere.
  */
-export function Button({ label, onPress, variant = 'primary', disabled = false, loading = false }: ButtonProps) {
+export function Button({
+  label,
+  onPress,
+  variant = 'primary',
+  disabled = false,
+  loading = false,
+  fullWidth = false,
+}: ButtonProps) {
   const [lockedWidth, setLockedWidth] = useState<number | undefined>(undefined);
   const [dotCount, setDotCount] = useState(3);
   const widthRef = useRef<number>(0);
@@ -53,6 +62,7 @@ export function Button({ label, onPress, variant = 'primary', disabled = false, 
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
+        fullWidth && styles.fullWidth,
         variantStyles[variant],
         disabled && disabledStyles[variant],
         lockedWidth !== undefined && { width: lockedWidth },
@@ -84,7 +94,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    alignSelf: 'flex-start',
+    // Center by default so a lone button never hugs the left edge; the
+    // parent (row / center / stretch) still overrides via its own layout.
+    alignSelf: 'center',
+  },
+  fullWidth: {
+    alignSelf: 'stretch',
   },
   label: {
     fontFamily: fonts.sansMedium,
