@@ -42,15 +42,22 @@ export function Brackets({
           </>
         );
         return animated ? (
+          // Layout animation (ZoomIn) owns transform, so the static rotate lives
+          // on an inner View — otherwise the entering anim clobbers it (Reanimated warns).
           <Animated.View
             key={corner}
             entering={ZoomIn.duration(perCorner).delay(i * perCorner)}
-            style={[styles.corner, cornerStyles[corner]]}
+            style={[styles.corner, cornerOffsets[corner]]}
           >
-            {content}
+            <View style={[StyleSheet.absoluteFill, { transform: cornerRotate[corner] }]}>
+              {content}
+            </View>
           </Animated.View>
         ) : (
-          <View key={corner} style={[styles.corner, cornerStyles[corner]]}>
+          <View
+            key={corner}
+            style={[styles.corner, cornerOffsets[corner], { transform: cornerRotate[corner] }]}
+          >
             {content}
           </View>
         );
@@ -81,9 +88,16 @@ const styles = StyleSheet.create({
   },
 });
 
-const cornerStyles = StyleSheet.create({
+const cornerOffsets = StyleSheet.create({
   tl: { top: 0, left: 0 },
-  tr: { top: 0, right: 0, transform: [{ rotate: '90deg' }] },
-  br: { bottom: 0, right: 0, transform: [{ rotate: '180deg' }] },
-  bl: { bottom: 0, left: 0, transform: [{ rotate: '270deg' }] },
+  tr: { top: 0, right: 0 },
+  br: { bottom: 0, right: 0 },
+  bl: { bottom: 0, left: 0 },
 });
+
+const cornerRotate: Record<CornerName, ViewStyle['transform']> = {
+  tl: [{ rotate: '0deg' }],
+  tr: [{ rotate: '90deg' }],
+  br: [{ rotate: '180deg' }],
+  bl: [{ rotate: '270deg' }],
+};
