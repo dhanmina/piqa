@@ -13,6 +13,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getPendingItemForDrop, retryBlocked, subscribeQueue, type QueueItem } from '@lib/captureQueue';
+import { getConfig } from '@lib/config';
 import { useSignedThumb } from '@lib/gallery';
 import { useHomeState } from '@lib/homeState';
 import { Button } from '@/components/atoms/Button';
@@ -33,6 +34,11 @@ export default function TodayScreen() {
   const [toast, setToast] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [, setQueueTick] = useState(0);
+  const [quickDrawMinutes, setQuickDrawMinutes] = useState(30);
+
+  useEffect(() => {
+    void getConfig('quick_draw_minutes').then(setQuickDrawMinutes);
+  }, []);
 
   useEffect(
     () =>
@@ -62,6 +68,9 @@ export default function TodayScreen() {
   const submitted = Boolean(submission || pending);
   const votingOpen = Boolean(drop) && Date.now() < Date.parse(drop!.voting_closes_at);
   const brandNew = (streak?.current_weeks ?? 0) === 0 && (streak?.days_this_week ?? 0) === 0;
+  const quickDrawUntil = drop
+    ? new Date(Date.parse(drop.drops_at) + quickDrawMinutes * 60_000)
+    : undefined;
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -104,20 +113,49 @@ export default function TodayScreen() {
             ⚡ Quick Draw
           </Mono>
         )}
-        {blocked && <Button label="Retry upload" variant="ghost" onPress={() => void retryBlocked()} />}
+        {blocked && <Button label="Retry upload" variant="ghost" onPress={() => void retryBlocked()} fullWidth />}
         {!blocked && drop?.is_live && (
           <Text style={styles.subNote}>Curators are already picking — results at 9am</Text>
+        )}
+        {!blocked && votingOpen && drop && (
+          <View style={styles.submittedAction}>
+            <Mono size={typeScale.caption} color={colors.paper60}>
+              KEEP THE DAY GOING
+            </Mono>
+            <Button
+              label="Curate today’s shots"
+              variant="ghost"
+              fullWidth
+              onPress={() => router.push(`/vote?drop=${drop.id}`)}
+            />
+          </View>
         )}
       </View>
     );
   } else if (drop?.is_live) {
-    // (b) LIVE — the loudest composition, the one Primary on this screen.
+    // (b) LIVE — Shoot stays the single loud Primary; curating is a quiet second.
     body = (
-      <ShotCard
-        prompt={drop.prompt}
-        closesAt={drop.submit_closes_at}
-        onShoot={() => router.push('/camera')}
-      />
+      <View style={styles.liveWrap}>
+        <ShotCard
+          prompt={drop.prompt}
+          closesAt={drop.submit_closes_at}
+          quickDrawUntil={quickDrawUntil}
+          onShoot={() => router.push('/camera')}
+        />
+        {votingOpen && drop && (
+          <View style={styles.submittedAction}>
+            <Mono size={typeScale.caption} color={colors.paper60}>
+              WHILE IT’S LIVE
+            </Mono>
+            <Button
+              label="Curate today’s shots"
+              variant="ghost"
+              fullWidth
+              onPress={() => router.push(`/vote?drop=${drop.id}`)}
+            />
+          </View>
+        )}
+      </View>
     );
   } else {
     // (a) WAITING — anticipation, never absence.
@@ -169,12 +207,14 @@ export default function TodayScreen() {
               label="Curate today’s shots"
               variant="ghost"
               onPress={() => router.push(`/vote?drop=${drop.id}`)}
+              fullWidth
             />
           ) : (
             <Button
               label="Take a practice shot"
               variant="ghost"
               onPress={() => router.push('/camera?practice=1')}
+              fullWidth
             />
           )}
         </View>
@@ -241,9 +281,17 @@ const styles = StyleSheet.create({
   stretch: {
     alignSelf: 'stretch',
   },
+  liveWrap: {
+    gap: space.gutter,
+  },
   submittedWrap: {
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
+  },
+  submittedAction: {
+    alignSelf: 'stretch',
+    gap: 10,
+    marginTop: 4,
   },
   statusLine: {
     fontFamily: fonts.sansMedium,
