@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { subscribeQueue } from "./captureQueue";
+import { fetchKey, invalidate, useCached } from "./cache";
 import { supabase } from "./supabase";
 
 export type HomeDrop = {
@@ -49,37 +50,37 @@ export type HomeState = {
   streak: HomeStreak | null;
 };
 
+const HOME_KEY = "home_state";
+// Home state is mostly time-derived on the client (is_live/votingOpen from
+// timestamps); the fetched data (submission, streak, PotD) changes on events
+// we invalidate explicitly (a landed submission) or at fixed cycle times
+// (close/reveal), never within a minute. So focus revisits can serve cache.
+const HOME_TTL_MS = 60_000;
+
+async function fetchHomeState(): Promise<HomeState> {
+  const { data, error } = await supabase.rpc("get_home_state");
+  if (error) throw new Error(error.message);
+  return data as unknown as HomeState;
+}
+
 /**
- * One screen = one RPC. Refetches whenever the capture queue lands a
- * submission row, so "Shot saved ✓ — uploading" flips to "In the running ✓"
- * without user action.
+ * One screen = one RPC — now shared. Every useHomeState (TabBar, Today, Camera)
+ * reads the same cached key, so a screen visit fetches get_home_state at most
+ * once, and only when the cached value is older than the TTL. A landed
+ * submission bypasses the TTL so "uploading" flips to "In the running ✓" at once.
  */
 export function useHomeState() {
-  const [data, setData] = useState<HomeState | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    const { data: result, error: rpcError } = await supabase.rpc("get_home_state");
-    if (rpcError) {
-      setError(rpcError.message);
-      setLoading(false);
-      return;
-    }
-    setData(result as unknown as HomeState);
-    setError(null);
-    setLoading(false);
-  }, []);
+  const { data, loading, refresh } = useCached<HomeState>(HOME_KEY, fetchHomeState, HOME_TTL_MS);
 
   useEffect(() => {
-    void refresh();
     const unsubscribe = subscribeQueue((event) => {
       if (event.type === "done" || event.type === "duplicate") {
-        void refresh();
+        invalidate(HOME_KEY);
+        void fetchKey(HOME_KEY, fetchHomeState);
       }
     });
     return unsubscribe;
-  }, [refresh]);
+  }, []);
 
-  return { data, loading, error, refresh };
+  return { data, loading, refresh };
 }

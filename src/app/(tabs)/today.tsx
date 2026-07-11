@@ -6,9 +6,9 @@
  *   (c) submitted     → bracket-framed shot + queue status line
  * Empty is never absence: the waiting state is anticipation, per spec law.
  */
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Crown } from 'lucide-react-native';
-import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -49,12 +49,6 @@ export default function TodayScreen() {
         if (event.type === 'done' && event.item.kind === 'daily') setToast('In the running ✓');
       }),
     [],
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      void refresh();
-    }, [refresh]),
   );
 
   const drop = data?.drop ?? null;

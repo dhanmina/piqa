@@ -1,9 +1,8 @@
 import { Image } from "expo-image";
 
+import { signThumbs } from "./cache";
 import { getConfig } from "./config";
 import { supabase } from "./supabase";
-
-const SIGNED_TTL = 3600;
 
 export type MatchupPhoto = { id: string; thumb_path: string | null };
 export type MatchupSet = {
@@ -35,14 +34,7 @@ export async function fetchMatchupSet(): Promise<MatchupSet> {
     .flatMap((p) => [p.a.thumb_path, p.b.thumb_path])
     .filter((p): p is string => !!p);
 
-  const signed = new Map<string, string>();
-  if (paths.length > 0) {
-    const { data: urls } = await supabase.storage.from("submissions").createSignedUrls(paths, SIGNED_TTL);
-    urls?.forEach((u) => {
-      if (u.path && u.signedUrl) signed.set(u.path, u.signedUrl);
-    });
-  }
-
+  const signed = paths.length > 0 ? await signThumbs(paths) : new Map<string, string>();
   const uri = (path: string | null) => (path ? (signed.get(path) ?? null) : null);
   const pairs = raw.pairs.map((p) => ({
     aId: p.a.id,
