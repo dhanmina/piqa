@@ -3,12 +3,14 @@
  * from signup; the wins wall shows an anticipation placeholder until the first
  * gallery win. Cosmetics, follow, showcase land in Phase 4.
  */
+import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
-import { Trophy } from 'lucide-react-native';
+import { Star, Trophy } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { signThumbs } from '@lib/cache';
 import { frameForLevel, titleForLevel } from '@lib/cosmetics';
 import { supabase } from '@lib/supabase';
 import { levelProgress } from '@lib/xp';
@@ -28,6 +30,7 @@ type ProfileData = {
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [starred, setStarred] = useState<{ key: string; uri: string | null }[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -37,16 +40,31 @@ export default function ProfileScreen() {
         const uid = auth.user?.id;
         if (!uid) return;
 
-        const [{ data: prof }, { data: streak }, { count: galleries }, { data: mySubs }] = await Promise.all([
-          supabase.from('profiles').select('username, avatar_url, xp').eq('id', uid).single(),
-          supabase.from('streaks').select('current_weeks').eq('user_id', uid).single(),
-          supabase
-            .from('submissions')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', uid)
-            .eq('in_gallery', true),
-          supabase.from('submissions').select('vote_count, reaction_count').eq('user_id', uid),
-        ]);
+        const [{ data: prof }, { data: streak }, { count: galleries }, { data: mySubs }, { data: starFree }, { data: starDaily }] =
+          await Promise.all([
+            supabase.from('profiles').select('username, avatar_url, xp').eq('id', uid).single(),
+            supabase.from('streaks').select('current_weeks').eq('user_id', uid).single(),
+            supabase
+              .from('submissions')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', uid)
+              .eq('in_gallery', true),
+            supabase.from('submissions').select('vote_count, reaction_count').eq('user_id', uid),
+            supabase
+              .from('free_shots')
+              .select('id, thumb_path, starred_at')
+              .eq('user_id', uid)
+              .eq('starred', true)
+              .order('starred_at', { ascending: false })
+              .limit(12),
+            supabase
+              .from('submissions')
+              .select('id, thumb_path, starred_at')
+              .eq('user_id', uid)
+              .eq('starred', true)
+              .order('starred_at', { ascending: false })
+              .limit(12),
+          ]);
 
         if (!alive || !prof) return;
         const hearts = (mySubs ?? []).reduce((sum, s) => sum + s.vote_count + s.reaction_count, 0);
@@ -58,6 +76,17 @@ export default function ProfileScreen() {
           streakWeeks: streak?.current_weeks ?? 0,
           hearts,
         });
+
+        // Starred shots pinned on the profile (spec §11c). Newest star first.
+        const starRows = [...(starFree ?? []), ...(starDaily ?? [])]
+          .sort((a, b) => Date.parse(b.starred_at ?? '') - Date.parse(a.starred_at ?? ''))
+          .slice(0, 12);
+        const signed = await signThumbs(starRows.map((r) => r.thumb_path).filter((p): p is string => !!p));
+        if (alive) {
+          setStarred(
+            starRows.map((r) => ({ key: r.id, uri: r.thumb_path ? (signed.get(r.thumb_path) ?? null) : null })),
+          );
+        }
       })();
       return () => {
         alive = false;
@@ -106,6 +135,28 @@ export default function ProfileScreen() {
           <Stat label="streak wks" value={profile?.streakWeeks ?? 0} />
           <Stat label="hearts" value={profile?.hearts ?? 0} />
         </View>
+
+        {starred.length > 0 && (
+          <View style={styles.starredBlock}>
+            <View style={styles.starredHead}>
+              <Star size={13} strokeWidth={2} color={colors.paper60} fill={colors.paper60} />
+              <Mono size={typeScale.caption} color={colors.paper60}>
+                STARRED
+              </Mono>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.starredRow}>
+              {starred.map((s) => (
+                <View key={s.key} style={styles.starredTile}>
+                  {s.uri ? (
+                    <Image source={{ uri: s.uri }} style={styles.starredImg} contentFit="cover" />
+                  ) : (
+                    <View style={[styles.starredImg, styles.starredSkeleton]} />
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         <View style={styles.winsWall}>
           <Trophy size={28} strokeWidth={2} color={colors.paper40} />
@@ -194,6 +245,30 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: typeScale.caption,
     color: colors.paper60,
+  },
+  starredBlock: {
+    gap: 10,
+  },
+  starredHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  starredRow: {
+    gap: 8,
+    paddingRight: space.gutter,
+  },
+  starredTile: {
+    width: 72,
+    height: 96,
+  },
+  starredImg: {
+    width: 72,
+    height: 96,
+    backgroundColor: colors.ink2,
+  },
+  starredSkeleton: {
+    backgroundColor: colors.ink2,
   },
   winsWall: {
     alignItems: 'center',

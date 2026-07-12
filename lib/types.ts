@@ -98,6 +98,7 @@ export type Database = {
           image_path: string | null
           is_showcased: boolean
           starred: boolean
+          starred_at: string | null
           thumb_path: string | null
           user_id: string
         }
@@ -108,6 +109,7 @@ export type Database = {
           image_path?: string | null
           is_showcased?: boolean
           starred?: boolean
+          starred_at?: string | null
           thumb_path?: string | null
           user_id: string
         }
@@ -118,6 +120,7 @@ export type Database = {
           image_path?: string | null
           is_showcased?: boolean
           starred?: boolean
+          starred_at?: string | null
           thumb_path?: string | null
           user_id?: string
         }
@@ -396,6 +399,8 @@ export type Database = {
           quick_draw: boolean
           rating: number
           reaction_count: number
+          starred: boolean
+          starred_at: string | null
           thumb_path: string | null
           user_id: string
           vote_count: number
@@ -413,6 +418,8 @@ export type Database = {
           quick_draw?: boolean
           rating?: number
           reaction_count?: number
+          starred?: boolean
+          starred_at?: string | null
           thumb_path?: string | null
           user_id: string
           vote_count?: number
@@ -430,6 +437,8 @@ export type Database = {
           quick_draw?: boolean
           rating?: number
           reaction_count?: number
+          starred?: boolean
+          starred_at?: string | null
           thumb_path?: string | null
           user_id?: string
           vote_count?: number
@@ -559,6 +568,7 @@ export type Database = {
       get_home_state: { Args: never; Returns: Json }
       get_latest_gallery: { Args: never; Returns: Json }
       get_matchup: { Args: never; Returns: Json }
+      toggle_star: { Args: { p_id: string; p_type: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
