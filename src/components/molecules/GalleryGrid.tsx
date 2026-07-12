@@ -8,7 +8,7 @@ import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
-import { colors, icons, motion, photo as photoFrame, space, typeScale } from '@/components/tokens';
+import { colors, icons, motion, photo as photoFrame, radius, space, typeScale } from '@/components/tokens';
 
 export type GalleryPhoto = {
   id: string;
@@ -110,9 +110,54 @@ export function GalleryGrid({ photos, reveal = false, potdLabel, highlightUserId
   );
 }
 
+/**
+ * Loading placeholder that mirrors the gallery's real shape — a full-width PotD
+ * cover over a 2-col tile grid — instead of one flat block. Flat ink2, no
+ * shimmer (spec §11d: "skeleton = ink2, no shimmer").
+ */
+export function GalleryGridSkeleton({ tiles = 6 }: { tiles?: number }) {
+  return (
+    <View style={styles.container} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View style={styles.potdBlock}>
+        <View style={styles.skelEyebrow} />
+        <View style={[styles.skelBlock, styles.skelPhoto]} />
+        <View style={styles.skelCaption} />
+      </View>
+      <View style={styles.grid}>
+        {Array.from({ length: tiles }).map((_, i) => (
+          <View key={i} style={styles.cell}>
+            <View style={[styles.skelBlock, styles.skelPhoto]} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     gap: space.gridGap,
+  },
+  skelBlock: {
+    backgroundColor: colors.ink2,
+  },
+  skelPhoto: {
+    width: '100%',
+    aspectRatio: photoFrame.aspect,
+    borderRadius: radius.photo, // 0 — a print, even while loading
+  },
+  skelEyebrow: {
+    width: 150,
+    height: 10,
+    borderRadius: 2,
+    backgroundColor: colors.ink2,
+  },
+  skelCaption: {
+    alignSelf: 'center',
+    width: 110,
+    height: 12,
+    borderRadius: 2,
+    backgroundColor: colors.ink2,
   },
   potdBlock: {
     alignItems: 'stretch',

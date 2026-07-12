@@ -138,8 +138,8 @@ async function loadGallery(dropId: string | null): Promise<GalleryFeed> {
 export function useGallery(dropId: string | null) {
   const key = `gallery:${dropId ?? "latest"}`;
   const ttl = dropId ? PAST_TTL_MS : LATEST_TTL_MS;
-  const { data, loading } = useCached<GalleryFeed>(key, () => loadGallery(dropId), ttl);
-  return { data, loading };
+  const { data, loading, refresh } = useCached<GalleryFeed>(key, () => loadGallery(dropId), ttl);
+  return { data, loading, refresh };
 }
 
 async function loadFollowingGallery(): Promise<GalleryDetailPhoto[]> {
@@ -162,8 +162,8 @@ async function loadFollowingGallery(): Promise<GalleryDetailPhoto[]> {
 
 /** Gallery placements from the people I follow (the Following sub-tab). */
 export function useFollowingGallery() {
-  const { data, loading } = useCached<GalleryDetailPhoto[]>("gallery:following", loadFollowingGallery, 60_000);
-  return { photos: data ?? [], loading };
+  const { data, loading, refresh } = useCached<GalleryDetailPhoto[]>("gallery:following", loadFollowingGallery, 60_000);
+  return { photos: data ?? [], loading, refresh };
 }
 
 // Morning reveal plays once per gallery, then never again (spec §11c / moment 2).
