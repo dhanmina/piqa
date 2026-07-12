@@ -10,7 +10,7 @@ import { X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getConfig } from '@lib/config';
 import { createVoteSender, fetchMatchupSet, type MatchupSet } from '@lib/matchup';
@@ -26,6 +26,7 @@ type Phase = 'loading' | 'judging' | 'setDone' | 'capped' | 'empty' | 'error';
 
 export default function CurateScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [phase, setPhase] = useState<Phase>('loading');
   const [set, setSet] = useState<MatchupSet | null>(null);
   const [idx, setIdx] = useState(0);
@@ -168,11 +169,6 @@ export default function CurateScreen() {
   const pair = set!.pairs[idx];
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close" hitSlop={12} onPress={close}>
-          <X size={22} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-        </Pressable>
-      </View>
       <Animated.View key={idx} entering={FadeIn.duration(150)} style={styles.pairWrap}>
         <MatchupPair
           topUri={pair.aUri ?? ''}
@@ -183,6 +179,15 @@ export default function CurateScreen() {
           onSkip={onSkip}
         />
       </Animated.View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        hitSlop={12}
+        style={[styles.close, { top: insets.top + 8 }]}
+        onPress={close}
+      >
+        <X size={22} strokeWidth={icons.strokeWidth} color={colors.paper} />
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -190,11 +195,15 @@ export default function CurateScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14, padding: space.gutter },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  close: {
+    position: 'absolute',
+    left: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(20, 18, 16, 0.55)',
   },
   pairWrap: { flex: 1 },
   bigLine: {

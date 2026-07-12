@@ -3,7 +3,6 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
-import { Mono } from '@/components/atoms/Mono';
 import { colors, fonts, typeScale } from '@/components/tokens';
 
 type MatchupPairProps = {
@@ -16,10 +15,15 @@ type MatchupPairProps = {
   onSkip?: () => void;
 };
 
+/** Flat scrims (no blur, no gradient) keep floating controls legible over any
+ * photo while the pair stays truly full-bleed. */
+const scrim = 'rgba(20, 18, 16, 0.55)';
+
 /**
- * The most disciplined screen in the app: two photos, a hairline divider,
- * nothing else. Blind = frameless — no brackets, no names, no hearts.
- * Tap the photo itself to pick: paper flash + haptic.
+ * The most disciplined screen in the app: two full-bleed photos, a hairline
+ * divider, nothing else. Blind = frameless — no brackets, no names, no hearts.
+ * Tap the photo itself to pick: paper flash + haptic. Controls float as flat
+ * scrim chips so the photos own the whole screen.
  */
 export function MatchupPair({ topUri, bottomUri, index, total, onPick, onSkip }: MatchupPairProps) {
   const topFlash = useSharedValue(0);
@@ -49,19 +53,32 @@ export function MatchupPair({ topUri, bottomUri, index, total, onPick, onSkip }:
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, bottomFlashStyle]} />
       </Pressable>
 
-      <View style={styles.footer}>
-        <View style={styles.dots}>
+      {/* Segmented progress — floats at the top so the photos stay full-bleed. */}
+      <View pointerEvents="none" style={styles.progressWrap}>
+        <View style={styles.progressPill}>
           {Array.from({ length: total }, (_, i) => (
-            <View key={i} style={[styles.dot, i < index ? styles.dotDone : styles.dotPending]} />
+            <View key={i} style={[styles.seg, i < index ? styles.segDone : styles.segPending]} />
           ))}
         </View>
-        <Mono size={typeScale.caption} color={colors.paper60}>
-          {index}/{total}
-        </Mono>
-        <Pressable accessibilityRole="button" hitSlop={12} onPress={onSkip}>
-          <Text style={styles.skip}>skip</Text>
-        </Pressable>
       </View>
+
+      {/* One-time affordance: the interface is blind, so nothing else says the
+          photo is the button. Show it only on the first pair. */}
+      {index === 1 && (
+        <View pointerEvents="none" style={styles.hintWrap}>
+          <Text style={styles.hint}>Tap a photo to choose</Text>
+        </View>
+      )}
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Skip this pair"
+        hitSlop={12}
+        style={styles.skipWrap}
+        onPress={onSkip}
+      >
+        <Text style={styles.skip}>skip</Text>
+      </Pressable>
     </View>
   );
 }
@@ -82,27 +99,59 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.paper30,
   },
-  footer: {
-    flexDirection: 'row',
+  progressWrap: {
+    position: 'absolute',
+    top: 18,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
   },
-  dots: {
+  progressPill: {
     flexDirection: 'row',
-    gap: 5,
+    gap: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: scrim,
   },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+  seg: {
+    width: 10,
+    height: 4,
+    borderRadius: 2,
   },
-  dotDone: {
+  segDone: {
     backgroundColor: colors.paper,
   },
-  dotPending: {
-    backgroundColor: colors.paper30,
+  segPending: {
+    backgroundColor: colors.paper40,
+  },
+  hintWrap: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hint: {
+    fontFamily: fonts.sansMedium,
+    fontSize: typeScale.caption,
+    color: colors.paper,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: scrim,
+    overflow: 'hidden',
+  },
+  skipWrap: {
+    position: 'absolute',
+    top: 10,
+    right: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: scrim,
   },
   skip: {
     fontFamily: fonts.sans,
