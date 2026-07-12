@@ -6,6 +6,7 @@
  *   (c) submitted     → bracket-framed shot + queue status line
  * Empty is never absence: the waiting state is anticipation, per spec law.
  */
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { Crown } from 'lucide-react-native';
 import { useEffect, useState, type ReactElement } from 'react';
@@ -52,7 +53,11 @@ export default function TodayScreen() {
               : 'Upload hit a wall. Tap Retry below',
           );
         if (event.type === 'duplicate') setToast('Already submitted for today');
-        if (event.type === 'done' && event.item.kind === 'daily') setToast('In the running ✓');
+        if (event.type === 'done' && event.item.kind === 'daily') {
+          // Focus-lock submit moment (spec §11d): brackets snap + medium haptic + "In the running ✓".
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setToast('In the running ✓');
+        }
       }),
     [],
   );
@@ -103,7 +108,7 @@ export default function TodayScreen() {
           : 'Shot saved ✓ · uploading';
     body = (
       <View style={styles.submittedWrap}>
-        <Brackets color={colors.paper} style={styles.stretch}>
+        <Brackets animated color={colors.paper} style={styles.stretch}>
           <PhotoTile
             uri={pending?.originalUri ?? signedSubThumb}
             badge={queued || blocked ? 'queued' : undefined}

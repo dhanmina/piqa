@@ -8,6 +8,7 @@
  * immutable and re-open identically. Following is a pull surface — invitation
  * until Profile/Follow lands in Phase 4.
  */
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { Image as ImageIcon, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -52,6 +53,7 @@ export default function GalleryScreen() {
   // only fire on mount). Gate the grid on `ready`.
   const [reveal, setReveal] = useState(false);
   const [ready, setReady] = useState(false);
+  const [celebrate, setCelebrate] = useState(false); // your shot placed → win moment
 
   useEffect(() => {
     let alive = true;
@@ -70,7 +72,17 @@ export default function GalleryScreen() {
     void isRevealSeen(d.id).then((seen) => {
       if (!alive) return;
       setReveal(!seen);
-      if (!seen) void markRevealSeen(d.id);
+      if (!seen) {
+        void markRevealSeen(d.id);
+        // Win moment (spec §11d moment 2): if my shot placed, a success haptic
+        // + a text celebration. Real Lottie confetti is a post-beta upgrade
+        // (needs lottie-react-native); the spec sanctions the text version for beta.
+        const placed = (data?.photos ?? []).some((p) => p.userId === myId);
+        if (placed) {
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setCelebrate(true);
+        }
+      }
       setReady(true);
     });
     return () => {
@@ -158,6 +170,14 @@ export default function GalleryScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       {segmented}
       <ScrollView contentContainerStyle={styles.content}>
+        {celebrate && reveal && (
+          <View style={styles.celebrate}>
+            <Text style={styles.celebrateText}>Your shot made the gallery</Text>
+            <Mono size={typeScale.caption} color={colors.paper60}>
+              scroll down to your framed tile
+            </Mono>
+          </View>
+        )}
         <View style={styles.header}>
           <View style={styles.headerRow}>
             <Mono size={typeScale.caption} color={colors.paper60}>
@@ -252,6 +272,19 @@ const styles = StyleSheet.create({
   segmentInactive: { fontFamily: fonts.sans, color: colors.paper60 },
   segmentBar: { height: 2, width: 20, backgroundColor: 'transparent', borderRadius: 1 },
   segmentBarActive: { backgroundColor: colors.safelight },
+  celebrate: {
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.ink2,
+  },
+  celebrateText: {
+    fontFamily: displayFamily,
+    fontSize: typeScale.title,
+    color: colors.safelight,
+    textAlign: 'center',
+  },
   header: { gap: 6 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   prompt: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper },
