@@ -37,6 +37,22 @@ const newClient = () =>
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+// Node's fetch (undici) drops connections intermittently on a long bulk run —
+// a single transient "fetch failed" shouldn't abort the whole seed. Retry any
+// step a few times with linear backoff before giving up.
+async function withRetry(label, fn, attempts = 5) {
+  let lastErr;
+  for (let a = 1; a <= attempts; a++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      if (a < attempts) await new Promise((r) => setTimeout(r, 600 * a));
+    }
+  }
+  throw new Error(`${label} failed after ${attempts} tries: ${lastErr?.message ?? lastErr}`);
+}
+
 async function jpeg(seed, w, h) {
   const res = await fetch(`https://picsum.photos/seed/${seed}/${w}/${h}.jpg`, { redirect: 'follow' });
   if (!res.ok) throw new Error(`fetch ${seed}: ${res.status}`);
@@ -44,13 +60,21 @@ async function jpeg(seed, w, h) {
 }
 
 async function uploadPair(sb, seed, fullPath, thumbPath) {
-  // 4:5 portrait — the canonical Piqa frame (matches the capture crop).
-  const [full, thumb] = await Promise.all([jpeg(seed, 1080, 1350), jpeg(`${seed}t`, 300, 375)]);
+  // 4:5 portrait — the canonical Piqa frame (matches the capture crop). Same
+  // picsum seed for both sizes so the thumbnail is just a downscaled version of
+  // the full-res (a different seed makes them two unrelated photos → the grid
+  // thumb and the detail full-res would show different images).
+  const [full, thumb] = await Promise.all([
+    withRetry(`fetch ${seed} full`, () => jpeg(seed, 1080, 1350)),
+    withRetry(`fetch ${seed} thumb`, () => jpeg(seed, 300, 375)),
+  ]);
   for (const [path, bytes] of [[fullPath, full], [thumbPath, thumb]]) {
-    const { error } = await sb.storage
-      .from('submissions')
-      .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
-    if (error) throw new Error(`upload ${path}: ${error.message}`);
+    await withRetry(`upload ${path}`, async () => {
+      const { error } = await sb.storage
+        .from('submissions')
+        .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
+      if (error) throw new Error(error.message);
+    });
   }
 }
 
@@ -70,7 +94,14 @@ async function seedSubmissionPhotos() {
       continue;
     }
     const uid = auth.user.id;
-    const { data: subs } = await sb.from('submissions').select('id, drop_id, image_path, thumb_path');
+    // Only this account's OWN submissions: RLS lets it upload/repair just those
+    // (writing another owner's path makes an orphan object nothing references,
+    // and the row-update below no-ops under RLS). Filtering here is the same
+    // correct result with a fraction of the work.
+    const { data: subs } = await sb
+      .from('submissions')
+      .select('id, drop_id, image_path, thumb_path')
+      .eq('user_id', uid);
     for (const s of subs ?? []) {
       const full = `${s.drop_id}/${uid}.jpg`;
       const thumb = `${s.drop_id}/${uid}_thumb.jpg`;
