@@ -4,7 +4,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, w
 
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { Mono } from '@/components/atoms/Mono';
-import { colors, motion, overlay, radius, typeScale } from '@/components/tokens';
+import { colors, motion, typeScale } from '@/components/tokens';
 
 type HeartButtonProps = {
   liked: boolean;
@@ -28,6 +28,8 @@ type HeartButtonProps = {
 export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, disabled = false, onPhoto = false }: HeartButtonProps) {
   const scale = useSharedValue(1);
   const restColor = onPhoto ? colors.paper : colors.paper60; // unliked glyph / count
+  // Count tracks the glyph so a big heart never gets a tiny number beside it.
+  const countSize = size >= 20 ? typeScale.sub : typeScale.caption;
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -53,7 +55,7 @@ export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, d
       disabled={disabled}
       hitSlop={12}
       onPress={handlePress}
-      style={[styles.row, onPhoto && styles.rowChip]}
+      style={styles.row}
     >
       <Animated.View style={animatedStyle}>
         <HeartGlyph
@@ -70,13 +72,13 @@ export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, d
             hitSlop={8}
             onPress={onCountPress}
           >
-            <Mono size={typeScale.caption} color={disabled ? colors.paper30 : restColor}>
+            <Mono size={countSize} color={disabled ? colors.paper30 : restColor}>
               {count}
             </Mono>
           </Pressable>
         ) : (
           <View>
-            <Mono size={typeScale.caption} color={disabled ? colors.paper30 : restColor}>
+            <Mono size={countSize} color={disabled ? colors.paper30 : restColor}>
               {count}
             </Mono>
           </View>
@@ -91,12 +93,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     minHeight: 32,
-  },
-  rowChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-    backgroundColor: overlay.chip,
-    gap: 8,
   },
 });
