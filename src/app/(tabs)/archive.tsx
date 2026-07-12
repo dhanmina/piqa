@@ -15,12 +15,11 @@ import { deleteFreeShot, toggleStar, useArchive, type ArchiveItem } from '@lib/a
 import { Button } from '@/components/atoms/Button';
 import { Chip } from '@/components/atoms/Chip';
 import { Mono } from '@/components/atoms/Mono';
-import { displayFamily } from '@/components/fonts';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, overlay, photo, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, overlay, photo, radius, space, typeScale } from '@/components/tokens';
 
 type Filter = 'all' | 'daily' | 'starred';
 
@@ -83,7 +82,38 @@ export default function ArchiveScreen() {
     }
   };
 
-  if (!loading && items.length === 0) {
+  // First load with nothing cached yet: a stable skeleton, so the screen never
+  // flashes "0 shots / Nothing here yet" before the real state settles.
+  if (loading && !data) {
+    return (
+      <SafeAreaView style={styles.root} edges={['top']}>
+        <View
+          style={styles.content}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <View style={styles.header}>
+            <View style={styles.skelNum} />
+          </View>
+          <View style={styles.chips}>
+            <View style={styles.skelChip} />
+            <View style={styles.skelChipWide} />
+            <View style={styles.skelChip} />
+          </View>
+          <View style={styles.grid}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <View key={i} style={styles.cell}>
+                <View style={styles.skelTile} />
+              </View>
+            ))}
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Settled with no shots at all → the invitation (spec: never empty as absence).
+  if (items.length === 0) {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
         <View style={styles.center}>
@@ -202,6 +232,10 @@ const styles = StyleSheet.create({
   section: { gap: 10 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cell: { width: '48%' },
+  skelNum: { width: 56, height: typeScale.display, borderRadius: 4, backgroundColor: colors.ink2 },
+  skelChip: { width: 64, height: 34, borderRadius: radius.pill, backgroundColor: colors.ink2 },
+  skelChipWide: { width: 104, height: 34, borderRadius: radius.pill, backgroundColor: colors.ink2 },
+  skelTile: { width: '100%', aspectRatio: photo.aspect, backgroundColor: colors.ink2 },
   starBadge: {
     position: 'absolute',
     top: 8,
