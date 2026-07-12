@@ -20,7 +20,7 @@ import { EmptyState } from '@/components/molecules/EmptyState';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, overlay, photo, radius, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, photo, radius, space, typeScale } from '@/components/tokens';
 
 type Filter = 'all' | 'daily' | 'starred';
 
@@ -50,6 +50,10 @@ export default function ArchiveScreen() {
   const [selected, setSelected] = useState<ArchiveItem | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Optimistic star state per item, so the tile fills instantly instead of
+  // waiting on the server round-trip + refresh. Cleared once real data lands.
+  const [optimisticStars, setOptimisticStars] = useState<Record<string, boolean>>({});
+  const starKey = (it: ArchiveItem) => `${it.type}:${it.id}`;
 
   const items = data?.items ?? [];
   const filtered = items.filter((it) =>
@@ -69,17 +73,30 @@ export default function ArchiveScreen() {
   const starsLeft = data ? Math.max(data.starsCap - data.starsUsed, 0) : 0;
 
   const onToggleStar = async (item: ArchiveItem) => {
+    const key = starKey(item);
+    const next = !(optimisticStars[key] ?? item.starred);
+    setOptimisticStars((m) => ({ ...m, [key]: next })); // flip instantly
     setBusy(true);
     const res = await toggleStar(item.type, item.id);
     setBusy(false);
-    if (!res.ok && res.reason === 'cap') {
-      setToast(`That's all ${res.cap ?? data?.starsCap} stars this month`);
-    } else if (!res.ok) {
-      setToast('Could not update the star');
-    } else {
-      await refresh();
-      setSelected((s) => (s ? { ...s, starred: res.starred ?? s.starred } : s));
+    if (!res.ok) {
+      // Roll back the optimistic flip and explain.
+      setOptimisticStars((m) => {
+        const copy = { ...m };
+        delete copy[key];
+        return copy;
+      });
+      setToast(res.reason === 'cap' ? `That's all ${res.cap ?? data?.starsCap} stars this month` : 'Could not update the star');
+      return;
     }
+    setSelected((s) => (s ? { ...s, starred: res.starred ?? s.starred } : s));
+    await refresh();
+    // Real data now reflects the star; drop the optimistic override.
+    setOptimisticStars((m) => {
+      const copy = { ...m };
+      delete copy[key];
+      return copy;
+    });
   };
 
   const onDelete = async (item: ArchiveItem) => {
@@ -178,36 +195,48 @@ export default function ArchiveScreen() {
                 </Mono>
               </View>
               <View style={styles.grid}>
-                {section.items.map((it) => (
-                  <Pressable
-                    key={`${it.type}:${it.id}`}
-                    accessibilityRole="button"
-                    style={styles.cell}
-                    onPress={() => setSelected(it)}
-                  >
-                    <PhotoTile
-                      uri={it.uri}
-                      badge={it.isPotd ? 'crown' : it.type === 'daily' ? 'daily' : undefined}
-                    />
+                {section.items.map((it) => {
+                  const starred = optimisticStars[starKey(it)] ?? it.starred;
+                  return (
                     <Pressable
+                      key={`${it.type}:${it.id}`}
                       accessibilityRole="button"
-                      accessibilityLabel={it.starred ? 'Unstar shot' : 'Star shot'}
-                      hitSlop={8}
-                      style={styles.starToggle}
-                      onPress={() => {
-                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        void onToggleStar(it);
-                      }}
+                      style={styles.cell}
+                      onPress={() => setSelected({ ...it, starred })}
                     >
-                      <Star
-                        size={15}
-                        strokeWidth={icons.strokeWidth}
-                        color={it.starred ? colors.safelight : colors.paper}
-                        fill={it.starred ? colors.safelight : 'transparent'}
-                      />
+                      {/* Only the meaningful mark: crown = PotD. The daily/practice
+                          split lives in the filter + detail sheet, not a per-tile
+                          badge (the bracket glyph read as a fullscreen icon). */}
+                      <PhotoTile uri={it.uri} badge={it.isPotd ? 'crown' : undefined} />
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={starred ? 'Unstar shot' : 'Star shot'}
+                        hitSlop={10}
+                        style={styles.starToggle}
+                        onPress={() => {
+                          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          void onToggleStar(it);
+                        }}
+                      >
+                        {/* Dark halo behind the glyph → legible on bright photos
+                            without a chip; the star floats instead of a button. */}
+                        <Star
+                          size={18}
+                          strokeWidth={3.5}
+                          color="rgba(20, 18, 16, 0.55)"
+                          fill={starred ? 'rgba(20, 18, 16, 0.55)' : 'transparent'}
+                          style={styles.starHalo}
+                        />
+                        <Star
+                          size={16}
+                          strokeWidth={icons.strokeWidth}
+                          color={starred ? colors.safelight : colors.paper}
+                          fill={starred ? colors.safelight : 'transparent'}
+                        />
+                      </Pressable>
                     </Pressable>
-                  </Pressable>
-                ))}
+                  );
+                })}
               </View>
             </View>
           ))
@@ -294,13 +323,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: overlay.badge,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  starHalo: { position: 'absolute', top: 5, left: 5 },
   emptyFilter: { paddingVertical: GUTTER * 2, alignItems: 'center' },
   emptyFilterLine: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center' },
   sheetHead: { flexDirection: 'row', gap: 14, alignItems: 'center' },
