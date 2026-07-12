@@ -4,6 +4,7 @@
  * Tap a shot → action sheet: star (5/mo, anti-ransom messaging lives here) and
  * delete. Never empty as absence: the zero state is an invitation to shoot.
  */
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { BookImage, Star, Trash2 } from 'lucide-react-native';
@@ -29,6 +30,18 @@ const monthKey = (iso: string) => {
 };
 const monthLabel = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+// Camera-readout stamp for the action sheet header, e.g. "JUL 12, 09:14".
+const capturedStamp = (iso: string) =>
+  new Date(iso)
+    .toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    .toUpperCase();
+
+const metaLine = (it: ArchiveItem) => {
+  const kind = it.type === 'daily' ? 'Daily Shot' : 'Practice shot';
+  const placement = it.isPotd ? 'Photo of the Day' : it.inGallery ? 'In gallery' : null;
+  return placement ? `${kind} · ${placement}` : kind;
+};
 
 export default function ArchiveScreen() {
   const router = useRouter();
@@ -132,13 +145,13 @@ export default function ArchiveScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Mono weight="semibold" size={typeScale.display} color={colors.paper}>
-            {items.length}
-          </Mono>
-          <Text style={styles.sinceLine}>
-            {items.length === 1 ? 'shot' : 'shots'}
-            {data?.since ? ` since ${monthLabel(data.since)}` : ''}
-          </Text>
+          <View style={styles.statRow}>
+            <Mono weight="semibold" size={typeScale.display} color={colors.paper}>
+              {items.length}
+            </Mono>
+            <Text style={styles.unit}>{items.length === 1 ? 'shot' : 'shots'}</Text>
+          </View>
+          {data?.since && <Text style={styles.sinceLine}>Since {monthLabel(data.since)}</Text>}
         </View>
 
         <View style={styles.chips}>
@@ -156,9 +169,14 @@ export default function ArchiveScreen() {
         ) : (
           sections.map((section) => (
             <View key={section.key} style={styles.section}>
-              <Mono size={typeScale.caption} color={colors.paper60}>
-                {section.label.toUpperCase()}
-              </Mono>
+              <View style={styles.sectionHead}>
+                <Mono size={typeScale.caption} color={colors.paper60}>
+                  {section.label.toUpperCase()}
+                </Mono>
+                <Mono size={typeScale.caption} color={colors.paper40}>
+                  {section.items.length}
+                </Mono>
+              </View>
               <View style={styles.grid}>
                 {section.items.map((it) => (
                   <Pressable
@@ -171,11 +189,23 @@ export default function ArchiveScreen() {
                       uri={it.uri}
                       badge={it.isPotd ? 'crown' : it.type === 'daily' ? 'daily' : undefined}
                     />
-                    {it.starred && (
-                      <View style={styles.starBadge}>
-                        <Star size={13} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
-                      </View>
-                    )}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={it.starred ? 'Unstar shot' : 'Star shot'}
+                      hitSlop={8}
+                      style={styles.starToggle}
+                      onPress={() => {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        void onToggleStar(it);
+                      }}
+                    >
+                      <Star
+                        size={15}
+                        strokeWidth={icons.strokeWidth}
+                        color={it.starred ? colors.safelight : colors.paper}
+                        fill={it.starred ? colors.safelight : 'transparent'}
+                      />
+                    </Pressable>
                   </Pressable>
                 ))}
               </View>
@@ -187,12 +217,31 @@ export default function ArchiveScreen() {
       <Sheet visible={selected !== null} onClose={() => setSelected(null)} title={undefined}>
         {selected && (
           <>
-            {selected.uri && <Image source={{ uri: selected.uri }} style={styles.preview} contentFit="cover" />}
-            <Text style={styles.antiRansom}>
-              {selected.starred
-                ? 'Starred. This shot keeps full resolution.'
-                : `Starred shots keep full resolution. ${starsLeft} of ${data?.starsCap ?? 5} stars left this month.`}
-            </Text>
+            <View style={styles.sheetHead}>
+              {selected.uri ? (
+                <Image source={{ uri: selected.uri }} style={styles.sheetThumb} contentFit="cover" />
+              ) : (
+                <View style={[styles.sheetThumb, styles.skelTile]} />
+              )}
+              <View style={styles.sheetInfo}>
+                <Mono size={typeScale.sub} color={colors.paper}>
+                  {capturedStamp(selected.capturedAt)}
+                </Mono>
+                <Text style={styles.sheetMeta}>{metaLine(selected)}</Text>
+                {selected.starred && (
+                  <View style={styles.starLine}>
+                    <Star size={12} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
+                    <Text style={styles.starText}>Starred · full resolution</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {!selected.starred && (
+              <Text style={styles.antiRansom}>
+                Starred shots keep full resolution. {starsLeft} of {data?.starsCap ?? 5} stars left this month.
+              </Text>
+            )}
             <Button
               label={selected.starred ? 'Starred ✓' : 'Star this shot'}
               variant={selected.starred ? 'ghost' : 'primary'}
@@ -200,7 +249,7 @@ export default function ArchiveScreen() {
               loading={busy}
               onPress={() => void onToggleStar(selected)}
             />
-            {selected.type === 'free' && (
+            {selected.type === 'free' ? (
               <Pressable
                 accessibilityRole="button"
                 style={styles.deleteRow}
@@ -210,6 +259,8 @@ export default function ArchiveScreen() {
                 <Trash2 size={16} strokeWidth={icons.strokeWidth} color={colors.paper60} />
                 <Text style={styles.deleteLabel}>Delete shot</Text>
               </Pressable>
+            ) : (
+              <Text style={styles.recordNote}>Daily Shots stay in your record and can’t be deleted.</Text>
             )}
           </>
         )}
@@ -226,27 +277,46 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   center: { flex: 1, justifyContent: 'center' },
   content: { padding: GUTTER, gap: GUTTER, paddingBottom: 48 },
-  header: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  sinceLine: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
+  header: { gap: 2 },
+  statRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  unit: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper60 },
+  sinceLine: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
   chips: { flexDirection: 'row', gap: 8 },
   section: { gap: 10 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  cell: { width: '48%' },
+  cell: { width: '48.8%' },
   skelNum: { width: 56, height: typeScale.display, borderRadius: 4, backgroundColor: colors.ink2 },
   skelChip: { width: 64, height: 34, borderRadius: radius.pill, backgroundColor: colors.ink2 },
   skelChipWide: { width: 104, height: 34, borderRadius: radius.pill, backgroundColor: colors.ink2 },
   skelTile: { width: '100%', aspectRatio: photo.aspect, backgroundColor: colors.ink2 },
-  starBadge: {
+  starToggle: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 6,
+    right: 6,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: overlay.badge,
-    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyFilter: { paddingVertical: GUTTER * 2, alignItems: 'center' },
   emptyFilterLine: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center' },
-  preview: { width: '100%', aspectRatio: photo.aspect, backgroundColor: colors.ink },
+  sheetHead: { flexDirection: 'row', gap: 14, alignItems: 'center' },
+  sheetThumb: { width: 64, aspectRatio: photo.aspect, backgroundColor: colors.ink2 },
+  sheetInfo: { flex: 1, gap: 4 },
+  sheetMeta: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
+  starLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  starText: { fontFamily: fonts.sansMedium, fontSize: typeScale.caption, color: colors.safelight },
   antiRansom: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
   deleteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 6 },
   deleteLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper60 },
+  recordNote: {
+    fontFamily: fonts.sans,
+    fontSize: typeScale.caption,
+    color: colors.paper60,
+    textAlign: 'center',
+    paddingVertical: 6,
+  },
 });
