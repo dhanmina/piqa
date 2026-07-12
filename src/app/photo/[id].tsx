@@ -117,12 +117,14 @@ export default function PhotoDetail() {
   const baseHeartsValue = liveBase ?? baseHearts;
 
   const capturedLine = params.captured
-    ? new Date(params.captured).toLocaleString('en-US', {
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
+    ? new Date(params.captured)
+        .toLocaleString('en-US', {
+          month: 'short',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        .toUpperCase() // camera-readout language (spec §11d)
     : '—';
 
   return (
@@ -226,7 +228,12 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8 },
   imageWrap: { flex: 1, backgroundColor: colors.ink },
   skeleton: { backgroundColor: colors.ink2 },
-  footer: { padding: space.gutter, gap: 12 },
+  footer: {
+    padding: space.gutter,
+    gap: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.ink2, // hairline between the print and its readout
+  },
   nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   nameLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   shooter: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper },

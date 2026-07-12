@@ -11,9 +11,9 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
-import { Image as ImageIcon, Users } from 'lucide-react-native';
+import { Calendar, Image as ImageIcon, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import confettiSource from '@/assets/lottie/confetti.json';
@@ -31,8 +31,9 @@ import { Countdown } from '@/components/atoms/Countdown';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { EmptyState } from '@/components/molecules/EmptyState';
-import { GalleryGrid, type GalleryPhoto } from '@/components/molecules/GalleryGrid';
-import { colors, fonts, space, typeScale } from '@/components/tokens';
+import { GalleryGrid, GalleryGridSkeleton, type GalleryPhoto } from '@/components/molecules/GalleryGrid';
+import { Sheet } from '@/components/molecules/Sheet';
+import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
 
 const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
@@ -48,9 +49,16 @@ export default function GalleryScreen() {
   const [tab, setTab] = useState<'world' | 'following'>('world');
   const [selectedDropId, setSelectedDropId] = useState<string | null>(null);
   const [showPast, setShowPast] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const { data, loading } = useGallery(selectedDropId);
-  const { photos: followingPhotos, loading: followingLoading } = useFollowingGallery();
+  const { data, loading, refresh } = useGallery(selectedDropId);
+  const { photos: followingPhotos, loading: followingLoading, refresh: refreshFollowing } = useFollowingGallery();
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await (tab === 'following' ? refreshFollowing() : refresh());
+    setRefreshing(false);
+  };
 
   // Reveal decision must be settled BEFORE the grid mounts (entering animations
   // only fire on mount). Gate the grid on `ready`.
@@ -110,16 +118,30 @@ export default function GalleryScreen() {
     });
   };
 
+  const hasPast = tab === 'world' && (data?.past?.length ?? 0) > 0;
   const segmented = (
-    <View style={styles.segmented}>
-      {(['world', 'following'] as const).map((t) => (
-        <Pressable key={t} accessibilityRole="button" style={styles.segment} onPress={() => setTab(t)}>
-          <Text style={[styles.segmentLabel, tab === t ? styles.segmentActive : styles.segmentInactive]}>
-            {t === 'world' ? 'World' : 'Following'}
-          </Text>
-          <View style={[styles.segmentBar, tab === t && styles.segmentBarActive]} />
+    <View style={styles.topBar}>
+      <View style={styles.segments}>
+        {(['world', 'following'] as const).map((t) => (
+          <Pressable key={t} accessibilityRole="button" style={styles.segment} onPress={() => setTab(t)}>
+            <Text style={[styles.segmentLabel, tab === t ? styles.segmentActive : styles.segmentInactive]}>
+              {t === 'world' ? 'World' : 'Following'}
+            </Text>
+            <View style={[styles.segmentBar, tab === t && styles.segmentBarActive]} />
+          </Pressable>
+        ))}
+      </View>
+      {hasPast && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Past galleries"
+          hitSlop={10}
+          style={styles.calBtn}
+          onPress={() => setShowPast(true)}
+        >
+          <Calendar size={20} strokeWidth={icons.strokeWidth} color={colors.paper60} />
         </Pressable>
-      ))}
+      )}
     </View>
   );
 
@@ -128,7 +150,9 @@ export default function GalleryScreen() {
       <SafeAreaView style={styles.root} edges={['top']}>
         {segmented}
         {followingLoading ? (
-          <View style={styles.skeleton} />
+          <View style={styles.content}>
+            <GalleryGridSkeleton />
+          </View>
         ) : followingPhotos.length === 0 ? (
           <View style={styles.center}>
             <EmptyState
@@ -139,7 +163,12 @@ export default function GalleryScreen() {
             />
           </View>
         ) : (
-          <ScrollView contentContainerStyle={styles.content}>
+          <ScrollView
+            contentContainerStyle={styles.content}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={colors.paper60} />
+            }
+          >
             <GalleryGrid photos={followingPhotos} reveal={false} highlightUserId={myId} onPress={openPhoto} />
           </ScrollView>
         )}
@@ -151,7 +180,9 @@ export default function GalleryScreen() {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
         {segmented}
-        <View style={styles.skeleton} />
+        <View style={styles.content}>
+          <GalleryGridSkeleton />
+        </View>
       </SafeAreaView>
     );
   }
@@ -172,7 +203,12 @@ export default function GalleryScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       {segmented}
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={colors.paper60} />
+        }
+      >
         {celebrate && reveal && (
           <View style={styles.celebrate}>
             <Text style={styles.celebrateText}>Your shot made the gallery</Text>
@@ -183,8 +219,8 @@ export default function GalleryScreen() {
         )}
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Mono size={typeScale.caption} color={colors.paper60}>
-              {longDate(data.drop.drop_date)}
+            <Mono size={typeScale.caption} color={colors.paper60} style={styles.masthead}>
+              {longDate(data.drop.drop_date).toUpperCase()}
             </Mono>
             {viewingPast && (
               <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setSelectedDropId(null)}>
@@ -212,33 +248,12 @@ export default function GalleryScreen() {
           <View style={styles.rule} />
 
           {data.past.length > 0 && (
-            <>
-              <Button
-                label={showPast ? 'Hide past galleries' : 'View past galleries'}
-                variant="ghost"
-                fullWidth
-                onPress={() => setShowPast((s) => !s)}
-              />
-              {showPast &&
-                data.past.map((g) => (
-                  <Pressable
-                    key={g.drop_id}
-                    accessibilityRole="button"
-                    style={styles.pastRow}
-                    onPress={() => {
-                      setSelectedDropId(g.drop_id);
-                      setShowPast(false);
-                    }}
-                  >
-                    <Mono size={typeScale.caption} color={colors.paper60}>
-                      {shortDate(g.drop_date)}
-                    </Mono>
-                    <Text style={styles.pastPrompt} numberOfLines={1}>
-                      {g.prompt ?? '—'}
-                    </Text>
-                  </Pressable>
-                ))}
-            </>
+            <Button
+              label="View past galleries"
+              variant="ghost"
+              fullWidth
+              onPress={() => setShowPast(true)}
+            />
           )}
 
           <View style={styles.teaser}>
@@ -261,6 +276,29 @@ export default function GalleryScreen() {
           <LottieView source={confettiSource} autoPlay loop={false} style={StyleSheet.absoluteFill} />
         </View>
       )}
+
+      <Sheet visible={showPast} onClose={() => setShowPast(false)} title="Past galleries">
+        <ScrollView style={styles.pastScroll}>
+          {(data.past ?? []).map((g) => (
+            <Pressable
+              key={g.drop_id}
+              accessibilityRole="button"
+              style={styles.pastRow}
+              onPress={() => {
+                setSelectedDropId(g.drop_id);
+                setShowPast(false);
+              }}
+            >
+              <Mono size={typeScale.caption} color={colors.safelight}>
+                {shortDate(g.drop_date)}
+              </Mono>
+              <Text style={styles.pastPrompt} numberOfLines={1}>
+                {g.prompt ?? '—'}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </Sheet>
     </SafeAreaView>
   );
 }
@@ -268,12 +306,15 @@ export default function GalleryScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   content: { padding: space.gutter, gap: space.gutter, paddingBottom: 48 },
-  segmented: {
+  topBar: {
     flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
     paddingHorizontal: space.gutter,
     paddingTop: 8,
-    gap: 24,
   },
+  segments: { flexDirection: 'row', gap: 24 },
+  calBtn: { paddingBottom: 4 },
   segment: { alignItems: 'center', gap: 6 },
   segmentLabel: { fontSize: typeScale.sub },
   segmentActive: { fontFamily: fonts.sansMedium, color: colors.paper },
@@ -302,17 +343,18 @@ const styles = StyleSheet.create({
   },
   header: { gap: 6 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  masthead: { letterSpacing: 1.5 },
   prompt: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper },
   rollingIn: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
   center: { flex: 1, justifyContent: 'center' },
-  skeleton: { flex: 1, margin: space.gutter, borderRadius: 12, backgroundColor: colors.ink2 },
   endCard: { gap: 14 },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginTop: 8 },
+  pastScroll: { maxHeight: 360 },
   pastRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.ink2,
   },
