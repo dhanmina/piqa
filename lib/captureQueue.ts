@@ -37,6 +37,11 @@ import { supabase } from "./supabase";
 const FULL_LONG_EDGE = 1080;
 const THUMB_LONG_EDGE = 300;
 const JPEG_QUALITY = 0.7;
+// Every shared photo is 4:5 portrait (width/height). We bake this crop into the
+// uploaded bytes so the stored asset matches the capture preview and every grid
+// exactly — no per-image reflow, uniform frames everywhere. The local original
+// is kept untouched as the private archive copy.
+const PHOTO_ASPECT = 4 / 5;
 
 const JOURNAL_KEY = "piqa.captureQueue.v1";
 const BACKOFF_BASE_MS = 2_000;
@@ -190,10 +195,26 @@ export async function enqueueCapture(input: {
   return item;
 }
 
+/**
+ * Center-crop rectangle that fits the source into 4:5 portrait — exactly what
+ * `contentFit: cover` shows in the capture preview, so the baked crop is WYSIWYG.
+ * Too wide → trim the sides; too tall → trim top/bottom.
+ */
+function cropTo45(width: number, height: number) {
+  if (width / height > PHOTO_ASPECT) {
+    const cropW = Math.round(height * PHOTO_ASPECT);
+    return { originX: Math.round((width - cropW) / 2), originY: 0, width: cropW, height };
+  }
+  const cropH = Math.round(width / PHOTO_ASPECT);
+  return { originX: 0, originY: Math.round((height - cropH) / 2), width, height: cropH };
+}
+
 async function compressTo(item: QueueItem, longEdge: number, suffix: string): Promise<string> {
-  const landscape = item.width >= item.height;
   const context = ImageManipulator.manipulate(item.originalUri);
-  context.resize(landscape ? { width: longEdge } : { height: longEdge });
+  // Crop to the canonical 4:5 frame first, then the cropped image is always
+  // portrait, so the long edge is its height.
+  context.crop(cropTo45(item.width, item.height));
+  context.resize({ height: longEdge });
   const rendered = await context.renderAsync();
   const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: JPEG_QUALITY });
   // Move out of cache into document storage so the queue survives cache eviction.

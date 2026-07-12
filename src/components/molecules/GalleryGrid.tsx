@@ -8,7 +8,7 @@ import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
-import { colors, icons, motion, space, typeScale } from '@/components/tokens';
+import { colors, icons, motion, photo as photoFrame, space, typeScale } from '@/components/tokens';
 
 export type GalleryPhoto = {
   id: string;
@@ -60,10 +60,10 @@ export function GalleryGrid({ photos, reveal = false, potdLabel, highlightUserId
   const tile = (photo: GalleryPhoto, i: number, isOwn: boolean) => {
     const inner = isOwn ? (
       <Brackets color={colors.crown}>
-        <PhotoTile uri={photo.uri} hearts={photo.hearts} aspectRatio={1} />
+        <PhotoTile uri={photo.uri} hearts={photo.hearts} aspectRatio={photoFrame.aspect} />
       </Brackets>
     ) : (
-      <PhotoTile uri={photo.uri} hearts={photo.hearts} aspectRatio={1} />
+      <PhotoTile uri={photo.uri} hearts={photo.hearts} aspectRatio={photoFrame.aspect} />
     );
     const body = wrap(photo, inner);
     return reveal ? (
@@ -90,7 +90,7 @@ export function GalleryGrid({ photos, reveal = false, potdLabel, highlightUserId
             potd,
             <Brackets color={colors.crown}>
               {/* hearts stay out of the bracket frame — they join the caption row */}
-              <PhotoTile uri={potd.uri} aspectRatio={1} />
+              <PhotoTile uri={potd.uri} aspectRatio={photoFrame.aspect} />
             </Brackets>,
           )}
           <View style={styles.potdCaption}>

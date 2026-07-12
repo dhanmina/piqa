@@ -20,7 +20,7 @@ import { EmptyState } from '@/components/molecules/EmptyState';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, photo, space, typeScale } from '@/components/tokens';
 
 type Filter = 'all' | 'daily' | 'starred';
 
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   },
   emptyFilter: { paddingVertical: GUTTER * 2, alignItems: 'center' },
   emptyFilterLine: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center' },
-  preview: { width: '100%', aspectRatio: 1, backgroundColor: colors.ink },
+  preview: { width: '100%', aspectRatio: photo.aspect, backgroundColor: colors.ink },
   antiRansom: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
   deleteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 6 },
   deleteLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper60 },

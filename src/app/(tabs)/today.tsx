@@ -28,7 +28,7 @@ import { Brackets } from '@/components/molecules/Brackets';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { ShotCard } from '@/components/molecules/ShotCard';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, photo, space, typeScale } from '@/components/tokens';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -112,7 +112,7 @@ export default function TodayScreen() {
           <PhotoTile
             uri={pending?.originalUri ?? signedSubThumb}
             badge={queued || blocked ? 'queued' : undefined}
-            aspectRatio={3 / 4}
+            aspectRatio={photo.aspect}
           />
         </Brackets>
         <Text style={styles.statusLine}>{statusLine}</Text>
@@ -182,7 +182,7 @@ export default function TodayScreen() {
             YOUR RESULT
           </Mono>
           <Brackets color={lastResult.is_potd ? colors.crown : colors.paper} style={styles.stretch}>
-            <PhotoTile uri={signedResultThumb} aspectRatio={3 / 4} />
+            <PhotoTile uri={signedResultThumb} aspectRatio={photo.aspect} />
           </Brackets>
           <View style={styles.resultCaption}>
             {lastResult.is_potd && (
@@ -247,7 +247,7 @@ export default function TodayScreen() {
             </Mono>
             <View style={styles.potdSpacer} />
             <Brackets color={colors.crown} style={styles.stretch}>
-              <PhotoTile uri={signedPotdThumb} aspectRatio={3 / 4} />
+              <PhotoTile uri={signedPotdThumb} aspectRatio={photo.aspect} />
             </Brackets>
             <View style={styles.potdCaption}>
               <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />

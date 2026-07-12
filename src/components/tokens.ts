@@ -54,6 +54,15 @@ export const radius = {
   pill: 999,
 } as const;
 
+/**
+ * Every Piqa photo is 4:5 portrait — one uniform frame. This is the single
+ * source of truth: capture preview, the baked upload crop, and every grid/tile
+ * use it, so what you frame is exactly what gets stored and shown everywhere.
+ */
+export const photo = {
+  aspect: 4 / 5, // width / height — portrait
+} as const;
+
 export const space = {
   gutter: 20,
   gridGap: 8,

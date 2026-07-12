@@ -22,7 +22,7 @@ import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, motion, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, motion, photo, typeScale } from '@/components/tokens';
 
 type Captured = {
   uri: string;
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   },
   previewImage: {
     width: '100%',
-    aspectRatio: 3 / 4,
+    aspectRatio: photo.aspect,
     backgroundColor: colors.ink2,
   },
   previewFooter: {

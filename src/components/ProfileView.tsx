@@ -16,7 +16,7 @@ import { Avatar } from '@/components/atoms/Avatar';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
-import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, photo, space, typeScale } from '@/components/tokens';
 
 type Props = {
   data: ProfileData | null;
@@ -207,10 +207,10 @@ const styles = StyleSheet.create({
   rowHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   starredRow: { gap: 8, paddingRight: space.gutter },
   starredTile: { width: 72, height: 96 },
-  starredImg: { width: 72, height: 96, backgroundColor: colors.ink2 },
+  starredImg: { width: 72, height: 90, backgroundColor: colors.ink2 },
   winsHead: { flexDirection: 'row' },
   winsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  winCell: { width: '32%', aspectRatio: 1 },
+  winCell: { width: '32%', aspectRatio: photo.aspect },
   skeleton: { backgroundColor: colors.ink2 },
   winsEmpty: { alignItems: 'center', gap: 10, paddingVertical: space.gutter * 2 },
   winsLine: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.paper },
