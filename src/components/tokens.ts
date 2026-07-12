@@ -55,6 +55,23 @@ export const radius = {
 } as const;
 
 /**
+ * Overlays are always ink-tinted — never pure black — so dimmed surfaces still
+ * read as the darkroom, not a generic modal. One value per job, used everywhere
+ * so no screen hand-rolls its own rgba.
+ */
+export const overlay = {
+  scrim: 'rgba(20, 18, 16, 0.6)', // full-screen backdrop behind sheets/modals
+  chip: 'rgba(20, 18, 16, 0.55)', // floating chrome controls over media
+  badge: 'rgba(20, 18, 16, 0.75)', // small badges/labels over a photo
+} as const;
+
+/** Floating chrome controls (close, flash, back…) — one size, one icon glyph. */
+export const control = {
+  chrome: 40, // circular button diameter
+  icon: 22, // lucide glyph size inside a chrome/header button
+} as const;
+
+/**
  * Every Piqa photo is 4:5 portrait — one uniform frame. This is the single
  * source of truth: capture preview, the baked upload crop, and every grid/tile
  * use it, so what you frame is exactly what gets stored and shown everywhere.

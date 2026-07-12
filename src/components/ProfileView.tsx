@@ -14,9 +14,10 @@ import type { ProfileData, ProfileWin } from '@lib/profile';
 import { levelProgress } from '@lib/xp';
 import { Avatar } from '@/components/atoms/Avatar';
 import { Button } from '@/components/atoms/Button';
+import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
-import { colors, fonts, icons, photo, space, typeScale } from '@/components/tokens';
+import { colors, fonts, photo, space, typeScale } from '@/components/tokens';
 
 type Props = {
   data: ProfileData | null;
@@ -41,23 +42,9 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
     <SafeAreaView style={styles.root} edges={['top']}>
       {(onBack || onMore || onSettings) && (
         <View style={styles.backHeader}>
-          {onBack ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={12} onPress={onBack}>
-              <ChevronLeft size={24} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-            </Pressable>
-          ) : (
-            <View />
-          )}
-          {onMore && (
-            <Pressable accessibilityRole="button" accessibilityLabel="More" hitSlop={12} onPress={onMore}>
-              <MoreHorizontal size={22} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-            </Pressable>
-          )}
-          {onSettings && (
-            <Pressable accessibilityRole="button" accessibilityLabel="Settings" hitSlop={12} onPress={onSettings}>
-              <Settings size={22} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-            </Pressable>
-          )}
+          {onBack ? <IconButton icon={ChevronLeft} accessibilityLabel="Back" onPress={onBack} /> : <View />}
+          {onMore && <IconButton icon={MoreHorizontal} accessibilityLabel="More" onPress={onMore} />}
+          {onSettings && <IconButton icon={Settings} accessibilityLabel="Settings" onPress={onSettings} />}
         </View>
       )}
       <ScrollView contentContainerStyle={styles.content}>

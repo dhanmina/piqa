@@ -9,20 +9,21 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera as CameraIcon, SwitchCamera, X, Zap, ZapOff } from 'lucide-react-native';
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { enqueueCapture } from '@lib/captureQueue';
 import { useHomeState } from '@lib/homeState';
 import { Button } from '@/components/atoms/Button';
+import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { Toggle } from '@/components/atoms/Toggle';
 import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, motion, photo, typeScale } from '@/components/tokens';
+import { colors, fonts, motion, overlay, photo, typeScale } from '@/components/tokens';
 
 type Captured = {
   uri: string;
@@ -60,7 +61,7 @@ export default function CameraScreen() {
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.root}>
-        <CloseButton onPress={() => router.back()} />
+        <IconButton icon={X} variant="chrome" accessibilityLabel="Close camera" onPress={() => router.back()} />
         <View style={styles.center}>
           <EmptyState
             icon={CameraIcon}
@@ -153,31 +154,23 @@ export default function CameraScreen() {
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} flash={flash} />
       <SafeAreaView style={styles.chrome} pointerEvents="box-none">
         <View style={styles.topRow}>
-          <CloseButton onPress={() => router.back()} />
+          <IconButton icon={X} variant="chrome" accessibilityLabel="Close camera" onPress={() => router.back()} />
           <View style={styles.topActions}>
-            <ChromeButton
-              label={`Flash ${flash}`}
+            <IconButton
+              icon={flash === 'off' ? ZapOff : Zap}
+              variant="chrome"
+              accessibilityLabel={`Flash ${flash}`}
+              fill={flash === 'on' ? colors.paper : undefined}
               onPress={() =>
                 setFlash(FLASH_ORDER[(FLASH_ORDER.indexOf(flash) + 1) % FLASH_ORDER.length])
               }
-            >
-              {flash === 'off' ? (
-                <ZapOff size={22} strokeWidth={icons.strokeWidth} color={colors.paper} />
-              ) : (
-                <Zap
-                  size={22}
-                  strokeWidth={icons.strokeWidth}
-                  color={colors.paper}
-                  fill={flash === 'on' ? colors.paper : 'transparent'}
-                />
-              )}
-            </ChromeButton>
-            <ChromeButton
-              label="Flip camera"
+            />
+            <IconButton
+              icon={SwitchCamera}
+              variant="chrome"
+              accessibilityLabel="Flip camera"
               onPress={() => setFacing(facing === 'back' ? 'front' : 'back')}
-            >
-              <SwitchCamera size={22} strokeWidth={icons.strokeWidth} color={colors.paper} />
-            </ChromeButton>
+            />
           </View>
         </View>
 
@@ -206,42 +199,6 @@ export default function CameraScreen() {
   );
 }
 
-function CloseButton({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Close camera"
-      hitSlop={10}
-      onPress={onPress}
-      style={styles.chromeButton}
-    >
-      <X size={22} strokeWidth={icons.strokeWidth} color={colors.paper} />
-    </Pressable>
-  );
-}
-
-function ChromeButton({
-  label,
-  onPress,
-  children,
-}: {
-  label: string;
-  onPress: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      hitSlop={10}
-      onPress={onPress}
-      style={styles.chromeButton}
-    >
-      {children}
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -266,19 +223,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
-  chromeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(20, 18, 16, 0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   promptStrip: {
     alignSelf: 'center',
     alignItems: 'center',
     gap: 2,
-    backgroundColor: 'rgba(20, 18, 16, 0.65)',
+    backgroundColor: overlay.badge,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 12,
