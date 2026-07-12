@@ -10,6 +10,8 @@ type HeartButtonProps = {
   liked: boolean;
   count?: number;
   onToggle?: () => void;
+  /** Tapping the count (not the heart) opens the signed-reactor list (spec §8). */
+  onCountPress?: () => void;
   size?: number;
   disabled?: boolean;
 };
@@ -20,7 +22,7 @@ type HeartButtonProps = {
  * icons (heart/flame/crown), stroke weight matched to Lucide 2.25.
  * (Glyph lives in HeartGlyph.tsx; tracked in TODO.md.)
  */
-export function HeartButton({ liked, count, onToggle, size = 24, disabled = false }: HeartButtonProps) {
+export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, disabled = false }: HeartButtonProps) {
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -56,13 +58,25 @@ export function HeartButton({ liked, count, onToggle, size = 24, disabled = fals
           fill={liked && !disabled ? colors.heart : 'transparent'}
         />
       </Animated.View>
-      {count !== undefined && (
-        <View>
-          <Mono size={typeScale.caption} color={disabled ? colors.paper30 : colors.paper60}>
-            {count}
-          </Mono>
-        </View>
-      )}
+      {count !== undefined &&
+        (onCountPress ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="See who reacted"
+            hitSlop={8}
+            onPress={onCountPress}
+          >
+            <Mono size={typeScale.caption} color={disabled ? colors.paper30 : colors.paper60}>
+              {count}
+            </Mono>
+          </Pressable>
+        ) : (
+          <View>
+            <Mono size={typeScale.caption} color={disabled ? colors.paper30 : colors.paper60}>
+              {count}
+            </Mono>
+          </View>
+        ))}
     </Pressable>
   );
 }
