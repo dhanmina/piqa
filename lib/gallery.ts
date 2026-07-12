@@ -142,6 +142,30 @@ export function useGallery(dropId: string | null) {
   return { data, loading };
 }
 
+async function loadFollowingGallery(): Promise<GalleryDetailPhoto[]> {
+  const { data, error } = await supabase.rpc("get_following_gallery");
+  if (error) throw error;
+  const rows = (data as unknown as { photos: RichPhotoRow[] }).photos ?? [];
+  const signed = await signThumbs(rows.map((r) => r.thumb_path).filter((p): p is string => !!p));
+  return rows.map((r) => ({
+    id: r.id,
+    uri: r.thumb_path ? (signed.get(r.thumb_path) ?? null) : null,
+    hearts: r.hearts,
+    isPotd: r.is_potd,
+    shooter: r.shooter,
+    userId: r.user_id,
+    imagePath: r.image_path,
+    thumbPath: r.thumb_path,
+    capturedAt: r.captured_at,
+  }));
+}
+
+/** Gallery placements from the people I follow (the Following sub-tab). */
+export function useFollowingGallery() {
+  const { data, loading } = useCached<GalleryDetailPhoto[]>("gallery:following", loadFollowingGallery, 60_000);
+  return { photos: data ?? [], loading };
+}
+
 // Morning reveal plays once per gallery, then never again (spec §11c / moment 2).
 const revealKey = (dropId: string) => `piqa:reveal-seen:${dropId}`;
 

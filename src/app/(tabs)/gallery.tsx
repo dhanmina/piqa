@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   isRevealSeen,
   markRevealSeen,
+  useFollowingGallery,
   useGallery,
   type GalleryDetailPhoto,
 } from '@lib/gallery';
@@ -45,6 +46,7 @@ export default function GalleryScreen() {
   const [showPast, setShowPast] = useState(false);
 
   const { data, loading } = useGallery(selectedDropId);
+  const { photos: followingPhotos, loading: followingLoading } = useFollowingGallery();
 
   // Reveal decision must be settled BEFORE the grid mounts (entering animations
   // only fire on mount). Gate the grid on `ready`.
@@ -77,7 +79,8 @@ export default function GalleryScreen() {
   }, [data, selectedDropId]);
 
   const openPhoto = (p: GalleryPhoto) => {
-    const full = data?.photos.find((x) => x.id === p.id) as GalleryDetailPhoto | undefined;
+    const full = (data?.photos.find((x) => x.id === p.id) ??
+      followingPhotos.find((x) => x.id === p.id)) as GalleryDetailPhoto | undefined;
     router.push({
       pathname: '/photo/[id]',
       params: {
@@ -87,6 +90,7 @@ export default function GalleryScreen() {
         hearts: String(full?.hearts ?? 0),
         captured: full?.capturedAt ?? '',
         potd: full?.isPotd ? '1' : '',
+        user: full?.userId ?? '',
       },
     });
   };
@@ -108,14 +112,22 @@ export default function GalleryScreen() {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
         {segmented}
-        <View style={styles.center}>
-          <EmptyState
-            icon={Users}
-            line="Follow shooters and their winning galleries land here"
-            ctaLabel="Explore World"
-            onCta={() => setTab('world')}
-          />
-        </View>
+        {followingLoading ? (
+          <View style={styles.skeleton} />
+        ) : followingPhotos.length === 0 ? (
+          <View style={styles.center}>
+            <EmptyState
+              icon={Users}
+              line="Follow shooters and their winning galleries land here"
+              ctaLabel="Explore World"
+              onCta={() => setTab('world')}
+            />
+          </View>
+        ) : (
+          <ScrollView contentContainerStyle={styles.content}>
+            <GalleryGrid photos={followingPhotos} reveal={false} highlightUserId={myId} onPress={openPhoto} />
+          </ScrollView>
+        )}
       </SafeAreaView>
     );
   }

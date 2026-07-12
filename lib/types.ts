@@ -564,10 +564,12 @@ export type Database = {
         Args: { p_as_of: string; p_uid: string }
         Returns: undefined
       }
+      get_following_gallery: { Args: never; Returns: Json }
       get_gallery: { Args: { p_drop?: string }; Returns: Json }
       get_home_state: { Args: never; Returns: Json }
       get_latest_gallery: { Args: never; Returns: Json }
       get_matchup: { Args: never; Returns: Json }
+      get_profile: { Args: { p_user?: string }; Returns: Json }
       toggle_star: { Args: { p_id: string; p_type: string }; Returns: Json }
     }
     Enums: {

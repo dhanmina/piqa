@@ -30,6 +30,7 @@ export default function PhotoDetail() {
     hearts?: string;
     captured?: string;
     potd?: string;
+    user?: string;
   }>();
 
   const uri = useSignedThumb(params.path || null);
@@ -107,7 +108,8 @@ export default function PhotoDetail() {
             accessibilityRole="button"
             accessibilityLabel="View shooter profile"
             style={styles.nameLeft}
-            onPress={() => router.push('/(tabs)/profile')}
+            disabled={!params.user}
+            onPress={() => params.user && router.push({ pathname: '/u/[id]', params: { id: params.user } })}
           >
             {isPotd && <Crown size={18} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />}
             <Text style={styles.shooter}>{params.shooter || 'shooter'}</Text>
