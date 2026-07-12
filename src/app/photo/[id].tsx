@@ -163,16 +163,11 @@ export default function PhotoDetail() {
           />
         </View>
 
-        {/* EXIF strip — mono camera-readout language; location NEVER present. */}
+        {/* EXIF strip — mono camera-readout language. No location label: Piqa
+            never captures geo, so there's nothing to claim (not even its absence). */}
         <View style={styles.exif}>
           <Mono size={typeScale.caption} color={colors.paper60}>
             {capturedLine}
-          </Mono>
-          <Mono size={typeScale.caption} color={colors.paper30}>
-            ·
-          </Mono>
-          <Mono size={typeScale.caption} color={colors.paper60}>
-            LOCATION STRIPPED
           </Mono>
         </View>
       </View>
