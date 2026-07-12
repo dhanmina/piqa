@@ -16,6 +16,7 @@ import { getPendingItemForDrop, retryBlocked, subscribeQueue, type QueueItem } f
 import { getConfig } from '@lib/config';
 import { useSignedThumb } from '@lib/gallery';
 import { useHomeState } from '@lib/homeState';
+import { levelFromXp } from '@lib/xp';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
@@ -55,9 +56,12 @@ export default function TodayScreen() {
   const submission = data?.submission ?? null;
   const streak = data?.streak ?? null;
   const potd = data?.yesterday_potd ?? null;
+  const lastResult = data?.last_result ?? null;
   const pending: QueueItem | undefined = drop ? getPendingItemForDrop(drop.id) : undefined;
   const signedSubThumb = useSignedThumb(!pending ? submission?.thumb_path : null);
   const signedPotdThumb = useSignedThumb(potd?.thumb_path);
+  const signedResultThumb = useSignedThumb(lastResult?.thumb_path);
+  const level = levelFromXp(data?.xp ?? 0);
 
   const submitted = Boolean(submission || pending);
   const votingOpen = Boolean(drop) && Date.now() < Date.parse(drop!.voting_closes_at);
@@ -149,6 +153,62 @@ export default function TodayScreen() {
             />
           </View>
         )}
+      </View>
+    );
+  } else if (lastResult) {
+    // (d) DONE / reveal-ready — the closed day's personal result, then teaser.
+    // Losses are never shown: a non-gallery shot is framed as picks earned.
+    const resultLine = lastResult.is_potd
+      ? 'Photo of the Day'
+      : lastResult.in_gallery
+        ? 'In the gallery ✓'
+        : lastResult.hearts > 0
+          ? `Your shot was picked ${lastResult.hearts} times by curators worldwide`
+          : 'Your shot is safe in your archive';
+    body = (
+      <View style={styles.waitingWrap}>
+        <View style={styles.doneResult}>
+          <Mono size={typeScale.caption} color={colors.paper60}>
+            YOUR RESULT
+          </Mono>
+          <Brackets color={lastResult.is_potd ? colors.crown : colors.paper} style={styles.stretch}>
+            <PhotoTile uri={signedResultThumb} aspectRatio={3 / 4} />
+          </Brackets>
+          <View style={styles.resultCaption}>
+            {lastResult.is_potd && (
+              <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
+            )}
+            <Text style={styles.resultLine}>{resultLine}</Text>
+          </View>
+          <View style={styles.potdHearts}>
+            <HeartGlyph size={13} color={colors.paper60} strokeWidth={2} />
+            <Mono size={typeScale.caption} color={colors.paper60}>
+              {lastResult.hearts}
+            </Mono>
+            {lastResult.xp_awarded > 0 && (
+              <>
+                <Mono size={typeScale.caption} color={colors.paper30}>
+                  ·
+                </Mono>
+                <Mono size={typeScale.caption} color={colors.safelight}>
+                  +{lastResult.xp_awarded} XP · Lv {level}
+                </Mono>
+              </>
+            )}
+          </View>
+          <Button label="See the gallery" fullWidth onPress={() => router.push('/(tabs)/gallery')} />
+        </View>
+
+        <View style={styles.countdownBlock}>
+          <Mono size={typeScale.caption} color={colors.paper60}>
+            NEXT SHOT IN
+          </Mono>
+          {data?.next_drop_at ? (
+            <Countdown until={data.next_drop_at} size={typeScale.title} onDone={() => void refresh()} />
+          ) : (
+            <Text style={styles.softLine}>Next shot drops soon</Text>
+          )}
+        </View>
       </View>
     );
   } else {
@@ -311,6 +371,22 @@ const styles = StyleSheet.create({
   },
   waitingWrap: {
     gap: space.gutter * 1.5,
+  },
+  doneResult: {
+    gap: 10,
+  },
+  resultCaption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingTop: 4,
+  },
+  resultLine: {
+    fontFamily: fonts.sansMedium,
+    fontSize: typeScale.body,
+    color: colors.paper,
+    textAlign: 'center',
   },
   countdownBlock: {
     alignItems: 'center',

@@ -399,6 +399,7 @@ export type Database = {
           thumb_path: string | null
           user_id: string
           vote_count: number
+          xp_awarded: number
         }
         Insert: {
           bt_score?: number | null
@@ -415,6 +416,7 @@ export type Database = {
           thumb_path?: string | null
           user_id: string
           vote_count?: number
+          xp_awarded?: number
         }
         Update: {
           bt_score?: number | null
@@ -431,6 +433,7 @@ export type Database = {
           thumb_path?: string | null
           user_id?: string
           vote_count?: number
+          xp_awarded?: number
         }
         Relationships: [
           {

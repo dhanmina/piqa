@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getPendingItemForDrop, subscribeQueue } from '@lib/captureQueue';
+import { isRevealSeen } from '@lib/gallery';
 import { useHomeState } from '@lib/homeState';
 import { Shutter, type ShutterState } from '@/components/moments/Shutter';
 import { colors, fonts, icons, typeScale } from '@/components/tokens';
@@ -35,12 +36,29 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const pendingDaily = drop ? getPendingItemForDrop(drop.id) : undefined;
   const hasSubmitted = Boolean(data?.submission) || Boolean(pendingDaily);
 
+  // A revealed result the viewer hasn't opened yet also earns the Today badge.
+  const lastResultDrop = data?.last_result?.drop_id ?? null;
+  const [resultUnseen, setResultUnseen] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    if (!lastResultDrop) {
+      setResultUnseen(false);
+      return;
+    }
+    void isRevealSeen(lastResultDrop).then((seen) => {
+      if (alive) setResultUnseen(!seen);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [lastResultDrop]);
+
   const shutterState: ShutterState = drop?.is_live
     ? hasSubmitted
       ? 'done'
       : 'live'
     : 'default';
-  const todayBadge = Boolean(drop?.is_live) && !hasSubmitted;
+  const todayBadge = (Boolean(drop?.is_live) && !hasSubmitted) || resultUnseen;
 
   const renderTab = (name: string) => {
     const routeIndex = state.routes.findIndex((r) => r.name === name);

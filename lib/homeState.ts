@@ -41,6 +41,17 @@ export type HomeStreak = {
   is_alive: boolean;
 };
 
+/** The viewer's own result on the most recent revealed drop (the done state). */
+export type LastResult = {
+  drop_id: string;
+  drop_date: string;
+  thumb_path: string | null;
+  hearts: number;
+  in_gallery: boolean;
+  is_potd: boolean;
+  xp_awarded: number;
+};
+
 export type HomeState = {
   /** Active cycle drop (submit window through 8am voting tail), or null. */
   drop: HomeDrop | null;
@@ -49,6 +60,10 @@ export type HomeState = {
   submission: HomeSubmission | null;
   yesterday_potd: YesterdayPotd | null;
   streak: HomeStreak | null;
+  /** Viewer total XP (level is derived; quiet-mode surface). */
+  xp: number;
+  /** Result to reveal between close and the next drop; null otherwise. */
+  last_result: LastResult | null;
 };
 
 const HOME_KEY = "home_state";
