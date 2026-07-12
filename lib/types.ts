@@ -199,6 +199,7 @@ export type Database = {
           created_at: string
           id: string
           is_premium: boolean
+          push_token: string | null
           region: string
           timezone: string
           username: string
@@ -209,6 +210,7 @@ export type Database = {
           created_at?: string
           id: string
           is_premium?: boolean
+          push_token?: string | null
           region?: string
           timezone?: string
           username: string
@@ -219,6 +221,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_premium?: boolean
+          push_token?: string | null
           region?: string
           timezone?: string
           username?: string

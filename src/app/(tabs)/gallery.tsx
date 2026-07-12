@@ -10,10 +10,13 @@
  */
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
+import LottieView from 'lottie-react-native';
 import { Image as ImageIcon, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import confettiSource from '@/assets/lottie/confetti.json';
 
 import {
   isRevealSeen,
@@ -253,6 +256,11 @@ export default function GalleryScreen() {
           </View>
         </View>
       </ScrollView>
+      {celebrate && reveal && (
+        <View pointerEvents="none" style={styles.confettiOverlay}>
+          <LottieView source={confettiSource} autoPlay loop={false} style={StyleSheet.absoluteFill} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -284,6 +292,13 @@ const styles = StyleSheet.create({
     fontSize: typeScale.title,
     color: colors.safelight,
     textAlign: 'center',
+  },
+  confettiOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 380,
   },
   header: { gap: 6 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

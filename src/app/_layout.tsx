@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { initCaptureQueue } from '@lib/captureQueue';
+import { registerForPush } from '@lib/push';
 import { SessionProvider, useSession } from '@lib/session';
 import { useAppFonts } from '@/components/fonts';
 import { colors, fonts } from '@/components/tokens';
@@ -13,6 +14,12 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { session, loading } = useSession();
+
+  // Register for push once signed in (spec §14). Best-effort — the app works
+  // fully without it, so a failure never blocks anything.
+  useEffect(() => {
+    if (session) void registerForPush();
+  }, [session]);
 
   if (loading) return null; // splash stays up until the stored session is read
 
