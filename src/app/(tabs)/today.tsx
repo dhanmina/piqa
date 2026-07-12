@@ -44,7 +44,7 @@ export default function TodayScreen() {
     () =>
       subscribeQueue((event) => {
         setQueueTick((t) => t + 1);
-        if (event.type === 'blocked') setToast('Upload hit a wall — tap Retry below');
+        if (event.type === 'blocked') setToast('Upload hit a wall. Tap Retry below');
         if (event.type === 'duplicate') setToast('Already submitted for today');
         if (event.type === 'done' && event.item.kind === 'daily') setToast('In the running ✓');
       }),
@@ -90,8 +90,8 @@ export default function TodayScreen() {
       : blocked
         ? 'Upload needs a retry'
         : queued
-          ? 'Saved — will upload'
-          : 'Shot saved ✓ — uploading';
+          ? 'Saved, will upload'
+          : 'Shot saved ✓ · uploading';
     body = (
       <View style={styles.submittedWrap}>
         <Brackets color={colors.paper} style={styles.stretch}>
@@ -109,7 +109,7 @@ export default function TodayScreen() {
         )}
         {blocked && <Button label="Retry upload" variant="ghost" onPress={() => void retryBlocked()} fullWidth />}
         {!blocked && drop?.is_live && (
-          <Text style={styles.subNote}>Curators are already picking — results at 9am</Text>
+          <Text style={styles.subNote}>Curators are already picking · results at 9am</Text>
         )}
         {!blocked && votingOpen && drop && (
           <View style={styles.submittedAction}>
@@ -232,7 +232,7 @@ export default function TodayScreen() {
               alive={streak?.is_alive ?? false}
               shields={streak?.shields ?? 0}
             />
-            {brandNew && <Text style={styles.dayZero}>Day 0 — your first shot starts it</Text>}
+            {brandNew && <Text style={styles.dayZero}>Day 0 · your first shot starts it</Text>}
           </View>
           <Mono size={typeScale.caption} color={colors.paper60}>
             {dateLine}

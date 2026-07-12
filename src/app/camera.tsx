@@ -64,7 +64,7 @@ export default function CameraScreen() {
         <View style={styles.center}>
           <EmptyState
             icon={CameraIcon}
-            line="Every Piqa photo is shot in-app, today — allow the camera to play"
+            line="Every Piqa photo is shot in-app, today. Allow the camera to play"
             ctaLabel="Allow camera"
             onCta={() => void requestPermission()}
           />
@@ -109,7 +109,7 @@ export default function CameraScreen() {
       router.back();
     } catch {
       // Local persistence failed (storage full etc.) — a real error, not connectivity.
-      setToast('Could not save the shot — check device storage');
+      setToast('Could not save the shot. Check device storage');
     } finally {
       setBusy(false);
     }

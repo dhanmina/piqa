@@ -12,6 +12,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { getConfig } from '@lib/config';
 import { createVoteSender, fetchMatchupSet, type MatchupSet } from '@lib/matchup';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
@@ -30,6 +31,11 @@ export default function CurateScreen() {
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState(0); // picks made in the current set
   const [remaining, setRemaining] = useState(0);
+  const [cap, setCap] = useState(50); // daily pick cap (config, never hardcoded)
+
+  useEffect(() => {
+    void getConfig('vote_cap').then(setCap);
+  }, []);
 
   const senderRef = useRef<ReturnType<typeof createVoteSender> | null>(null);
   if (senderRef.current === null) {
@@ -104,7 +110,7 @@ export default function CurateScreen() {
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.center}>
-          <Text style={styles.bigLine}>That’s your 50 for today</Text>
+          <Text style={styles.bigLine}>You’ve curated today’s {cap}</Text>
           <Text style={styles.subLine}>The gallery is in good hands. Come back tomorrow.</Text>
           <Button label="Back to Today" fullWidth onPress={close} />
         </View>
@@ -118,7 +124,7 @@ export default function CurateScreen() {
         <View style={styles.center}>
           <EmptyState
             icon={Aperture}
-            line="No shots to curate right now — check back once more have landed"
+            line="No shots to curate yet. Check back soon."
             ctaLabel="Back to Today"
             onCta={close}
           />
@@ -143,7 +149,7 @@ export default function CurateScreen() {
         <View style={styles.center}>
           <Text style={styles.bigLine}>Set done ✓</Text>
           <Text style={styles.subLine}>
-            {picked} {picked === 1 ? 'pick' : 'picks'} in — {remaining} left today
+            {picked} {picked === 1 ? 'pick' : 'picks'} in · {remaining} left today
           </Text>
           {remaining > 0 ? (
             <>
