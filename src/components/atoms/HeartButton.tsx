@@ -4,7 +4,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, w
 
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { Mono } from '@/components/atoms/Mono';
-import { colors, motion, typeScale } from '@/components/tokens';
+import { colors, motion, overlay, radius, typeScale } from '@/components/tokens';
 
 type HeartButtonProps = {
   liked: boolean;
@@ -14,6 +14,9 @@ type HeartButtonProps = {
   onCountPress?: () => void;
   size?: number;
   disabled?: boolean;
+  /** Over a photo: wrap in a scrim pill + full-contrast glyph so it never washes
+   *  out against a bright image. */
+  onPhoto?: boolean;
 };
 
 /**
@@ -22,8 +25,9 @@ type HeartButtonProps = {
  * icons (heart/flame/crown), stroke weight matched to Lucide 2.25.
  * (Glyph lives in HeartGlyph.tsx; tracked in TODO.md.)
  */
-export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, disabled = false }: HeartButtonProps) {
+export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, disabled = false, onPhoto = false }: HeartButtonProps) {
   const scale = useSharedValue(1);
+  const restColor = onPhoto ? colors.paper : colors.paper60; // unliked glyph / count
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -49,12 +53,12 @@ export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, d
       disabled={disabled}
       hitSlop={12}
       onPress={handlePress}
-      style={styles.row}
+      style={[styles.row, onPhoto && styles.rowChip]}
     >
       <Animated.View style={animatedStyle}>
         <HeartGlyph
           size={size}
-          color={disabled ? colors.paper30 : liked ? colors.heart : colors.paper60}
+          color={disabled ? colors.paper30 : liked ? colors.heart : restColor}
           fill={liked && !disabled ? colors.heart : 'transparent'}
         />
       </Animated.View>
@@ -66,13 +70,13 @@ export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, d
             hitSlop={8}
             onPress={onCountPress}
           >
-            <Mono size={typeScale.caption} color={disabled ? colors.paper30 : colors.paper60}>
+            <Mono size={typeScale.caption} color={disabled ? colors.paper30 : restColor}>
               {count}
             </Mono>
           </Pressable>
         ) : (
           <View>
-            <Mono size={typeScale.caption} color={disabled ? colors.paper30 : colors.paper60}>
+            <Mono size={typeScale.caption} color={disabled ? colors.paper30 : restColor}>
               {count}
             </Mono>
           </View>
@@ -87,5 +91,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     minHeight: 32,
+  },
+  rowChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: overlay.chip,
+    gap: 8,
   },
 });

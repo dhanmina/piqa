@@ -5,11 +5,12 @@
  * name → profile (placeholder; Profile is Phase 4).
  */
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Crown, MoreHorizontal, X } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSignedThumb } from '@lib/gallery';
 import { REPORT_REASONS, reportSubmission } from '@lib/moderation';
@@ -22,12 +23,13 @@ import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, photo, space, typeScale } from '@/components/tokens';
 
 type Reactor = { id: string; username: string; avatar_url: string | null };
 
 export default function PhotoDetail() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { session } = useSession();
   const myId = session?.user.id;
   const params = useLocalSearchParams<{
@@ -130,46 +132,59 @@ export default function PhotoDetail() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <IconButton icon={X} accessibilityLabel="Close" onPress={() => router.back()} />
-        {!isOwn && <IconButton icon={MoreHorizontal} accessibilityLabel="More" onPress={() => setShowReport(true)} />}
-      </View>
+      <View style={styles.stage}>
+        <View style={styles.photoFrame}>
+          {uri ? (
+            <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={120} />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, styles.skeleton]} />
+          )}
 
-      <View style={styles.imageWrap}>
-        {uri ? (
-          <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="contain" transition={120} />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, styles.skeleton]} />
-        )}
-      </View>
-
-      <View style={styles.footer}>
-        <View style={styles.nameRow}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="View shooter profile"
-            style={styles.nameLeft}
-            disabled={!params.user}
-            onPress={() => params.user && router.push({ pathname: '/u/[id]', params: { id: params.user } })}
-          >
-            {isPotd && <Crown size={18} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />}
-            <Text style={styles.shooter}>{params.shooter || 'shooter'}</Text>
-          </Pressable>
-          <HeartButton
-            liked={liked}
-            count={Math.max(baseHeartsValue + delta, 0)}
-            onToggle={() => void toggle()}
-            onCountPress={() => setShowReactors(true)}
+          {/* Legibility scrim: a bottom fade so overlaid details read on any
+              photo. A text scrim, not decoration — the print itself is untouched.
+              No location is ever shown here (spec §0). */}
+          <LinearGradient
+            pointerEvents="none"
+            colors={['rgba(20, 18, 16, 0)', 'rgba(20, 18, 16, 0.92)']}
+            locations={[0, 1]}
+            style={styles.fade}
           />
-        </View>
 
-        {/* EXIF strip — mono camera-readout language. No location label: Piqa
-            never captures geo, so there's nothing to claim (not even its absence). */}
-        <View style={styles.exif}>
-          <Mono size={typeScale.caption} color={colors.paper60}>
-            {capturedLine}
-          </Mono>
+          <View style={styles.overlay}>
+            <View style={styles.identity}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="View shooter profile"
+                style={styles.nameLeft}
+                disabled={!params.user}
+                onPress={() => params.user && router.push({ pathname: '/u/[id]', params: { id: params.user } })}
+              >
+                {isPotd && <Crown size={18} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />}
+                <Text style={styles.shooter} numberOfLines={1}>
+                  {params.shooter || 'shooter'}
+                </Text>
+              </Pressable>
+              <Mono size={typeScale.caption} color={colors.paper60}>
+                {capturedLine}
+              </Mono>
+            </View>
+            <HeartButton
+              onPhoto
+              liked={liked}
+              count={Math.max(baseHeartsValue + delta, 0)}
+              onToggle={() => void toggle()}
+              onCountPress={() => setShowReactors(true)}
+            />
+          </View>
         </View>
+      </View>
+
+      {/* Chrome floats over the print as scrim chips. */}
+      <View style={[styles.headerFloat, { top: insets.top + 8 }]} pointerEvents="box-none">
+        <IconButton icon={X} variant="chrome" accessibilityLabel="Close" onPress={() => router.back()} />
+        {!isOwn && (
+          <IconButton icon={MoreHorizontal} variant="chrome" accessibilityLabel="More" onPress={() => setShowReport(true)} />
+        )}
       </View>
 
       <Sheet visible={showReactors} onClose={() => setShowReactors(false)} title="Reactions">
@@ -215,19 +230,31 @@ export default function PhotoDetail() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8 },
-  imageWrap: { flex: 1, backgroundColor: colors.ink },
+  stage: { flex: 1, justifyContent: 'center' },
+  photoFrame: { width: '100%', aspectRatio: photo.aspect, backgroundColor: colors.ink2 },
   skeleton: { backgroundColor: colors.ink2 },
-  footer: {
+  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '45%' },
+  overlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     padding: space.gutter,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.ink2, // hairline between the print and its readout
   },
-  nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  nameLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  shooter: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper },
-  exif: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerFloat: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  identity: { flex: 1, gap: 4 },
+  nameLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  shooter: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper, flexShrink: 1 },
   emptyReactors: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
   reactorScroll: { maxHeight: 320 },
   reactorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
