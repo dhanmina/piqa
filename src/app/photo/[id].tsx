@@ -17,6 +17,7 @@ import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
 import { Avatar } from '@/components/atoms/Avatar';
 import { HeartButton } from '@/components/atoms/HeartButton';
+import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { Sheet } from '@/components/molecules/Sheet';
@@ -130,14 +131,8 @@ export default function PhotoDetail() {
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close" hitSlop={12} onPress={() => router.back()}>
-          <X size={22} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-        </Pressable>
-        {!isOwn && (
-          <Pressable accessibilityRole="button" accessibilityLabel="More" hitSlop={12} onPress={() => setShowReport(true)}>
-            <MoreHorizontal size={22} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-          </Pressable>
-        )}
+        <IconButton icon={X} accessibilityLabel="Close" onPress={() => router.back()} />
+        {!isOwn && <IconButton icon={MoreHorizontal} accessibilityLabel="More" onPress={() => setShowReport(true)} />}
       </View>
 
       <View style={styles.imageWrap}>

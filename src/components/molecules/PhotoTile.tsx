@@ -5,7 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { Mono } from '@/components/atoms/Mono';
-import { colors, icons, photo, radius, typeScale } from '@/components/tokens';
+import { colors, icons, overlay, photo, radius, typeScale } from '@/components/tokens';
 
 type PhotoTileBadge = 'crown' | 'daily' | 'queued';
 
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: 'rgba(20, 18, 16, 0.75)',
+    backgroundColor: overlay.badge,
     paddingHorizontal: 6,
     paddingVertical: 4,
   },

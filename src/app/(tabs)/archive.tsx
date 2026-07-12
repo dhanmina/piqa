@@ -20,7 +20,7 @@ import { EmptyState } from '@/components/molecules/EmptyState';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, photo, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, overlay, photo, space, typeScale } from '@/components/tokens';
 
 type Filter = 'all' | 'daily' | 'starred';
 
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(20, 18, 16, 0.75)',
+    backgroundColor: overlay.badge,
     padding: 4,
   },
   emptyFilter: { paddingVertical: GUTTER * 2, alignItems: 'center' },

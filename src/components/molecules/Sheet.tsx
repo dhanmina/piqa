@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, radius, space, typeScale } from '@/components/tokens';
+import { colors, fonts, overlay, radius, space, typeScale } from '@/components/tokens';
 
 type SheetProps = PropsWithChildren<{
   visible: boolean;
@@ -26,7 +26,7 @@ export function Sheet({ visible, onClose, title, children }: SheetProps) {
 const styles = StyleSheet.create({
   scrim: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: overlay.scrim,
   },
   sheet: {
     backgroundColor: colors.ink2,

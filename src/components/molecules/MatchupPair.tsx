@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
-import { colors, fonts, typeScale } from '@/components/tokens';
+import { colors, fonts, overlay, typeScale } from '@/components/tokens';
 
 type MatchupPairProps = {
   topUri: string;
@@ -14,10 +14,6 @@ type MatchupPairProps = {
   onPick?: (winner: 'top' | 'bottom') => void;
   onSkip?: () => void;
 };
-
-/** Flat scrims (no blur, no gradient) keep floating controls legible over any
- * photo while the pair stays truly full-bleed. */
-const scrim = 'rgba(20, 18, 16, 0.55)';
 
 /**
  * The most disciplined screen in the app: two full-bleed photos, a hairline
@@ -112,7 +108,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: scrim,
+    backgroundColor: overlay.chip,
   },
   seg: {
     width: 10,
@@ -141,7 +137,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: scrim,
+    backgroundColor: overlay.chip,
     overflow: 'hidden',
   },
   skipWrap: {
@@ -151,7 +147,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 999,
-    backgroundColor: scrim,
+    backgroundColor: overlay.chip,
   },
   skip: {
     fontFamily: fonts.sans,

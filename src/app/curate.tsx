@@ -6,21 +6,21 @@
  * server's 2s guard so none is ever lost. Pushed from Today — never a tab.
  */
 import { useRouter } from 'expo-router';
-import { X } from 'lucide-react-native';
+import { Aperture, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getConfig } from '@lib/config';
 import { createVoteSender, fetchMatchupSet, type MatchupSet } from '@lib/matchup';
 import { Button } from '@/components/atoms/Button';
+import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { MatchupPair } from '@/components/molecules/MatchupPair';
-import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
-import { Aperture } from 'lucide-react-native';
+import { colors, fonts, space, typeScale } from '@/components/tokens';
 
 type Phase = 'loading' | 'judging' | 'setDone' | 'capped' | 'empty' | 'error';
 
@@ -179,15 +179,13 @@ export default function CurateScreen() {
           onSkip={onSkip}
         />
       </Animated.View>
-      <Pressable
-        accessibilityRole="button"
+      <IconButton
+        icon={X}
         accessibilityLabel="Close"
-        hitSlop={12}
-        style={[styles.close, { top: insets.top + 8 }]}
+        variant="chrome"
         onPress={close}
-      >
-        <X size={22} strokeWidth={icons.strokeWidth} color={colors.paper} />
-      </Pressable>
+        style={[styles.close, { top: insets.top + 8 }]}
+      />
     </SafeAreaView>
   );
 }
@@ -198,12 +196,6 @@ const styles = StyleSheet.create({
   close: {
     position: 'absolute',
     left: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(20, 18, 16, 0.55)',
   },
   pairWrap: { flex: 1 },
   bigLine: {
