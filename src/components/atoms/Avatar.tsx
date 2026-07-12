@@ -14,14 +14,21 @@ type AvatarProps = {
   frameWidth?: number;
 };
 
+const FRAME_PAD = 2;
+
 export function Avatar({ uri, username, size = 40, frameColor, frameWidth = 2 }: AvatarProps) {
   const initials = username.slice(0, 2).toUpperCase();
+  // Border-box sizing: width/height include padding + border, so the outer box
+  // is size + the ring's padding and stroke on both sides. Radius = outer / 2
+  // is an exact circle — never rely on RN clamping an oversized radius (which
+  // renders square once a borderWidth is present on Fabric).
+  const outer = frameColor ? size + FRAME_PAD * 2 + frameWidth * 2 : size;
   const ring = frameColor
-    ? { borderWidth: frameWidth, borderColor: frameColor, padding: 2 }
+    ? { borderWidth: frameWidth, borderColor: frameColor, padding: FRAME_PAD }
     : null;
 
   return (
-    <View style={[styles.ring, ring, { borderRadius: size }]}>
+    <View style={[styles.ring, ring, { width: outer, height: outer, borderRadius: outer / 2 }]}>
       {uri ? (
         <Image
           source={{ uri }}
