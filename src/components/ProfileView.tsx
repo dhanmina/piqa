@@ -5,7 +5,7 @@
  * are never shown, to anyone (spec §9).
  */
 import { Image } from 'expo-image';
-import { ChevronLeft, Crown, Star, Trophy } from 'lucide-react-native';
+import { ChevronLeft, Crown, MoreHorizontal, Star, Trophy } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -25,10 +25,11 @@ type Props = {
   onSignOut?: () => void;
   onOpenWin?: (win: ProfileWin, username: string) => void;
   onBack?: () => void;
+  onMore?: () => void;
   followBusy?: boolean;
 };
 
-export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWin, onBack, followBusy }: Props) {
+export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWin, onBack, onMore, followBusy }: Props) {
   const prog = levelProgress(data?.xp ?? 0);
   const frame = frameForLevel(prog.level);
   const title = titleForLevel(prog.level);
@@ -36,11 +37,20 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      {onBack && (
+      {(onBack || onMore) && (
         <View style={styles.backHeader}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={12} onPress={onBack}>
-            <ChevronLeft size={24} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-          </Pressable>
+          {onBack ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={12} onPress={onBack}>
+              <ChevronLeft size={24} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+            </Pressable>
+          ) : (
+            <View />
+          )}
+          {onMore && (
+            <Pressable accessibilityRole="button" accessibilityLabel="More" hitSlop={12} onPress={onMore}>
+              <MoreHorizontal size={22} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+            </Pressable>
+          )}
         </View>
       )}
       <ScrollView contentContainerStyle={styles.content}>
@@ -172,7 +182,7 @@ function Stat({ label, value, icon }: { label: string; value: number; icon?: Rea
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  backHeader: { paddingHorizontal: 16, paddingVertical: 8 },
+  backHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 },
   content: { padding: space.gutter, gap: space.gutter * 1.5 },
   identity: { alignItems: 'center', gap: 8, paddingTop: space.gutter },
   username: { fontFamily: fonts.sansSemiBold, fontSize: typeScale.title, color: colors.paper },

@@ -39,6 +39,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       config: {
         Row: {
           key: string
@@ -396,6 +429,7 @@ export type Database = {
           image_path: string | null
           in_gallery: boolean
           is_potd: boolean
+          quarantined: boolean
           quick_draw: boolean
           rating: number
           reaction_count: number
@@ -415,6 +449,7 @@ export type Database = {
           image_path?: string | null
           in_gallery?: boolean
           is_potd?: boolean
+          quarantined?: boolean
           quick_draw?: boolean
           rating?: number
           reaction_count?: number
@@ -434,6 +469,7 @@ export type Database = {
           image_path?: string | null
           in_gallery?: boolean
           is_potd?: boolean
+          quarantined?: boolean
           quick_draw?: boolean
           rating?: number
           reaction_count?: number
@@ -564,12 +600,20 @@ export type Database = {
         Args: { p_as_of: string; p_uid: string }
         Returns: undefined
       }
+      filter_public_photos: {
+        Args: { p_photos: Json; p_viewer: string }
+        Returns: Json
+      }
       get_following_gallery: { Args: never; Returns: Json }
       get_gallery: { Args: { p_drop?: string }; Returns: Json }
       get_home_state: { Args: never; Returns: Json }
       get_latest_gallery: { Args: never; Returns: Json }
       get_matchup: { Args: never; Returns: Json }
       get_profile: { Args: { p_user?: string }; Returns: Json }
+      report_submission: {
+        Args: { p_reason: string; p_submission: string }
+        Returns: Json
+      }
       toggle_star: { Args: { p_id: string; p_type: string }; Returns: Json }
     }
     Enums: {

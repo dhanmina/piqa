@@ -6,12 +6,13 @@
  */
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Crown, X } from 'lucide-react-native';
+import { Crown, MoreHorizontal, X } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSignedThumb } from '@lib/gallery';
+import { REPORT_REASONS, reportSubmission } from '@lib/moderation';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
 import { Avatar } from '@/components/atoms/Avatar';
@@ -19,6 +20,7 @@ import { HeartButton } from '@/components/atoms/HeartButton';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { Sheet } from '@/components/molecules/Sheet';
+import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
 
 type Reactor = { id: string; username: string; avatar_url: string | null };
@@ -46,6 +48,17 @@ export default function PhotoDetail() {
   const [liveBase, setLiveBase] = useState<number | null>(null);
   const [reactors, setReactors] = useState<Reactor[]>([]);
   const [showReactors, setShowReactors] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const isOwn = Boolean(myId && params.user && myId === params.user);
+
+  const onReport = async (reason: string) => {
+    if (!params.id) return;
+    setShowReport(false);
+    await reportSubmission(params.id, reason);
+    setToast("Thanks. We'll take a look.");
+    setTimeout(() => router.back(), 900); // hide it from the reporter (spec §12)
+  };
 
   // Signed reactors only (votes stay anonymous) — spec §8.
   const loadReactors = useCallback(async () => {
@@ -118,6 +131,11 @@ export default function PhotoDetail() {
         <Pressable accessibilityRole="button" accessibilityLabel="Close" hitSlop={12} onPress={() => router.back()}>
           <X size={22} strokeWidth={icons.strokeWidth} color={colors.paper60} />
         </Pressable>
+        {!isOwn && (
+          <Pressable accessibilityRole="button" accessibilityLabel="More" hitSlop={12} onPress={() => setShowReport(true)}>
+            <MoreHorizontal size={22} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.imageWrap}>
@@ -184,13 +202,28 @@ export default function PhotoDetail() {
           </ScrollView>
         )}
       </Sheet>
+
+      <Sheet visible={showReport} onClose={() => setShowReport(false)} title="Report this photo">
+        {REPORT_REASONS.map((r) => (
+          <Pressable
+            key={r.value}
+            accessibilityRole="button"
+            style={styles.reasonRow}
+            onPress={() => void onReport(r.value)}
+          >
+            <Text style={styles.reasonLabel}>{r.label}</Text>
+          </Pressable>
+        ))}
+      </Sheet>
+
+      <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  header: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8 },
   imageWrap: { flex: 1, backgroundColor: colors.ink },
   skeleton: { backgroundColor: colors.ink2 },
   footer: { padding: space.gutter, gap: 12 },
@@ -202,4 +235,6 @@ const styles = StyleSheet.create({
   reactorScroll: { maxHeight: 320 },
   reactorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   reactorName: { fontFamily: displayFamily, fontSize: typeScale.body, color: colors.paper },
+  reasonRow: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.ink },
+  reasonLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.paper },
 });
