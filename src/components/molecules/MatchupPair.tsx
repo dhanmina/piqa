@@ -38,14 +38,14 @@ export function MatchupPair({ topUri, bottomUri, index, total, onPick, onSkip }:
   return (
     <View style={styles.container}>
       <Pressable accessibilityRole="button" accessibilityLabel="Pick top photo" style={styles.photo} onPress={() => pick('top')}>
-        <Image source={{ uri: topUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <Image source={{ uri: topUri }} style={StyleSheet.absoluteFill} contentFit="contain" />
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, topFlashStyle]} />
       </Pressable>
 
       <View style={styles.divider} />
 
       <Pressable accessibilityRole="button" accessibilityLabel="Pick bottom photo" style={styles.photo} onPress={() => pick('bottom')}>
-        <Image source={{ uri: bottomUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <Image source={{ uri: bottomUri }} style={StyleSheet.absoluteFill} contentFit="contain" />
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, bottomFlashStyle]} />
       </Pressable>
 
