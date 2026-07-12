@@ -169,7 +169,7 @@ export default function GalleryScreen() {
               <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={colors.paper60} />
             }
           >
-            <GalleryGrid photos={followingPhotos} reveal={false} highlightUserId={myId} onPress={openPhoto} />
+            <GalleryGrid photos={followingPhotos} flat onPress={openPhoto} />
           </ScrollView>
         )}
       </SafeAreaView>
