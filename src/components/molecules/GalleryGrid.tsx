@@ -29,15 +29,55 @@ type GalleryGridProps = {
   potdLabel?: string;
   /** During a reveal, the viewer's own tile enters last with gold brackets. */
   highlightUserId?: string;
+  /**
+   * Feed mode (Following): a flat equal-weight 2-col grid with a crown badge on
+   * each PotD tile — never a single hero. The magazine hero only makes sense for
+   * one day's issue (World); a cross-day feed has many PotDs, so promoting one
+   * would silently drop the others.
+   */
+  flat?: boolean;
   onPress?: (photo: GalleryPhoto) => void;
 };
 
 /**
  * The morning paper: PotD full-width first (the ONLY gold brackets in the app),
  * then an unnumbered 2-col grid. Finite by construction — galleries are bounded,
- * so this renders a plain wrapped grid, never an infinite list.
+ * so this renders a plain wrapped grid, never an infinite list. In `flat` mode
+ * (Following feed) it drops the hero and renders every placement as an equal
+ * tile, crown-badged if it was a Photo of the Day.
  */
-export function GalleryGrid({ photos, reveal = false, potdLabel, highlightUserId, onPress }: GalleryGridProps) {
+export function GalleryGrid({ photos, reveal = false, potdLabel, highlightUserId, flat = false, onPress }: GalleryGridProps) {
+  const wrap = (photo: GalleryPhoto, child: ReactNode) =>
+    onPress ? (
+      <Pressable accessibilityRole="button" onPress={() => onPress(photo)}>
+        {child}
+      </Pressable>
+    ) : (
+      <>{child}</>
+    );
+
+  if (flat) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.grid}>
+          {photos.map((p) => (
+            <View key={p.id} style={styles.cell}>
+              {wrap(
+                p,
+                <PhotoTile
+                  uri={p.uri}
+                  hearts={p.hearts}
+                  badge={p.isPotd ? 'crown' : undefined}
+                  aspectRatio={photoFrame.aspect}
+                />,
+              )}
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
   const potd = photos.find((p) => p.isPotd);
   let rest = photos.filter((p) => !p.isPotd);
 
@@ -47,15 +87,6 @@ export function GalleryGrid({ photos, reveal = false, potdLabel, highlightUserId
     const [own] = rest.splice(ownIdx, 1);
     rest = [...rest, own];
   }
-
-  const wrap = (photo: GalleryPhoto, child: ReactNode) =>
-    onPress ? (
-      <Pressable accessibilityRole="button" onPress={() => onPress(photo)}>
-        {child}
-      </Pressable>
-    ) : (
-      <>{child}</>
-    );
 
   const tile = (photo: GalleryPhoto, i: number, isOwn: boolean) => {
     const inner = isOwn ? (
