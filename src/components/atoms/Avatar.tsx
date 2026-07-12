@@ -21,7 +21,7 @@ export function Avatar({ uri, username, size = 40, frameColor, frameWidth = 2 }:
     : null;
 
   return (
-    <View style={[styles.ring, ring, { borderRadius: (size + 8) / 2 }]}>
+    <View style={[styles.ring, ring, { borderRadius: size }]}>
       {uri ? (
         <Image
           source={{ uri }}
