@@ -29,6 +29,7 @@ import * as Network from "expo-network";
 import { AppState } from "react-native";
 
 import { getConfig } from "./config";
+import { classifyImage, NSFW_REJECTION_COPY } from "./nsfw";
 import { supabase } from "./supabase";
 
 // Pipeline constants from spec §4 (fixed by design, not tunable thresholds):
@@ -58,11 +59,13 @@ export type QueueItem = {
   thumbUploaded: boolean;
   fullUploaded: boolean;
   rowInserted: boolean;
+  /** NSFW gate passed — checked once, before any upload (spec §12). */
+  nsfwPassed: boolean;
   attempts: number;
   nextAttemptAt: number;
   status: "pending" | "blocked" | "done";
-  /** 'network' failures are silent; anything else is a real error. */
-  lastErrorKind: "network" | "fatal" | null;
+  /** 'network' failures are silent; 'rejected' = content gate; else real error. */
+  lastErrorKind: "network" | "fatal" | "rejected" | null;
   lastError: string | null;
 };
 
@@ -172,6 +175,7 @@ export async function enqueueCapture(input: {
     thumbUploaded: false,
     fullUploaded: false,
     rowInserted: false,
+    nsfwPassed: false,
     attempts: 0,
     nextAttemptAt: 0,
     status: "pending",
@@ -273,6 +277,30 @@ async function processItem(item: QueueItem): Promise<void> {
     }
     if (!item.fullUri) {
       item.fullUri = await compressTo(item, FULL_LONG_EDGE, "full");
+      await persist();
+    }
+
+    // NSFW pre-upload gate (spec §12): decide BEFORE any upload so flagged bytes
+    // are never sent. A flagged shot is rejected outright (not a retry) and
+    // dropped from the queue, so Today returns to the Shoot card to reshoot.
+    if (!item.nsfwPassed) {
+      const { flagged } = await classifyImage(item.thumbUri ?? item.originalUri);
+      if (flagged) {
+        item.status = "blocked";
+        item.lastErrorKind = "rejected";
+        item.lastError = NSFW_REJECTION_COPY;
+        emit({ type: "blocked", item });
+        cleanupIntermediates(item);
+        try {
+          new File(item.originalUri).delete();
+        } catch {
+          // best-effort — never keep flagged bytes around
+        }
+        items = items.filter((i) => i.id !== item.id);
+        await persist();
+        return;
+      }
+      item.nsfwPassed = true;
       await persist();
     }
 

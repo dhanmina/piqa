@@ -26,6 +26,7 @@ import {
   devStatus,
   type DevStatus,
 } from '@lib/dev';
+import { getNsfwDevForceBlock, setNsfwDevForceBlock } from '@lib/nsfw';
 import { levelFromXp } from '@lib/xp';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
@@ -42,6 +43,7 @@ export default function TimeMachine() {
   const [busy, setBusy] = useState<Action | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [iShot, setIShot] = useState(true);
+  const [nsfwBlock, setNsfwBlock] = useState(getNsfwDevForceBlock());
 
   const refresh = useCallback(async () => {
     try {
@@ -212,6 +214,23 @@ export default function TimeMachine() {
             loading={busy === 'fillcap'}
             onPress={() => void run('fillcap', devFillVoteCap, (r) => `My votes ${r.my_votes ?? 0} / ${r.cap ?? 50}`)}
           />
+        </View>
+
+        <Text style={styles.sectionLabel}>SAFETY</Text>
+        <View style={styles.actions}>
+          <View style={styles.toggleRow}>
+            <Toggle
+              label="Force NSFW block on next capture"
+              value={nsfwBlock}
+              onChange={(v) => {
+                setNsfwBlock(v);
+                setNsfwDevForceBlock(v);
+              }}
+            />
+          </View>
+          <Mono size={typeScale.caption} color={colors.paper30}>
+            on → next shot is rejected pre-upload (no bytes sent)
+          </Mono>
         </View>
 
         <View style={styles.links}>

@@ -45,7 +45,12 @@ export default function TodayScreen() {
     () =>
       subscribeQueue((event) => {
         setQueueTick((t) => t + 1);
-        if (event.type === 'blocked') setToast('Upload hit a wall. Tap Retry below');
+        if (event.type === 'blocked')
+          setToast(
+            event.item.lastErrorKind === 'rejected'
+              ? (event.item.lastError ?? 'Shot not accepted')
+              : 'Upload hit a wall. Tap Retry below',
+          );
         if (event.type === 'duplicate') setToast('Already submitted for today');
         if (event.type === 'done' && event.item.kind === 'daily') setToast('In the running ✓');
       }),

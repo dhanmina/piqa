@@ -23,6 +23,7 @@ const FALLBACKS = {
   stars_per_month: 5,
   xp_daily_cap: 250,
   reports_quarantine_at: 3,
+  nsfw_threshold: 0.7,
 } as const;
 
 export type ConfigKey = keyof typeof FALLBACKS;
