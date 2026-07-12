@@ -107,24 +107,26 @@ export default function TodayScreen() {
           ? 'Saved, will upload'
           : 'Shot saved ✓ · uploading';
     body = (
-      <View style={styles.submittedWrap}>
-        <Brackets animated color={colors.paper} style={styles.stretch}>
-          <PhotoTile
-            uri={pending?.originalUri ?? signedSubThumb}
-            badge={queued || blocked ? 'queued' : undefined}
-            aspectRatio={photo.aspect}
-          />
-        </Brackets>
-        <Text style={styles.statusLine}>{statusLine}</Text>
-        {submission?.quick_draw && (
-          <Mono size={typeScale.caption} color={colors.paper60}>
-            ⚡ Quick Draw
-          </Mono>
-        )}
-        {blocked && <Button label="Retry upload" variant="ghost" onPress={() => void retryBlocked()} fullWidth />}
-        {!blocked && drop?.is_live && (
-          <Text style={styles.subNote}>Curators are already picking · results at 9am</Text>
-        )}
+      <View style={styles.stateFill}>
+        <View style={styles.submittedHero}>
+          <Brackets animated color={colors.paper} style={styles.stretch}>
+            <PhotoTile
+              uri={pending?.originalUri ?? signedSubThumb}
+              badge={queued || blocked ? 'queued' : undefined}
+              aspectRatio={photo.aspect}
+            />
+          </Brackets>
+          <Text style={styles.statusLine}>{statusLine}</Text>
+          {submission?.quick_draw && (
+            <Mono size={typeScale.caption} color={colors.paper60}>
+              ⚡ Quick Draw
+            </Mono>
+          )}
+          {blocked && <Button label="Retry upload" variant="ghost" onPress={() => void retryBlocked()} fullWidth />}
+          {!blocked && drop?.is_live && (
+            <Text style={styles.subNote}>Curators are already picking · results at 9am</Text>
+          )}
+        </View>
         {!blocked && votingOpen && drop && (
           <View style={styles.submittedAction}>
             <Mono size={typeScale.caption} color={colors.paper60}>
@@ -143,13 +145,15 @@ export default function TodayScreen() {
   } else if (drop?.is_live) {
     // (b) LIVE — Shoot stays the single loud Primary; curating is a quiet second.
     body = (
-      <View style={styles.liveWrap}>
-        <ShotCard
-          prompt={drop.prompt}
-          closesAt={drop.submit_closes_at}
-          quickDrawUntil={quickDrawUntil}
-          onShoot={() => router.push('/camera')}
-        />
+      <View style={styles.stateFill}>
+        <View style={styles.liveHero}>
+          <ShotCard
+            prompt={drop.prompt}
+            closesAt={drop.submit_closes_at}
+            quickDrawUntil={quickDrawUntil}
+            onShoot={() => router.push('/camera')}
+          />
+        </View>
         {votingOpen && drop && (
           <View style={styles.submittedAction}>
             <Mono size={typeScale.caption} color={colors.paper60}>
@@ -224,43 +228,45 @@ export default function TodayScreen() {
   } else {
     // (a) WAITING — anticipation, never absence.
     body = (
-      <View style={styles.waitingWrap}>
-        <View style={styles.countdownBlock}>
-          <Mono size={typeScale.caption} color={colors.paper60}>
-            NEXT SHOT IN
-          </Mono>
-          {data?.next_drop_at ? (
-            <Countdown until={data.next_drop_at} size={typeScale.display} onDone={() => void refresh()} />
-          ) : (
-            <Text style={styles.softLine}>Next shot drops soon</Text>
+      <View style={styles.stateFill}>
+        <View style={styles.waitingHero}>
+          <View style={styles.countdownBlock}>
+            <Mono size={typeScale.caption} color={colors.paper60}>
+              NEXT SHOT IN
+            </Mono>
+            {data?.next_drop_at ? (
+              <Countdown until={data.next_drop_at} size={typeScale.display} onDone={() => void refresh()} />
+            ) : (
+              <Text style={styles.softLine}>Next shot drops soon</Text>
+            )}
+          </View>
+
+          {potd && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="View yesterday's winning gallery"
+              onPress={() => router.push('/(tabs)/gallery')}
+            >
+              <Mono size={typeScale.caption} color={colors.paper60}>
+                YESTERDAY’S WINNER
+              </Mono>
+              <View style={styles.potdSpacer} />
+              <Brackets color={colors.crown} style={styles.stretch}>
+                <PhotoTile uri={signedPotdThumb} aspectRatio={photo.aspect} />
+              </Brackets>
+              <View style={styles.potdCaption}>
+                <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
+                <Text style={styles.shooter}>{potd.shooter}</Text>
+                <View style={styles.potdHearts}>
+                  <HeartGlyph size={13} color={colors.paper60} strokeWidth={2} />
+                  <Mono size={typeScale.caption} color={colors.paper60}>
+                    {potd.hearts}
+                  </Mono>
+                </View>
+              </View>
+            </Pressable>
           )}
         </View>
-
-        {potd && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="View yesterday's winning gallery"
-            onPress={() => router.push('/(tabs)/gallery')}
-          >
-            <Mono size={typeScale.caption} color={colors.paper60}>
-              YESTERDAY’S WINNER
-            </Mono>
-            <View style={styles.potdSpacer} />
-            <Brackets color={colors.crown} style={styles.stretch}>
-              <PhotoTile uri={signedPotdThumb} aspectRatio={photo.aspect} />
-            </Brackets>
-            <View style={styles.potdCaption}>
-              <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
-              <Text style={styles.shooter}>{potd.shooter}</Text>
-              <View style={styles.potdHearts}>
-                <HeartGlyph size={13} color={colors.paper60} strokeWidth={2} />
-                <Mono size={typeScale.caption} color={colors.paper60}>
-                  {potd.hearts}
-                </Mono>
-              </View>
-            </View>
-          </Pressable>
-        )}
 
         <View style={styles.actionBlock}>
           <Mono size={typeScale.caption} color={colors.paper60}>
@@ -334,6 +340,7 @@ const styles = StyleSheet.create({
   content: {
     padding: space.gutter,
     gap: space.gutter,
+    flexGrow: 1, // fill the viewport so states can center their hero + drop the action into the thumb zone
   },
   header: {
     flexDirection: 'row',
@@ -357,12 +364,25 @@ const styles = StyleSheet.create({
   stretch: {
     alignSelf: 'stretch',
   },
-  liveWrap: {
-    gap: space.gutter,
+  // Three-zone layout: header pinned top, hero optically centered, contextual
+  // action pinned into the thumb zone. Used by live / waiting / submitted.
+  stateFill: {
+    flex: 1,
   },
-  submittedWrap: {
+  liveHero: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  submittedHero: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     gap: 14,
+  },
+  waitingHero: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: space.gutter * 1.5,
   },
   submittedAction: {
     alignSelf: 'stretch',
