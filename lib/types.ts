@@ -570,6 +570,7 @@ export type Database = {
       cfg_num: { Args: { p_default: number; p_key: string }; Returns: number }
       close_day: { Args: { p_drop: string }; Returns: Json }
       close_due_drops: { Args: never; Returns: Json }
+      delete_account: { Args: never; Returns: Json }
       dev_advance_day: { Args: { p_i_submitted?: boolean }; Returns: Json }
       dev_break_streak: { Args: never; Returns: Json }
       dev_current_drop: { Args: never; Returns: string }

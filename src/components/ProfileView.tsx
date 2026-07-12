@@ -5,7 +5,7 @@
  * are never shown, to anyone (spec §9).
  */
 import { Image } from 'expo-image';
-import { ChevronLeft, Crown, MoreHorizontal, Star, Trophy } from 'lucide-react-native';
+import { ChevronLeft, Crown, MoreHorizontal, Settings, Star, Trophy } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -26,10 +26,12 @@ type Props = {
   onOpenWin?: (win: ProfileWin, username: string) => void;
   onBack?: () => void;
   onMore?: () => void;
+  onSettings?: () => void;
   followBusy?: boolean;
 };
 
-export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWin, onBack, onMore, followBusy }: Props) {
+export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWin, onBack, onMore, onSettings, followBusy }: Props) {
+  void onSignOut; // sign out now lives in the settings sheet (owned by the screen)
   const prog = levelProgress(data?.xp ?? 0);
   const frame = frameForLevel(prog.level);
   const title = titleForLevel(prog.level);
@@ -37,7 +39,7 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      {(onBack || onMore) && (
+      {(onBack || onMore || onSettings) && (
         <View style={styles.backHeader}>
           {onBack ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={12} onPress={onBack}>
@@ -49,6 +51,11 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
           {onMore && (
             <Pressable accessibilityRole="button" accessibilityLabel="More" hitSlop={12} onPress={onMore}>
               <MoreHorizontal size={22} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+            </Pressable>
+          )}
+          {onSettings && (
+            <Pressable accessibilityRole="button" accessibilityLabel="Settings" hitSlop={12} onPress={onSettings}>
+              <Settings size={22} strokeWidth={icons.strokeWidth} color={colors.paper60} />
             </Pressable>
           )}
         </View>
@@ -156,11 +163,6 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
           </View>
         )}
 
-        {data?.isSelf && onSignOut && (
-          <View style={styles.signOut}>
-            <Button label="Sign out" variant="ghost" onPress={onSignOut} />
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -213,5 +215,4 @@ const styles = StyleSheet.create({
   winsEmpty: { alignItems: 'center', gap: 10, paddingVertical: space.gutter * 2 },
   winsLine: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.paper },
   winsSub: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60, textAlign: 'center' },
-  signOut: { alignItems: 'center' },
 });

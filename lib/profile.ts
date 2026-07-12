@@ -131,3 +131,10 @@ export async function unfollow(target: string): Promise<boolean> {
   if (!error) invalidate("gallery:following");
   return !error;
 }
+
+/** Permanent account deletion (spec §12) — purges storage + cascades all rows. */
+export async function deleteAccount(): Promise<boolean> {
+  const { data, error } = await supabase.rpc("delete_account");
+  if (error) return false;
+  return (data as unknown as { ok: boolean }).ok;
+}
