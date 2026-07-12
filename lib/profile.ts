@@ -1,7 +1,7 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 
-import { signThumbs } from "./cache";
+import { invalidate, signThumbs } from "./cache";
 import { supabase } from "./supabase";
 
 export type ProfileWin = { id: string; uri: string | null; thumbPath: string | null; isPotd: boolean; dropDate: string };
@@ -120,6 +120,7 @@ export async function follow(target: string): Promise<boolean> {
   const me = await myId();
   if (!me) return false;
   const { error } = await supabase.from("follows").insert({ follower_id: me, followee_id: target });
+  if (!error) invalidate("gallery:following"); // Following tab must reflect the new follow at once
   return !error;
 }
 
@@ -127,5 +128,6 @@ export async function unfollow(target: string): Promise<boolean> {
   const me = await myId();
   if (!me) return false;
   const { error } = await supabase.from("follows").delete().eq("follower_id", me).eq("followee_id", target);
+  if (!error) invalidate("gallery:following");
   return !error;
 }
