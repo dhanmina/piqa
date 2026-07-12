@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 
 import { colors, fonts, motion, radius, typeScale } from '@/components/tokens';
 
@@ -13,7 +14,9 @@ type ToastProps = {
 
 /**
  * A single-line past-tense fact ("Shot saved ✓ — uploading"), 2s, never stacks.
- * Rendering is the caller's job: show one at a time.
+ * The leading safelight dot is the darkroom's active light — the signature that
+ * marks this as Piqa, not a generic toast. Rises in / falls out on the app's
+ * motion scale; a hairline lifts it off ink. Rendering is the caller's job.
  */
 export function Toast({ message, visible, onHide, bottom = 96 }: ToastProps) {
   useEffect(() => {
@@ -22,15 +25,21 @@ export function Toast({ message, visible, onHide, bottom = 96 }: ToastProps) {
     return () => clearTimeout(id);
   }, [visible, onHide]);
 
-  if (!visible) return null;
-
+  // Wrapper stays mounted so reanimated can play the exit as `visible` flips off.
   return (
     <View pointerEvents="none" style={[styles.wrap, { bottom }]}>
-      <View style={styles.pill}>
-        <Text style={styles.text} numberOfLines={1}>
-          {message}
-        </Text>
-      </View>
+      {visible && (
+        <Animated.View
+          entering={FadeInDown.duration(220)}
+          exiting={FadeOutDown.duration(160)}
+          style={styles.pill}
+        >
+          <View style={styles.dot} />
+          <Text style={styles.text} numberOfLines={1}>
+            {message}
+          </Text>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -43,13 +52,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
     backgroundColor: colors.ink2,
     borderRadius: radius.pill,
-    paddingHorizontal: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.paper30,
+    paddingLeft: 14,
+    paddingRight: 18,
     paddingVertical: 10,
     maxWidth: '85%',
   },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.safelight,
+  },
   text: {
+    flexShrink: 1,
     fontFamily: fonts.sansMedium,
     fontSize: typeScale.caption,
     color: colors.paper,
