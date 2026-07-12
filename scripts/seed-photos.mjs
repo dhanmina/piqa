@@ -44,7 +44,8 @@ async function jpeg(seed, w, h) {
 }
 
 async function uploadPair(sb, seed, fullPath, thumbPath) {
-  const [full, thumb] = await Promise.all([jpeg(seed, 1080, 1440), jpeg(`${seed}t`, 300, 400)]);
+  // 4:5 portrait — the canonical Piqa frame (matches the capture crop).
+  const [full, thumb] = await Promise.all([jpeg(seed, 1080, 1350), jpeg(`${seed}t`, 300, 375)]);
   for (const [path, bytes] of [[fullPath, full], [thumbPath, thumb]]) {
     const { error } = await sb.storage
       .from('submissions')

@@ -65,7 +65,8 @@ TODO before coding: buy joinpiqa.com · @piqa handles (TikTok/IG; fallback @piqa
 - **In-app camera ONLY.** No gallery uploads. Kills stolen photos, most AI images, off-topic archives (GuruShots' plague); enforces "shot today."
 - **Free shooting, unlimited, 24/7** → private archive. The camera never closes; the creation urge always has an in-app outlet.
 - Any free shot taken **in-app today** can be promoted as today's entry before midnight.
-- **Offline-first pipeline (PRIORITY #1):** capture saved locally instantly with timestamp → retry queue with backoff → **capture time counts, not upload time** (11:58pm shot syncing 7am = valid, lands inside the voting window naturally). Thumbnail (300px) uploads first, full-res (1080px, q0.7, ~150–250KB) follows. UI: "Shot saved ✓ — uploading," never a failable spinner.
+- **One frame — 4:5 portrait.** Every shared photo is cropped to 4:5 (center-crop, exactly what the capture preview shows) and baked into the uploaded bytes, so what you frame is what gets stored and shown everywhere. One uniform shape → fair blind matchups, clean grids with no reflow, and stable framing for future features. The untouched original stays local as the private archive copy. Not "editing" (still no filters/adjustments) — a fixed frame is a fairness constraint, like the camera-only rule.
+- **Offline-first pipeline (PRIORITY #1):** capture saved locally instantly with timestamp → retry queue with backoff → **capture time counts, not upload time** (11:58pm shot syncing 7am = valid, lands inside the voting window naturally). Thumbnail (300px) uploads first, full-res (1080px long edge, q0.7, ~150–250KB) follows. UI: "Shot saved ✓ — uploading," never a failable spinner.
 - No AI-generated imagery (stated in guidelines; camera-only rule enforces most of it).
 
 ## 5. Visibility Hierarchy

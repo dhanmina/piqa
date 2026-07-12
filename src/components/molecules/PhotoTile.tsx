@@ -5,7 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { Mono } from '@/components/atoms/Mono';
-import { colors, icons, radius, typeScale } from '@/components/tokens';
+import { colors, icons, photo, radius, typeScale } from '@/components/tokens';
 
 type PhotoTileBadge = 'crown' | 'daily' | 'queued';
 
@@ -33,7 +33,7 @@ function BracketMini({ color }: { color: string }) {
  * may NOT — they render in a mono caption row under the tile.
  * "queued ↻" is a first-class state — offline never looks like an error.
  */
-export function PhotoTile({ uri, hearts, badge, aspectRatio = 1, style }: PhotoTileProps) {
+export function PhotoTile({ uri, hearts, badge, aspectRatio = photo.aspect, style }: PhotoTileProps) {
   return (
     <View style={style}>
       <View style={[styles.photoBox, { aspectRatio }]}>
