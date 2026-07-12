@@ -1,7 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useCallback, useEffect, useState } from "react";
 
 import type { GalleryPhoto } from "@/components/molecules/GalleryGrid";
 import { signThumbs, useCached, useSignedThumb } from "./cache";
+import { useSession } from "./session";
 import { supabase } from "./supabase";
 
 // useSignedThumb now lives in the shared cache layer; re-exported so existing
@@ -164,6 +166,66 @@ async function loadFollowingGallery(): Promise<GalleryDetailPhoto[]> {
 export function useFollowingGallery() {
   const { data, loading, refresh } = useCached<GalleryDetailPhoto[]>("gallery:following", loadFollowingGallery, 60_000);
   return { photos: data ?? [], loading, refresh };
+}
+
+/**
+ * Direct hearting from the gallery (grid + PotD) without opening the photo.
+ * Loads which of these photos I've already hearted (the count alone can't tell),
+ * then toggles a signed reaction optimistically. Hearts are signed (spec §8):
+ * the shooter sees who reacted, so the heart is a deliberate button, not a
+ * whole-tile tap. `count` re-derives from the base so my toggle never
+ * double-counts a heart already baked into the materialized total.
+ */
+export function useGalleryHearts(photos: { id: string; hearts: number }[]) {
+  const { session } = useSession();
+  const myId = session?.user.id;
+  const [liked, setLiked] = useState<Set<string>>(new Set());
+  const [optimistic, setOptimistic] = useState<Record<string, boolean>>({});
+
+  const idsKey = photos.map((p) => p.id).join(",");
+  useEffect(() => {
+    if (!myId || photos.length === 0) {
+      setLiked(new Set());
+      return;
+    }
+    let alive = true;
+    void supabase
+      .from("reactions")
+      .select("submission_id")
+      .eq("user_id", myId)
+      .in("submission_id", idsKey.split(","))
+      .then(({ data }) => {
+        if (alive) setLiked(new Set((data ?? []).map((r) => (r as { submission_id: string }).submission_id)));
+      });
+    return () => {
+      alive = false;
+    };
+    // idsKey captures the photo set; myId gates the query.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myId, idsKey]);
+
+  const isLiked = useCallback((id: string) => optimistic[id] ?? liked.has(id), [optimistic, liked]);
+
+  const count = useCallback(
+    (p: { id: string; hearts: number }) => p.hearts - (liked.has(p.id) ? 1 : 0) + (isLiked(p.id) ? 1 : 0),
+    [liked, isLiked],
+  );
+
+  const toggle = useCallback(
+    async (id: string) => {
+      if (!myId) return;
+      const next = !isLiked(id);
+      setOptimistic((m) => ({ ...m, [id]: next })); // flip instantly
+      if (next) {
+        await supabase.from("reactions").insert({ user_id: myId, submission_id: id, emoji: "heart" });
+      } else {
+        await supabase.from("reactions").delete().eq("user_id", myId).eq("submission_id", id);
+      }
+    },
+    [myId, isLiked],
+  );
+
+  return { isLiked, count, toggle };
 }
 
 // Morning reveal plays once per gallery, then never again (spec §11c / moment 2).

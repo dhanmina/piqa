@@ -1,9 +1,11 @@
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Crown } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
-import { HeartGlyph } from '@/components/atoms/HeartGlyph';
+import { HeartButton } from '@/components/atoms/HeartButton';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
@@ -37,6 +39,11 @@ type GalleryGridProps = {
    */
   flat?: boolean;
   onPress?: (photo: GalleryPhoto) => void;
+  /** Direct hearting from the gallery (grid tiles show only the heart; the PotD
+   *  hero shows crown + name + heart). When omitted, no hearts render. */
+  onHeart?: (photo: GalleryPhoto) => void;
+  isHearted?: (id: string) => boolean;
+  heartCount?: (photo: GalleryPhoto) => number;
 };
 
 /**
@@ -46,7 +53,17 @@ type GalleryGridProps = {
  * (Following feed) it drops the hero and renders every placement as an equal
  * tile, crown-badged if it was a Photo of the Day.
  */
-export function GalleryGrid({ photos, reveal = false, potdLabel, highlightUserId, flat = false, onPress }: GalleryGridProps) {
+export function GalleryGrid({
+  photos,
+  reveal = false,
+  potdLabel,
+  highlightUserId,
+  flat = false,
+  onPress,
+  onHeart,
+  isHearted,
+  heartCount,
+}: GalleryGridProps) {
   const wrap = (photo: GalleryPhoto, child: ReactNode) =>
     onPress ? (
       <Pressable accessibilityRole="button" onPress={() => onPress(photo)}>
@@ -56,21 +73,39 @@ export function GalleryGrid({ photos, reveal = false, potdLabel, highlightUserId
       <>{child}</>
     );
 
+  // Grid-tile heart lives INSIDE the photo, on a bottom fade (like the PotD).
+  // Only the glyph + count — no name (tiles are too small); count hides at 0.
+  const heartOverlay = (photo: GalleryPhoto) => {
+    if (!onHeart) return null;
+    const c = heartCount ? heartCount(photo) : photo.hearts;
+    return (
+      <>
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(20, 18, 16, 0)', 'rgba(20, 18, 16, 0.85)']}
+          style={styles.tileFade}
+        />
+        <View pointerEvents="box-none" style={styles.tileHeartOverlay}>
+          <HeartButton
+            onPhoto
+            liked={isHearted?.(photo.id) ?? false}
+            count={c > 0 ? c : undefined}
+            onToggle={() => onHeart(photo)}
+            size={20}
+          />
+        </View>
+      </>
+    );
+  };
+
   if (flat) {
     return (
       <View style={styles.container}>
         <View style={styles.grid}>
           {photos.map((p) => (
             <View key={p.id} style={styles.cell}>
-              {wrap(
-                p,
-                <PhotoTile
-                  uri={p.uri}
-                  hearts={p.hearts}
-                  badge={p.isPotd ? 'crown' : undefined}
-                  aspectRatio={photoFrame.aspect}
-                />,
-              )}
+              {wrap(p, <PhotoTile uri={p.uri} badge={p.isPotd ? 'crown' : undefined} aspectRatio={photoFrame.aspect} />)}
+              {heartOverlay(p)}
             </View>
           ))}
         </View>
@@ -91,12 +126,17 @@ export function GalleryGrid({ photos, reveal = false, potdLabel, highlightUserId
   const tile = (photo: GalleryPhoto, i: number, isOwn: boolean) => {
     const inner = isOwn ? (
       <Brackets color={colors.crown}>
-        <PhotoTile uri={photo.uri} hearts={photo.hearts} aspectRatio={photoFrame.aspect} />
+        <PhotoTile uri={photo.uri} aspectRatio={photoFrame.aspect} />
       </Brackets>
     ) : (
-      <PhotoTile uri={photo.uri} hearts={photo.hearts} aspectRatio={photoFrame.aspect} />
+      <PhotoTile uri={photo.uri} aspectRatio={photoFrame.aspect} />
     );
-    const body = wrap(photo, inner);
+    const body = (
+      <>
+        {wrap(photo, inner)}
+        {heartOverlay(photo)}
+      </>
+    );
     return reveal ? (
       <Animated.View key={photo.id} entering={FadeInUp.duration(300).delay(i * motion.revealStaggerMs)} style={styles.cell}>
         {body}
@@ -120,20 +160,41 @@ export function GalleryGrid({ photos, reveal = false, potdLabel, highlightUserId
           {wrap(
             potd,
             <Brackets color={colors.crown}>
-              {/* hearts stay out of the bracket frame — they join the caption row */}
-              <PhotoTile uri={potd.uri} aspectRatio={photoFrame.aspect} />
+              <View style={styles.potdPhoto}>
+                {potd.uri ? (
+                  <Image source={{ uri: potd.uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={100} />
+                ) : (
+                  <View style={[StyleSheet.absoluteFill, styles.skelBlock]} />
+                )}
+                {/* Bottom fade so the caption reads over the photo — a legibility
+                    scrim, like the detail view; the winner's credit lives on the cover. */}
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={['rgba(20, 18, 16, 0)', 'rgba(20, 18, 16, 0.9)']}
+                  style={styles.potdFade}
+                />
+                <View style={styles.potdCaption}>
+                  <View style={styles.potdWho}>
+                    <Crown size={20} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
+                    {potd.shooter && (
+                      <Text style={styles.shooter} numberOfLines={1}>
+                        {potd.shooter}
+                      </Text>
+                    )}
+                  </View>
+                  {onHeart && (
+                    <HeartButton
+                      onPhoto
+                      liked={isHearted?.(potd.id) ?? false}
+                      count={heartCount ? heartCount(potd) : potd.hearts}
+                      onToggle={() => onHeart(potd)}
+                      size={20}
+                    />
+                  )}
+                </View>
+              </View>
             </Brackets>,
           )}
-          <View style={styles.potdCaption}>
-            <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
-            {potd.shooter && <Text style={styles.shooter}>{potd.shooter}</Text>}
-            <View style={styles.potdHearts}>
-              <HeartGlyph size={13} color={colors.paper60} strokeWidth={2} />
-              <Mono size={typeScale.caption} color={colors.paper60}>
-                {potd.hearts}
-              </Mono>
-            </View>
-          </View>
         </View>
       )}
       <View style={styles.grid}>{rest.map((photo, i) => tile(photo, i, reveal && ownIdx >= 0 && i === rest.length - 1))}</View>
@@ -195,22 +256,34 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     gap: 8,
   },
+  potdPhoto: {
+    width: '100%',
+    aspectRatio: photoFrame.aspect,
+    backgroundColor: colors.ink2,
+  },
+  potdFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '50%',
+  },
   potdCaption: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 8,
+    justifyContent: 'space-between',
+    padding: 14,
+    gap: 12,
   },
+  potdWho: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   shooter: {
     fontFamily: displayFamily,
-    fontSize: typeScale.body,
+    fontSize: typeScale.title,
     color: colors.paper,
-  },
-  potdHearts: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
   },
   grid: {
     flexDirection: 'row',
@@ -219,5 +292,19 @@ const styles = StyleSheet.create({
   },
   cell: {
     width: '48.8%', // 2 columns with the 8dp gap
+  },
+  tileFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '55%',
+  },
+  tileHeartOverlay: {
+    position: 'absolute',
+    left: 0,
+    bottom: 0,
+    paddingHorizontal: 10,
+    paddingBottom: 8,
   },
 });

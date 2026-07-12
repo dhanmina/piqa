@@ -23,6 +23,7 @@ import {
   markRevealSeen,
   useFollowingGallery,
   useGallery,
+  useGalleryHearts,
   type GalleryDetailPhoto,
 } from '@lib/gallery';
 import { useSession } from '@lib/session';
@@ -53,6 +54,10 @@ export default function GalleryScreen() {
 
   const { data, loading, refresh } = useGallery(selectedDropId);
   const { photos: followingPhotos, loading: followingLoading, refresh: refreshFollowing } = useFollowingGallery();
+
+  // Direct hearting for the active tab's photos (grid + PotD).
+  const activePhotos = tab === 'following' ? followingPhotos : data?.photos ?? [];
+  const gHearts = useGalleryHearts(activePhotos);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -169,7 +174,14 @@ export default function GalleryScreen() {
               <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={colors.paper60} />
             }
           >
-            <GalleryGrid photos={followingPhotos} flat onPress={openPhoto} />
+            <GalleryGrid
+              photos={followingPhotos}
+              flat
+              onPress={openPhoto}
+              onHeart={(p) => void gHearts.toggle(p.id)}
+              isHearted={gHearts.isLiked}
+              heartCount={gHearts.count}
+            />
           </ScrollView>
         )}
       </SafeAreaView>
@@ -219,7 +231,7 @@ export default function GalleryScreen() {
         )}
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Mono size={typeScale.caption} color={colors.paper60} style={styles.masthead}>
+            <Mono size={typeScale.caption} color={colors.paper60} style={styles.kicker}>
               {longDate(data.drop.drop_date).toUpperCase()}
             </Mono>
             {viewingPast && (
@@ -232,30 +244,25 @@ export default function GalleryScreen() {
           </View>
           {data.drop.prompt && <Text style={styles.prompt}>{data.drop.prompt}</Text>}
           {data.isSeed && <Text style={styles.rollingIn}>The first galleries are rolling in.</Text>}
+          <View style={styles.headerRule} />
         </View>
 
         <GalleryGrid
           key={`${data.drop.id}:${reveal}`}
           photos={data.photos}
           reveal={reveal}
-          potdLabel={`PHOTO OF THE DAY · ${shortDate(data.drop.drop_date)}`}
+          potdLabel="PHOTO OF THE DAY"
           highlightUserId={myId}
           onPress={openPhoto}
+          onHeart={(p) => void gHearts.toggle(p.id)}
+          isHearted={gHearts.isLiked}
+          heartCount={gHearts.count}
         />
 
-        {/* End card — the real bottom of the magazine (spec §11c). */}
+        {/* End card — the real bottom of the magazine (spec §11c). One clean
+            forward block: what's next. Past issues live in the header calendar. */}
         <View style={styles.endCard}>
           <View style={styles.rule} />
-
-          {data.past.length > 0 && (
-            <Button
-              label="View past galleries"
-              variant="ghost"
-              fullWidth
-              onPress={() => setShowPast(true)}
-            />
-          )}
-
           <View style={styles.teaser}>
             {data.nextDropAt ? (
               <>
@@ -308,13 +315,13 @@ const styles = StyleSheet.create({
   content: { padding: space.gutter, gap: space.gutter, paddingBottom: 48 },
   topBar: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: space.gutter,
     paddingTop: 8,
   },
   segments: { flexDirection: 'row', gap: 24 },
-  calBtn: { paddingBottom: 4 },
+  calBtn: { padding: 4 },
   segment: { alignItems: 'center', gap: 6 },
   segmentLabel: { fontSize: typeScale.sub },
   segmentActive: { fontFamily: fonts.sansMedium, color: colors.paper },
@@ -341,11 +348,12 @@ const styles = StyleSheet.create({
     right: 0,
     height: 380,
   },
-  header: { gap: 6 },
+  header: { gap: 8 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  masthead: { letterSpacing: 1.5 },
-  prompt: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper },
+  kicker: { letterSpacing: 1.5 },
+  prompt: { fontFamily: displayFamily, fontSize: typeScale.display, lineHeight: typeScale.display * 1.1, color: colors.paper },
   rollingIn: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
+  headerRule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginTop: 6 },
   center: { flex: 1, justifyContent: 'center' },
   endCard: { gap: 14 },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginTop: 8 },

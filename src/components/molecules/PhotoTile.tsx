@@ -61,7 +61,9 @@ export function PhotoTile({ uri, hearts, badge, aspectRatio = photo.aspect, styl
         )}
       </View>
 
-      {hearts !== undefined && (
+      {/* Only surface a count when there's something to show — a "0" under
+          every tile is what made the grid feel busy. */}
+      {hearts !== undefined && hearts > 0 && (
         <View style={styles.heartsRow}>
           <HeartGlyph size={12} color={colors.paper60} strokeWidth={2} />
           <Mono size={typeScale.caption} color={colors.paper60}>
