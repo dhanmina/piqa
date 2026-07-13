@@ -314,10 +314,12 @@ export default function GalleryScreen() {
                 <Mono size={typeScale.caption} color={colors.paper60}>
                   NEXT SHOT IN
                 </Mono>
-                <Countdown until={data.nextDropAt} size={typeScale.title} />
+                {/* onDone matters here: without it the clock hits 00:00:00 and freezes,
+                    so the back page keeps showing a dead timer after the drop lands. */}
+                <Countdown until={data.nextDropAt} size={typeScale.title} onDone={() => void refresh()} />
               </>
             ) : (
-              <Text style={styles.teaserSoft}>Tomorrow’s shot is loading</Text>
+              <Text style={styles.teaserSoft}>Next shot drops soon</Text>
             )}
             <Button label="See what’s live" variant="text" onPress={() => router.push('/(tabs)/today')} />
           </View>

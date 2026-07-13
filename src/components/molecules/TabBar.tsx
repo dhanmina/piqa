@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getPendingItemForDrop, subscribeQueue } from '@lib/captureQueue';
-import { isRevealSeen } from '@lib/gallery';
+import { isResultSeen, isRevealSeen } from '@lib/gallery';
 import { useHomeState } from '@lib/homeState';
 import { Shutter, type ShutterState } from '@/components/moments/Shutter';
 import { colors, fonts, icons, typeScale } from '@/components/tokens';
@@ -36,29 +36,38 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const pendingDaily = drop ? getPendingItemForDrop(drop.id) : undefined;
   const hasSubmitted = Boolean(data?.submission) || Boolean(pendingDaily);
 
-  // A revealed result the viewer hasn't opened yet also earns the Today badge.
+  // Two dots, two meanings: Today = "your result is in", Gallery = "the reveal is
+  // waiting". Re-read on every tab change so a dot clears once its screen is read.
   const lastResultDrop = data?.last_result?.drop_id ?? null;
   const [resultUnseen, setResultUnseen] = useState(false);
+  const [revealUnseen, setRevealUnseen] = useState(false);
   useEffect(() => {
     let alive = true;
     if (!lastResultDrop) {
       setResultUnseen(false);
+      setRevealUnseen(false);
       return;
     }
-    void isRevealSeen(lastResultDrop).then((seen) => {
+    void isResultSeen(lastResultDrop).then((seen) => {
       if (alive) setResultUnseen(!seen);
+    });
+    void isRevealSeen(lastResultDrop).then((seen) => {
+      if (alive) setRevealUnseen(!seen);
     });
     return () => {
       alive = false;
     };
-  }, [lastResultDrop]);
+  }, [lastResultDrop, state.index]);
 
   const shutterState: ShutterState = drop?.is_live
     ? hasSubmitted
       ? 'done'
       : 'live'
     : 'default';
-  const todayBadge = (Boolean(drop?.is_live) && !hasSubmitted) || resultUnseen;
+  const badges: Record<string, boolean> = {
+    today: (Boolean(drop?.is_live) && !hasSubmitted) || resultUnseen,
+    gallery: revealUnseen,
+  };
 
   const renderTab = (name: string) => {
     const routeIndex = state.routes.findIndex((r) => r.name === name);
@@ -79,7 +88,9 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       >
         <View>
           <Icon size={24} strokeWidth={icons.strokeWidth} color={color} />
-          {name === 'today' && todayBadge && <View style={styles.badge} />}
+          {/* Never badge the tab you're already on — a dot means "unread", and you're
+              reading it. This also keeps the nudge honest as each screen marks itself seen. */}
+          {badges[name] && !active && <View style={styles.badge} />}
         </View>
         <Text
           style={[

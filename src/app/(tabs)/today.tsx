@@ -7,17 +7,16 @@
  * Empty is never absence: the waiting state is anticipation, per spec law.
  */
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { CloudOff, Crown, Zap } from 'lucide-react-native';
-import { useEffect, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getPendingItemForDrop, retryBlocked, subscribeQueue, type QueueItem } from '@lib/captureQueue';
 import { getConfig } from '@lib/config';
-import { useSignedThumb } from '@lib/gallery';
+import { markResultSeen, useSignedThumb } from '@lib/gallery';
 import { useHomeState } from '@lib/homeState';
-import { levelFromXp } from '@lib/xp';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
@@ -30,6 +29,15 @@ import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { ShotCard } from '@/components/molecules/ShotCard';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, icons, photo, radius, space, typeScale } from '@/components/tokens';
+
+/** "8 AM" — drops the minutes when they're zero, so the common case reads as speech. */
+const clockTime = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    ...(d.getMinutes() ? { minute: '2-digit' as const } : {}),
+  });
+};
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -51,13 +59,15 @@ export default function TodayScreen() {
           setToast(
             event.item.lastErrorKind === 'rejected'
               ? (event.item.lastError ?? 'Shot not accepted')
-              : 'Upload hit a wall. Tap Retry below',
+              : // No "Tap Retry below": the toast sits at the bottom, the Retry button
+                // is in the centred hero above it, and the hero already names the fix.
+                'Upload hit a wall',
           );
         if (event.type === 'duplicate') setToast('Already submitted for today');
         if (event.type === 'done' && event.item.kind === 'daily') {
-          // Focus-lock submit moment (spec §11d): brackets snap + medium haptic + "In the running".
+          // Focus-lock submit moment (spec §11d): brackets snap + medium haptic. No toast —
+          // the hero's status line already says "In the running" at the same instant.
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setToast('In the running');
         }
       }),
     [],
@@ -72,7 +82,16 @@ export default function TodayScreen() {
   const signedSubThumb = useSignedThumb(!pending ? submission?.thumb_path : null);
   const signedPotdThumb = useSignedThumb(potd?.thumb_path);
   const signedResultThumb = useSignedThumb(lastResult?.thumb_path);
-  const level = levelFromXp(data?.xp ?? 0);
+
+  // Reading the result IS seeing it — clear Today's dot on focus, not on mount (the
+  // tab can be mounted without ever being looked at). The gallery's reveal flag is
+  // separate and survives this, so the confetti still waits for the gallery.
+  const resultDropId = lastResult?.drop_id ?? null;
+  useFocusEffect(
+    useCallback(() => {
+      if (resultDropId) void markResultSeen(resultDropId);
+    }, [resultDropId]),
+  );
 
   const submitted = Boolean(submission || pending);
   const votingOpen = Boolean(drop) && Date.now() < Date.parse(drop!.voting_closes_at);
@@ -93,6 +112,11 @@ export default function TodayScreen() {
     day: '2-digit',
   });
 
+  // Never hardcode the reveal hour: voting closes at 08:00 Asia/Manila and is swept
+  // hourly, so a literal "9am" was both an hour late and wrong outside that region.
+  // Derived from the drop, rendered in the viewer's own timezone.
+  const resultsAt = drop ? clockTime(drop.voting_closes_at) : null;
+
   let body: ReactElement;
   if (error && !data) {
     // Couldn't load with nothing cached → recoverable, not an endless skeleton.
@@ -109,17 +133,27 @@ export default function TodayScreen() {
       </View>
     );
   } else if (loading) {
-    body = <View style={styles.skeletonCard} />;
+    // Centred and photo-shaped: every real state resolves to a hero in this slot, so a
+    // top-pinned 220px box guaranteed a jump the moment data landed.
+    body = (
+      <View style={styles.stateFill}>
+        <View style={styles.centerFill}>
+          <View style={styles.skeletonCard} />
+        </View>
+      </View>
+    );
   } else if (submitted) {
     // (c) SUBMITTED — the print is the hero; status comes from the queue.
     const queued = pending?.lastErrorKind === 'network';
     const blocked = pending?.status === 'blocked';
+    // The status line names the problem, the button names the fix — "Upload needs a
+    // retry" sitting on top of a "Retry upload" button said the cure twice, the cause never.
     const statusLine = submission
       ? 'In the running'
       : blocked
-        ? 'Upload needs a retry'
+        ? 'Upload didn’t go through'
         : queued
-          ? 'Saved, will upload'
+          ? 'Shot saved · will upload'
           : 'Shot saved · uploading';
     body = (
       <View style={styles.stateFill}>
@@ -141,11 +175,11 @@ export default function TodayScreen() {
             </View>
           )}
           {blocked && <Button label="Retry upload" variant="ghost" onPress={() => void retryBlocked()} fullWidth />}
-          {!blocked && drop?.is_live && (
-            <Text style={styles.subNote}>Curators are already picking · results at 9am</Text>
+          {!blocked && drop?.is_live && resultsAt && (
+            <Text style={styles.subNote}>Curators are already picking · results at {resultsAt}</Text>
           )}
         </View>
-        {!blocked && votingOpen && drop && (
+        {!blocked && votingOpen && (
           <View style={styles.submittedAction}>
             <Mono size={typeScale.caption} color={colors.paper60}>
               KEEP THE DAY GOING
@@ -172,7 +206,7 @@ export default function TodayScreen() {
             onShoot={() => router.push('/camera')}
           />
         </View>
-        {votingOpen && drop && (
+        {votingOpen && (
           <View style={styles.submittedAction}>
             <Mono size={typeScale.caption} color={colors.paper60}>
               WHILE IT’S LIVE
@@ -190,56 +224,72 @@ export default function TodayScreen() {
   } else if (lastResult) {
     // (d) DONE / reveal-ready — the closed day's personal result, then teaser.
     // Losses are never shown: a non-gallery shot is framed as picks earned.
+    // No numbers here, deliberately: this is a teaser, not a report. The gallery
+    // owns "how much" (hearts on your tile), Profile owns standing (level/XP bar),
+    // the streak flame already rewards showing up. A bare XP tick would only teach
+    // a picks→XP model the award formula doesn't honour (flat bonuses, daily cap).
+    // All four are labels, not sentences: the YOUR RESULT eyebrow already establishes
+    // possession, so "Your shot earned…" said "your" twice — and mixing labels with
+    // second-person prose gave the two BEST outcomes the coldest copy. One register.
+    //
+    // "Picked", not "hearts", and no "worldwide". This branch only ever fires for a shot
+    // that did NOT make the gallery — which means nobody could ever see it to react to it,
+    // so its reaction_count is 0 forever and `hearts` (votes + reactions) is exactly
+    // vote_count: blind curation picks. Calling those "hearts" would tell someone whose
+    // shot didn't place that a crowd saw it and loved it. Nobody saw it. Curators chose it.
+    // It's also why only this branch carries a count: a non-gallery shot has no tile in the
+    // gallery, so Today is the one surface that will ever tell them.
     const resultLine = lastResult.is_potd
       ? 'Photo of the Day'
       : lastResult.in_gallery
         ? 'In the gallery'
         : lastResult.hearts > 0
-          ? `Your shot was picked ${lastResult.hearts} times by curators worldwide`
-          : 'Your shot is safe in your archive';
+          ? `Picked ${lastResult.hearts} ${lastResult.hearts === 1 ? 'time' : 'times'} by curators`
+          : 'Safe in your archive';
     body = (
-      <View style={styles.waitingWrap}>
-        <View style={styles.doneResult}>
-          <Mono size={typeScale.caption} color={colors.paper60}>
-            YOUR RESULT
-          </Mono>
-          <Brackets color={lastResult.is_potd ? colors.crown : colors.paper} style={styles.stretch}>
-            <PhotoTile uri={signedResultThumb} aspectRatio={photo.aspect} />
-          </Brackets>
-          <View style={styles.resultCaption}>
-            {lastResult.is_potd && (
-              <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
-            )}
-            <Text style={styles.resultLine}>{resultLine}</Text>
-          </View>
-          <View style={styles.potdHearts}>
-            <HeartGlyph size={13} color={colors.paper60} />
+      <View style={styles.stateFill}>
+        <View style={styles.waitingHero}>
+          <View style={styles.doneResult}>
             <Mono size={typeScale.caption} color={colors.paper60}>
-              {lastResult.hearts}
+              YOUR RESULT
             </Mono>
-            {lastResult.xp_awarded > 0 && (
-              <>
-                <Mono size={typeScale.caption} color={colors.paper30}>
-                  ·
-                </Mono>
-                <Mono size={typeScale.caption} color={colors.safelight}>
-                  +{lastResult.xp_awarded} XP · Lv {level}
-                </Mono>
-              </>
-            )}
+            {/* The print is the door into the gallery — same affordance as the PotD tile below. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="See today's gallery"
+              style={styles.resultPress}
+              onPress={() => router.push('/(tabs)/gallery')}
+            >
+              <Brackets color={lastResult.is_potd ? colors.crown : colors.paper} style={styles.stretch}>
+                <PhotoTile uri={signedResultThumb} aspectRatio={photo.aspect} />
+              </Brackets>
+              <View style={styles.resultCaption}>
+                {lastResult.is_potd && (
+                  <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
+                )}
+                <Text style={styles.resultLine}>{resultLine}</Text>
+              </View>
+            </Pressable>
           </View>
-          <Button label="See the gallery" fullWidth onPress={() => router.push('/(tabs)/gallery')} />
+
+          <NextShot at={data?.next_drop_at} size={typeScale.title} onDone={() => void refresh()} />
         </View>
 
-        <View style={styles.countdownBlock}>
+        {/* No "See the gallery" button: the action block's job is the destinations the
+            tab bar CAN'T reach (curate and practice have no tab, deliberately). The
+            gallery has one — plus the print above is its door, and the Gallery tab
+            wears the unseen-reveal dot. DONE is WAITING with a result, so it offers
+            what WAITING offers once voting has closed. */}
+        <View style={styles.actionBlock}>
           <Mono size={typeScale.caption} color={colors.paper60}>
-            NEXT SHOT IN
+            WHILE YOU WAIT
           </Mono>
-          {data?.next_drop_at ? (
-            <Countdown until={data.next_drop_at} size={typeScale.title} onDone={() => void refresh()} />
-          ) : (
-            <Text style={styles.softLine}>Next shot drops soon</Text>
-          )}
+          <Button
+            label="Take a practice shot"
+            variant="ghost"
+            fullWidth
+            onPress={() => router.push('/camera?practice=1')}
+          />
         </View>
       </View>
     );
@@ -248,16 +298,7 @@ export default function TodayScreen() {
     body = (
       <View style={styles.stateFill}>
         <View style={styles.waitingHero}>
-          <View style={styles.countdownBlock}>
-            <Mono size={typeScale.caption} color={colors.paper60}>
-              NEXT SHOT IN
-            </Mono>
-            {data?.next_drop_at ? (
-              <Countdown until={data.next_drop_at} size={typeScale.display} onDone={() => void refresh()} />
-            ) : (
-              <Text style={styles.softLine}>Next shot drops soon</Text>
-            )}
-          </View>
+          <NextShot at={data?.next_drop_at} size={typeScale.display} onDone={() => void refresh()} />
 
           {potd && (
             <Pressable
@@ -350,6 +391,29 @@ export default function TodayScreen() {
   );
 }
 
+/**
+ * The forward clock, shared by WAITING and DONE. The eyebrow labels a duration, so
+ * with no duration there is no eyebrow — otherwise it stutters ("NEXT SHOT IN" over
+ * "Next shot drops soon", saying "next shot" twice). The fallback is deliberately
+ * quiet rather than display-sized: it's a soft "soon", not a headline.
+ */
+function NextShot({ at, size, onDone }: { at?: string | null; size: number; onDone: () => void }) {
+  return (
+    <View style={styles.countdownBlock}>
+      {at ? (
+        <>
+          <Mono size={typeScale.caption} color={colors.paper60}>
+            NEXT SHOT IN
+          </Mono>
+          <Countdown until={at} size={size} onDone={onDone} />
+        </>
+      ) : (
+        <Text style={styles.softLine}>Next shot drops soon</Text>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -375,7 +439,8 @@ const styles = StyleSheet.create({
     color: colors.paper60,
   },
   skeletonCard: {
-    height: 220,
+    alignSelf: 'stretch',
+    aspectRatio: photo.aspect,
     borderRadius: radius.card,
     backgroundColor: colors.ink2,
   },
@@ -423,11 +488,11 @@ const styles = StyleSheet.create({
     fontSize: typeScale.caption,
     color: colors.paper60,
   },
-  waitingWrap: {
-    gap: space.gutter * 1.5,
-  },
   doneResult: {
     gap: 10,
+  },
+  resultPress: {
+    gap: 10, // keeps the tile → caption → hearts rhythm now that they share one tap target
   },
   resultCaption: {
     flexDirection: 'row',
@@ -450,7 +515,7 @@ const styles = StyleSheet.create({
   softLine: {
     fontFamily: displayFamily,
     fontSize: typeScale.title,
-    color: colors.paper,
+    color: colors.paper60,
   },
   potdSpacer: {
     height: 8,

@@ -58,12 +58,15 @@ export function ShotCard({
             <Countdown until={closesAt} size={typeScale.display} />
           </View>
 
-          {/* Urgency is a reward, never a punishment — a bonus, not a penalty. */}
+          {/* Urgency is a reward, never a punishment — a bonus, not a penalty.
+              No "+10": XP is quiet (spec §10) and never shown landing, so promising
+              a figure here would be a receipt the app never issues. The chip is the
+              promise; the Quick Draw mark on the submitted shot is the receipt. */}
           {showQuickDraw && (
             <View style={styles.quick}>
               <Zap size={12} strokeWidth={icons.strokeWidth} color={colors.safelight} />
               <Mono size={11} weight="medium" color={colors.safelight}>
-                QUICK DRAW +10
+                QUICK DRAW
               </Mono>
               <Mono size={11} color={colors.safelight}>
                 ·
