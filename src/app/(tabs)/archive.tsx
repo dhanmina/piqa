@@ -7,7 +7,7 @@
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { BookImage, Star, Trash2 } from 'lucide-react-native';
+import { BookImage, CloudOff, Star, Trash2 } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -45,7 +45,7 @@ const metaLine = (it: ArchiveItem) => {
 
 export default function ArchiveScreen() {
   const router = useRouter();
-  const { data, loading, refresh } = useArchive();
+  const { data, loading, error, refresh } = useArchive();
   const [filter, setFilter] = useState<Filter>('all');
   const [selected, setSelected] = useState<ArchiveItem | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -111,6 +111,22 @@ export default function ArchiveScreen() {
       setToast('Could not delete the shot');
     }
   };
+
+  // Fetch failed with nothing to show → a recoverable error, not an endless skeleton.
+  if (error && !data) {
+    return (
+      <SafeAreaView style={styles.root} edges={['top']}>
+        <View style={styles.center}>
+          <EmptyState
+            icon={CloudOff}
+            line="Couldn't load your archive. Check your connection."
+            ctaLabel="Retry"
+            onCta={() => void refresh()}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // First load with nothing cached yet: a stable skeleton, so the screen never
   // flashes "0 shots / Nothing here yet" before the real state settles.

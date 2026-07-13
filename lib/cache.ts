@@ -23,6 +23,7 @@ type Entry = { value: unknown; at: number };
 
 const store = new Map<string, Entry>();
 const inflight = new Map<string, Promise<unknown>>();
+const errors = new Map<string, boolean>(); // last fetch for a key failed
 const subscribers = new Map<string, Set<() => void>>();
 
 function emit(key: string) {
@@ -49,8 +50,13 @@ export async function fetchKey<T>(key: string, fetcher: () => Promise<T>): Promi
     try {
       const value = await fetcher();
       store.set(key, { value, at: Date.now() });
+      errors.delete(key); // recovered
       emit(key);
       return value;
+    } catch (err) {
+      errors.set(key, true); // surface an error state instead of loading forever
+      emit(key);
+      throw err;
     } finally {
       inflight.delete(key);
     }
@@ -63,6 +69,9 @@ export async function fetchKey<T>(key: string, fetcher: () => Promise<T>): Promi
 export type Cached<T> = {
   data: T | null;
   loading: boolean;
+  /** True only when a fetch failed AND there's nothing cached to show. If stale
+   *  data exists, we keep showing it and never surface an error. */
+  error: boolean;
   refresh: () => Promise<void>;
 };
 
@@ -102,12 +111,21 @@ export function useCached<T>(key: string, fetcher: () => Promise<T>, ttlMs: numb
   );
 
   const refresh = useCallback(async () => {
-    await fetchKey(key, fetcher);
+    errors.delete(key); // clear the error → back to loading while we retry
+    emit(key);
+    // Never reject: pull-to-refresh handlers await this; the failure is already
+    // recorded in `errors` and surfaced on the next render.
+    try {
+      await fetchKey(key, fetcher);
+    } catch {
+      /* surfaced via errors map */
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   const entry = peek<T>(key);
-  return { data: (entry?.value as T) ?? null, loading: !entry, refresh };
+  const failed = errors.get(key) === true && !entry; // only error when nothing to show
+  return { data: (entry?.value as T) ?? null, loading: !entry && !failed, error: failed, refresh };
 }
 
 // ---------------------------------------------------------------------------

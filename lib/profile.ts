@@ -40,12 +40,23 @@ type RawProfile = {
 export function useProfile(targetId: string | null) {
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const load = useCallback(
     async (alive: () => boolean) => {
-      const { data: res, error } = await supabase.rpc("get_profile", { p_user: targetId ?? undefined });
+      setError(false);
+      const { data: res, error: rpcError } = await supabase.rpc("get_profile", { p_user: targetId ?? undefined });
+      if (rpcError) {
+        // A real failure (network/permissions) → recoverable error state.
+        if (alive()) {
+          setLoading(false);
+          setError(true);
+        }
+        return;
+      }
       const p = res as unknown as RawProfile;
-      if (error || !p || p.found === false) {
+      if (!p || p.found === false) {
+        // No such user → empty, not an error.
         if (alive()) {
           setData(null);
           setLoading(false);
@@ -99,7 +110,12 @@ export function useProfile(targetId: string | null) {
     useCallback(() => {
       let mounted = true;
       setLoading(true);
-      void load(() => mounted);
+      void load(() => mounted).catch(() => {
+        if (mounted) {
+          setLoading(false);
+          setError(true);
+        }
+      });
       return () => {
         mounted = false;
       };
@@ -107,7 +123,7 @@ export function useProfile(targetId: string | null) {
   );
 
   const refresh = useCallback(() => load(() => true), [load]);
-  return { data, loading, refresh };
+  return { data, loading, error, refresh };
 }
 
 async function myId(): Promise<string | null> {

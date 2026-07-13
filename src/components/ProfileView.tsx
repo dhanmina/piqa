@@ -5,7 +5,7 @@
  * are never shown, to anyone (spec §9).
  */
 import { Image } from 'expo-image';
-import { ChevronLeft, Crown, MoreHorizontal, Settings, Star, Trophy } from 'lucide-react-native';
+import { ChevronLeft, CloudOff, Crown, MoreHorizontal, Settings, Star, Trophy } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,6 +16,7 @@ import { Avatar } from '@/components/atoms/Avatar';
 import { Button } from '@/components/atoms/Button';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
+import { EmptyState } from '@/components/molecules/EmptyState';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { colors, fonts, icons, photo, radius, space, typeScale } from '@/components/tokens';
 
@@ -29,9 +30,11 @@ type Props = {
   onMore?: () => void;
   onSettings?: () => void;
   followBusy?: boolean;
+  error?: boolean;
+  onRetry?: () => void;
 };
 
-export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWin, onBack, onMore, onSettings, followBusy }: Props) {
+export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWin, onBack, onMore, onSettings, followBusy, error, onRetry }: Props) {
   void onSignOut; // sign out now lives in the settings sheet (owned by the screen)
   const prog = levelProgress(data?.xp ?? 0);
   const frame = frameForLevel(prog.level);
@@ -47,6 +50,17 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
           {onSettings && <IconButton icon={Settings} accessibilityLabel="Settings" onPress={onSettings} />}
         </View>
       )}
+      {error && !data && (
+        <View style={styles.errorWrap}>
+          <EmptyState
+            icon={CloudOff}
+            line="Couldn't load this profile. Check your connection."
+            ctaLabel="Retry"
+            onCta={onRetry}
+          />
+        </View>
+      )}
+      {!(error && !data) && (
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.identity}>
           <Avatar
@@ -151,6 +165,7 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
         )}
 
       </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -199,6 +214,7 @@ const styles = StyleSheet.create({
   winsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   winCell: { width: '32%', aspectRatio: photo.aspect },
   skeleton: { backgroundColor: colors.ink2 },
+  errorWrap: { flex: 1, justifyContent: 'center' },
   winsEmpty: { alignItems: 'center', gap: 10, paddingVertical: space.gutter * 2 },
   winsLine: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.paper },
   winsSub: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60, textAlign: 'center' },

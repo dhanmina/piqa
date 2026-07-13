@@ -43,8 +43,10 @@ function isThisMonth(iso: string | null): boolean {
 export function useArchive() {
   const [data, setData] = useState<Archive | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const load = useCallback(async (alive: () => boolean) => {
+    setError(false);
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
     if (!uid) {
@@ -124,7 +126,10 @@ export function useArchive() {
       let mounted = true;
       setLoading(true);
       void load(() => mounted).catch(() => {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setError(true);
+        }
       });
       return () => {
         mounted = false;
@@ -134,7 +139,7 @@ export function useArchive() {
 
   const refresh = useCallback(() => load(() => true), [load]);
 
-  return { data, loading, refresh };
+  return { data, loading, error, refresh };
 }
 
 export type StarResult = { ok: boolean; reason?: string; starred?: boolean; used?: number; cap?: number };

@@ -15,7 +15,7 @@ import { colors, fonts, typeScale } from '@/components/tokens';
 export default function UserProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, loading, refresh } = useProfile(id ?? null);
+  const { data, loading, error, refresh } = useProfile(id ?? null);
   const [busy, setBusy] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
@@ -47,6 +47,8 @@ export default function UserProfileScreen() {
       <ProfileView
         data={data}
         loading={loading}
+        error={error}
+        onRetry={() => void refresh()}
         onBack={() => router.back()}
         onMore={data && !data.isSelf ? () => setShowMenu(true) : undefined}
         onFollowToggle={() => void onFollowToggle()}
