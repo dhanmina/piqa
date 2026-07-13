@@ -72,7 +72,7 @@ export function ShotCard({
             {submitted ? (
               <Text style={styles.submittedNote}>In the running</Text>
             ) : offline ? (
-              <Button label="Saved — will upload" variant="ghost" disabled fullWidth />
+              <Button label="Saved · will upload" variant="ghost" disabled fullWidth />
             ) : (
               <Button label="Shoot it" onPress={onShoot} loading={loading} fullWidth />
             )}

@@ -136,7 +136,7 @@ export default function CurateScreen() {
           ) : (
             <EmptyState
               icon={Aperture}
-              line="No shots to curate yet — they roll in as people shoot today."
+              line="No shots to curate yet. They roll in as people shoot today."
               ctaLabel="Back to Today"
               onCta={close}
             />
