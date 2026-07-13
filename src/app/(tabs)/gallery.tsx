@@ -274,7 +274,7 @@ export default function GalleryScreen() {
             ) : (
               <Text style={styles.teaserSoft}>Tomorrow’s shot is loading</Text>
             )}
-            <Button label="See what’s live →" variant="text" onPress={() => router.push('/(tabs)/today')} />
+            <Button label="See what’s live" variant="text" onPress={() => router.push('/(tabs)/today')} />
           </View>
         </View>
       </ScrollView>

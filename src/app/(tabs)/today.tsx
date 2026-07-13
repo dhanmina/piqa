@@ -8,7 +8,7 @@
  */
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { Crown } from 'lucide-react-native';
+import { Crown, Zap } from 'lucide-react-native';
 import { useEffect, useState, type ReactElement } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -118,9 +118,12 @@ export default function TodayScreen() {
           </Brackets>
           <Text style={styles.statusLine}>{statusLine}</Text>
           {submission?.quick_draw && (
-            <Mono size={typeScale.caption} color={colors.paper60}>
-              ⚡ Quick Draw
-            </Mono>
+            <View style={styles.quickDraw}>
+              <Zap size={13} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+              <Mono size={typeScale.caption} color={colors.paper60}>
+                Quick Draw
+              </Mono>
+            </View>
           )}
           {blocked && <Button label="Retry upload" variant="ghost" onPress={() => void retryBlocked()} fullWidth />}
           {!blocked && drop?.is_live && (
@@ -394,6 +397,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.body,
     color: colors.paper,
   },
+  quickDraw: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   subNote: {
     fontFamily: fonts.sans,
     fontSize: typeScale.caption,
