@@ -119,17 +119,6 @@ export default function PhotoDetail() {
 
   const baseHeartsValue = liveBase ?? baseHearts;
 
-  const capturedLine = params.captured
-    ? new Date(params.captured)
-        .toLocaleString('en-US', {
-          month: 'short',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-        .toUpperCase() // camera-readout language (spec §11d)
-    : '—';
-
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <View style={styles.stage}>
@@ -164,9 +153,6 @@ export default function PhotoDetail() {
                   {params.shooter || 'shooter'}
                 </Text>
               </Pressable>
-              <Mono size={typeScale.caption} color={colors.paper60}>
-                {capturedLine}
-              </Mono>
             </View>
             <HeartButton
               onPhoto
