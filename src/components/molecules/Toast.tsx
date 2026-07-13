@@ -13,7 +13,7 @@ type ToastProps = {
 };
 
 /**
- * A single-line past-tense fact ("Shot saved ✓ — uploading"), 2s, never stacks.
+ * A single-line past-tense fact ("Shot saved — uploading"), 2s, never stacks.
  * The leading safelight dot is the darkroom's active light — the signature that
  * marks this as Piqa, not a generic toast. Rises in / falls out on the app's
  * motion scale; a hairline lifts it off ink. Rendering is the caller's job.

@@ -127,7 +127,7 @@ export default function CurateScreen() {
         <View style={styles.center}>
           {sessionPicks > 0 ? (
             <>
-              <Text style={styles.bigLine}>You’re all caught up ✓</Text>
+              <Text style={styles.bigLine}>You’re all caught up</Text>
               <Text style={styles.subLine}>
                 You’ve curated every shot in today’s round. More appear as people shoot.
               </Text>
@@ -160,7 +160,7 @@ export default function CurateScreen() {
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.center}>
-          <Text style={styles.bigLine}>Set done ✓</Text>
+          <Text style={styles.bigLine}>Set done</Text>
           <Text style={styles.subLine}>
             {sessionPicks} {sessionPicks === 1 ? 'shot' : 'shots'} curated so far
           </Text>

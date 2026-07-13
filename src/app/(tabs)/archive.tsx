@@ -272,7 +272,7 @@ export default function ArchiveScreen() {
               </Text>
             )}
             <Button
-              label={selected.starred ? 'Starred ✓' : 'Star this shot'}
+              label={selected.starred ? 'Starred' : 'Star this shot'}
               variant={selected.starred ? 'ghost' : 'primary'}
               fullWidth
               loading={busy}

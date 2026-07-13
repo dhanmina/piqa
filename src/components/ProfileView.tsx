@@ -84,7 +84,7 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
 
         {!data?.isSelf && onFollowToggle && (
           <Button
-            label={data?.isFollowing ? 'Following ✓' : 'Follow'}
+            label={data?.isFollowing ? 'Following' : 'Follow'}
             variant={data?.isFollowing ? 'ghost' : 'primary'}
             fullWidth
             loading={followBusy}
