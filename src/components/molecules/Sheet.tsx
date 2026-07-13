@@ -70,7 +70,9 @@ export function Sheet({ visible, onClose, title, children }: SheetProps) {
           <View style={styles.grabber} />
           {title && (
             <>
-              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.title} numberOfLines={1}>
+                {title}
+              </Text>
               <View style={styles.rule} />
             </>
           )}

@@ -179,7 +179,9 @@ export default function CameraScreen() {
             <Mono size={10} color={colors.paper60}>
               TODAY’S SHOT
             </Mono>
-            <Text style={styles.promptText}>{drop.prompt}</Text>
+            <Text style={styles.promptText} numberOfLines={2}>
+              {drop.prompt}
+            </Text>
           </View>
         )}
 

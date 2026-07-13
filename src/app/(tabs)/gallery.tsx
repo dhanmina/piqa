@@ -272,7 +272,11 @@ export default function GalleryScreen() {
               </Pressable>
             )}
           </View>
-          {data.drop.prompt && <Text style={styles.prompt}>{data.drop.prompt}</Text>}
+          {data.drop.prompt && (
+            <Text style={styles.prompt} numberOfLines={3}>
+              {data.drop.prompt}
+            </Text>
+          )}
           {data.isSeed && <Text style={styles.rollingIn}>The first galleries are rolling in.</Text>}
           <View style={styles.headerRule} />
         </View>

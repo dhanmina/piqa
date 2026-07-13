@@ -203,7 +203,9 @@ export default function PhotoDetail() {
                 }}
               >
                 <Avatar username={r.username} uri={r.avatar_url} size={36} />
-                <Text style={styles.reactorName}>{r.username}</Text>
+                <Text style={styles.reactorName} numberOfLines={1}>
+                  {r.username}
+                </Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -258,7 +260,7 @@ const styles = StyleSheet.create({
   emptyReactors: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
   reactorScroll: { maxHeight: 320 },
   reactorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  reactorName: { fontFamily: displayFamily, fontSize: typeScale.body, color: colors.paper },
+  reactorName: { flexShrink: 1, fontFamily: displayFamily, fontSize: typeScale.body, color: colors.paper },
   reasonRow: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.ink },
   reasonLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.paper },
 });
