@@ -623,6 +623,8 @@ export type Database = {
         Returns: Json
       }
       search_users: { Args: { p_query: string }; Returns: Json }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       toggle_star: { Args: { p_id: string; p_type: string }; Returns: Json }
     }
     Enums: {
