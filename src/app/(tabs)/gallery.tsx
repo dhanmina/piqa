@@ -34,7 +34,7 @@ import { displayFamily } from '@/components/fonts';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { GalleryGrid, GalleryGridSkeleton, type GalleryPhoto } from '@/components/molecules/GalleryGrid';
 import { Sheet } from '@/components/molecules/Sheet';
-import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
 
 const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: radius.card,
     backgroundColor: colors.ink2,
   },
   celebrateText: {

@@ -17,7 +17,7 @@ import { Button } from '@/components/atoms/Button';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
-import { colors, fonts, icons, photo, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, photo, radius, space, typeScale } from '@/components/tokens';
 
 type Props = {
   data: ProfileData | null;
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     backgroundColor: colors.ink2,
-    borderRadius: 12,
+    borderRadius: radius.card,
     paddingVertical: 18,
   },
   stat: { alignItems: 'center', gap: 4 },

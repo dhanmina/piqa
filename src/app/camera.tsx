@@ -23,7 +23,7 @@ import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, motion, overlay, photo, typeScale } from '@/components/tokens';
+import { colors, fonts, motion, overlay, photo, radius, typeScale } from '@/components/tokens';
 
 type Captured = {
   uri: string;
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: overlay.badge,
     paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: radius.card,
     maxWidth: '85%',
   },
   promptText: {

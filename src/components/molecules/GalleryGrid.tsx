@@ -10,7 +10,7 @@ import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
-import { colors, icons, motion, photo as photoFrame, radius, space, typeScale } from '@/components/tokens';
+import { colors, fade, icons, motion, photo as photoFrame, radius, space, typeScale } from '@/components/tokens';
 
 export type GalleryPhoto = {
   id: string;
@@ -82,7 +82,7 @@ export function GalleryGrid({
       <>
         <LinearGradient
           pointerEvents="none"
-          colors={['rgba(20, 18, 16, 0)', 'rgba(20, 18, 16, 0.85)']}
+          colors={fade}
           style={styles.tileFade}
         />
         <View pointerEvents="box-none" style={styles.tileHeartOverlay}>
@@ -170,7 +170,7 @@ export function GalleryGrid({
                     scrim, like the detail view; the winner's credit lives on the cover. */}
                 <LinearGradient
                   pointerEvents="none"
-                  colors={['rgba(20, 18, 16, 0)', 'rgba(20, 18, 16, 0.9)']}
+                  colors={fade}
                   style={styles.potdFade}
                 />
                 <View style={styles.potdCaption}>
