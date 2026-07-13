@@ -54,9 +54,9 @@ export default function TodayScreen() {
           );
         if (event.type === 'duplicate') setToast('Already submitted for today');
         if (event.type === 'done' && event.item.kind === 'daily') {
-          // Focus-lock submit moment (spec §11d): brackets snap + medium haptic + "In the running ✓".
+          // Focus-lock submit moment (spec §11d): brackets snap + medium haptic + "In the running".
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setToast('In the running ✓');
+          setToast('In the running');
         }
       }),
     [],
@@ -100,12 +100,12 @@ export default function TodayScreen() {
     const queued = pending?.lastErrorKind === 'network';
     const blocked = pending?.status === 'blocked';
     const statusLine = submission
-      ? 'In the running ✓'
+      ? 'In the running'
       : blocked
         ? 'Upload needs a retry'
         : queued
           ? 'Saved, will upload'
-          : 'Shot saved ✓ · uploading';
+          : 'Shot saved · uploading';
     body = (
       <View style={styles.stateFill}>
         <View style={styles.submittedHero}>
@@ -175,7 +175,7 @@ export default function TodayScreen() {
     const resultLine = lastResult.is_potd
       ? 'Photo of the Day'
       : lastResult.in_gallery
-        ? 'In the gallery ✓'
+        ? 'In the gallery'
         : lastResult.hearts > 0
           ? `Your shot was picked ${lastResult.hearts} times by curators worldwide`
           : 'Your shot is safe in your archive';

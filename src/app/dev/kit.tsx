@@ -223,7 +223,7 @@ export default function DarkroomKit() {
           <ShotCard prompt="Something red within reach" closesAt={midnight} offline />
           <Caption>offline — saved locally, never an error</Caption>
           <ShotCard prompt="Something red within reach" closesAt={midnight} submitted />
-          <Caption>submitted — in the running ✓</Caption>
+          <Caption>submitted — in the running</Caption>
         </Section>
 
         <Section title="MatchupPair — blind, frameless, disciplined">
@@ -258,7 +258,7 @@ export default function DarkroomKit() {
         <Section title="Sheet & Toast">
           <View style={styles.row}>
             <Button label="Open sheet" variant="ghost" onPress={() => setSheetOpen(true)} />
-            <Button label="Show toast" variant="ghost" onPress={() => setToast('Shot saved ✓ — uploading')} />
+            <Button label="Show toast" variant="ghost" onPress={() => setToast('Shot saved — uploading')} />
           </View>
         </Section>
 
