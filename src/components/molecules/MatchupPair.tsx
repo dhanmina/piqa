@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
-import { colors, fonts, overlay, typeScale } from '@/components/tokens';
+import { colors, fonts, overlay, radius, typeScale } from '@/components/tokens';
 
 type MatchupPairProps = {
   topUri: string;
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     gap: 3,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 999,
+    borderRadius: radius.pill,
     backgroundColor: overlay.chip,
   },
   seg: {
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     color: colors.paper,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: radius.pill,
     backgroundColor: overlay.chip,
     overflow: 'hidden',
   },
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     right: 16,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    borderRadius: 999,
+    borderRadius: radius.pill,
     backgroundColor: overlay.chip,
   },
   skip: {

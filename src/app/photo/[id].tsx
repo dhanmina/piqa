@@ -23,7 +23,7 @@ import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, photo, space, typeScale } from '@/components/tokens';
+import { colors, fade, fonts, icons, photo, space, typeScale } from '@/components/tokens';
 
 type Reactor = { id: string; username: string; avatar_url: string | null };
 
@@ -145,7 +145,7 @@ export default function PhotoDetail() {
               No location is ever shown here (spec §0). */}
           <LinearGradient
             pointerEvents="none"
-            colors={['rgba(20, 18, 16, 0)', 'rgba(20, 18, 16, 0.92)']}
+            colors={fade}
             locations={[0, 1]}
             style={styles.fade}
           />

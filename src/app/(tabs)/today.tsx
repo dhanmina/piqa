@@ -28,7 +28,7 @@ import { Brackets } from '@/components/molecules/Brackets';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { ShotCard } from '@/components/molecules/ShotCard';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, photo, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, photo, radius, space, typeScale } from '@/components/tokens';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   },
   skeletonCard: {
     height: 220,
-    borderRadius: 12,
+    borderRadius: radius.card,
     backgroundColor: colors.ink2,
   },
   stretch: {

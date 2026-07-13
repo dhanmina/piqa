@@ -65,6 +65,10 @@ export const overlay = {
   badge: 'rgba(20, 18, 16, 0.75)', // small badges/labels over a photo
 } as const;
 
+/** Bottom legibility fade for text/controls over a photo — one gradient
+ *  everywhere (detail view, PotD cover, grid tiles), never a per-screen opacity. */
+export const fade = ['rgba(20, 18, 16, 0)', 'rgba(20, 18, 16, 0.9)'] as const;
+
 /** Floating chrome controls (close, flash, back…) — one size, one icon glyph. */
 export const control = {
   chrome: 40, // circular button diameter
