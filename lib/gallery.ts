@@ -207,7 +207,7 @@ export function useGalleryHearts(photos: { id: string; hearts: number }[]) {
   const isLiked = useCallback((id: string) => optimistic[id] ?? liked.has(id), [optimistic, liked]);
 
   const count = useCallback(
-    (p: { id: string; hearts: number }) => p.hearts - (liked.has(p.id) ? 1 : 0) + (isLiked(p.id) ? 1 : 0),
+    (p: { id: string; hearts: number }) => Math.max(0, p.hearts - (liked.has(p.id) ? 1 : 0) + (isLiked(p.id) ? 1 : 0)),
     [liked, isLiked],
   );
 
