@@ -129,7 +129,7 @@ export default function CurateScreen() {
             <>
               <Text style={styles.bigLine}>You’re all caught up ✓</Text>
               <Text style={styles.subLine}>
-                You judged every shot in today’s round. More appear as people shoot.
+                You’ve curated every shot in today’s round. More appear as people shoot.
               </Text>
               <Button label="Back to Today" fullWidth onPress={close} />
             </>
@@ -162,7 +162,7 @@ export default function CurateScreen() {
         <View style={styles.center}>
           <Text style={styles.bigLine}>Set done ✓</Text>
           <Text style={styles.subLine}>
-            {sessionPicks} {sessionPicks === 1 ? 'shot' : 'shots'} judged so far
+            {sessionPicks} {sessionPicks === 1 ? 'shot' : 'shots'} curated so far
           </Text>
           {remaining > 0 ? (
             <>
