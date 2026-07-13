@@ -279,6 +279,7 @@ export type Database = {
           created_at: string
           id: string
           is_sponsored: boolean
+          seq: number | null
           text: string
           used_at: string | null
         }
@@ -287,6 +288,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_sponsored?: boolean
+          seq?: number | null
           text: string
           used_at?: string | null
         }
@@ -295,6 +297,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_sponsored?: boolean
+          seq?: number | null
           text?: string
           used_at?: string | null
         }
@@ -614,10 +617,12 @@ export type Database = {
       get_latest_gallery: { Args: never; Returns: Json }
       get_matchup: { Args: never; Returns: Json }
       get_profile: { Args: { p_user?: string }; Returns: Json }
+      is_live_drop_thumb: { Args: { object_name: string }; Returns: boolean }
       report_submission: {
         Args: { p_reason: string; p_submission: string }
         Returns: Json
       }
+      search_users: { Args: { p_query: string }; Returns: Json }
       toggle_star: { Args: { p_id: string; p_type: string }; Returns: Json }
     }
     Enums: {
