@@ -70,7 +70,9 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
             frameColor={frame.color}
             frameWidth={frame.width}
           />
-          <Text style={styles.username}>{data?.username ?? ' '}</Text>
+          <Text style={styles.username} numberOfLines={1}>
+            {data?.username ?? ' '}
+          </Text>
           <View style={styles.levelRow}>
             <Text style={styles.title}>{title}</Text>
             <Mono size={typeScale.caption} color={colors.paper60}>

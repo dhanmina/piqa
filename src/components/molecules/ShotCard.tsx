@@ -46,7 +46,9 @@ export function ShotCard({
       <Brackets color={colors.paper} style={styles.brackets}>
         <View style={styles.inner}>
           <Text style={styles.kicker}>Today’s Shot</Text>
-          <Text style={styles.prompt}>{prompt}</Text>
+          <Text style={styles.prompt} numberOfLines={3}>
+            {prompt}
+          </Text>
 
           <View style={styles.countdownBlock}>
             <Mono size={typeScale.caption} color={colors.paper60}>
