@@ -64,6 +64,7 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const term = query.trim();
     if (term.length < 2) {
       setResults([]);
@@ -73,11 +74,16 @@ export default function SearchScreen() {
     setLoading(true);
     const timer = setTimeout(async () => {
       const data = await searchUsers(term);
-      setResults(data);
-      setLoading(false);
+      if (active) {
+        setResults(data);
+        setLoading(false);
+      }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [query]);
 
   const renderItem = ({ item }: { item: SearchUser }) => (

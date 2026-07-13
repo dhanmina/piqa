@@ -194,9 +194,12 @@ export function useGalleryHearts(photos: { id: string; hearts: number }[]) {
       .select("submission_id")
       .eq("user_id", myId)
       .in("submission_id", idsKey.split(","))
-      .then(({ data }) => {
-        if (alive) setLiked(new Set((data ?? []).map((r) => (r as { submission_id: string }).submission_id)));
-      });
+      .then(
+        ({ data }) => {
+          if (alive) setLiked(new Set((data ?? []).map((r) => (r as { submission_id: string }).submission_id)));
+        },
+        (e) => console.warn('Failed to fetch gallery hearts:', e)
+      );
     return () => {
       alive = false;
     };
@@ -216,10 +219,17 @@ export function useGalleryHearts(photos: { id: string; hearts: number }[]) {
       if (!myId) return;
       const next = !isLiked(id);
       setOptimistic((m) => ({ ...m, [id]: next })); // flip instantly
-      if (next) {
-        await supabase.from("reactions").insert({ user_id: myId, submission_id: id, emoji: "heart" });
-      } else {
-        await supabase.from("reactions").delete().eq("user_id", myId).eq("submission_id", id);
+      try {
+        if (next) {
+          const { error } = await supabase.from("reactions").insert({ user_id: myId, submission_id: id, emoji: "heart" });
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("reactions").delete().eq("user_id", myId).eq("submission_id", id);
+          if (error) throw error;
+        }
+      } catch (e) {
+        console.warn('Failed to toggle heart:', e);
+        setOptimistic((m) => ({ ...m, [id]: !next })); // revert on failure
       }
     },
     [myId, isLiked],
