@@ -11,7 +11,7 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
-import { Calendar, Image as ImageIcon, Users } from 'lucide-react-native';
+import { Calendar, CloudOff, Image as ImageIcon, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -52,8 +52,13 @@ export default function GalleryScreen() {
   const [showPast, setShowPast] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data, loading, refresh } = useGallery(selectedDropId);
-  const { photos: followingPhotos, loading: followingLoading, refresh: refreshFollowing } = useFollowingGallery();
+  const { data, loading, error, refresh } = useGallery(selectedDropId);
+  const {
+    photos: followingPhotos,
+    loading: followingLoading,
+    error: followingError,
+    refresh: refreshFollowing,
+  } = useFollowingGallery();
 
   // Direct hearting for the active tab's photos (grid + PotD).
   const activePhotos = tab === 'following' ? followingPhotos : data?.photos ?? [];
@@ -154,7 +159,16 @@ export default function GalleryScreen() {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
         {segmented}
-        {followingLoading ? (
+        {followingError && followingPhotos.length === 0 ? (
+          <View style={styles.center}>
+            <EmptyState
+              icon={CloudOff}
+              line="Couldn't load Following. Check your connection."
+              ctaLabel="Retry"
+              onCta={() => void refreshFollowing()}
+            />
+          </View>
+        ) : followingLoading ? (
           <View style={styles.content}>
             <GalleryGridSkeleton />
           </View>
@@ -184,6 +198,22 @@ export default function GalleryScreen() {
             />
           </ScrollView>
         )}
+      </SafeAreaView>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <SafeAreaView style={styles.root} edges={['top']}>
+        {segmented}
+        <View style={styles.center}>
+          <EmptyState
+            icon={CloudOff}
+            line="Couldn't load the gallery. Check your connection."
+            ctaLabel="Retry"
+            onCta={() => void refresh()}
+          />
+        </View>
       </SafeAreaView>
     );
   }

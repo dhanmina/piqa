@@ -15,7 +15,7 @@ import { colors, fonts, typeScale } from '@/components/tokens';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { data, loading } = useProfile(null);
+  const { data, loading, error, refresh } = useProfile(null);
   const [showSettings, setShowSettings] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -44,7 +44,14 @@ export default function ProfileScreen() {
 
   return (
     <>
-      <ProfileView data={data} loading={loading} onSettings={() => setShowSettings(true)} onOpenWin={openWin} />
+      <ProfileView
+        data={data}
+        loading={loading}
+        error={error}
+        onRetry={() => void refresh()}
+        onSettings={() => setShowSettings(true)}
+        onOpenWin={openWin}
+      />
 
       <Sheet visible={showSettings} onClose={closeSettings} title={confirmDelete ? 'Delete account?' : 'Settings'}>
         {!confirmDelete ? (

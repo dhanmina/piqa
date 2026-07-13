@@ -8,7 +8,7 @@
  */
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { Crown, Zap } from 'lucide-react-native';
+import { CloudOff, Crown, Zap } from 'lucide-react-native';
 import { useEffect, useState, type ReactElement } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +25,7 @@ import { Mono } from '@/components/atoms/Mono';
 import { StreakFlame } from '@/components/atoms/StreakFlame';
 import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
+import { EmptyState } from '@/components/molecules/EmptyState';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { ShotCard } from '@/components/molecules/ShotCard';
 import { Toast } from '@/components/molecules/Toast';
@@ -32,7 +33,7 @@ import { colors, fonts, icons, photo, radius, space, typeScale } from '@/compone
 
 export default function TodayScreen() {
   const router = useRouter();
-  const { data, loading, refresh } = useHomeState();
+  const { data, loading, error, refresh } = useHomeState();
   const [toast, setToast] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [, setQueueTick] = useState(0);
@@ -93,7 +94,21 @@ export default function TodayScreen() {
   });
 
   let body: ReactElement;
-  if (loading) {
+  if (error && !data) {
+    // Couldn't load with nothing cached → recoverable, not an endless skeleton.
+    body = (
+      <View style={styles.stateFill}>
+        <View style={styles.centerFill}>
+          <EmptyState
+            icon={CloudOff}
+            line="Couldn't load Today. Check your connection."
+            ctaLabel="Retry"
+            onCta={() => void refresh()}
+          />
+        </View>
+      </View>
+    );
+  } else if (loading) {
     body = <View style={styles.skeletonCard} />;
   } else if (submitted) {
     // (c) SUBMITTED — the print is the hero; status comes from the queue.
@@ -371,6 +386,11 @@ const styles = StyleSheet.create({
   // action pinned into the thumb zone. Used by live / waiting / submitted.
   stateFill: {
     flex: 1,
+  },
+  centerFill: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   liveHero: {
     flex: 1,

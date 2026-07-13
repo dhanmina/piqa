@@ -86,7 +86,7 @@ async function fetchHomeState(): Promise<HomeState> {
  * submission bypasses the TTL so "uploading" flips to "In the running ✓" at once.
  */
 export function useHomeState() {
-  const { data, loading, refresh } = useCached<HomeState>(HOME_KEY, fetchHomeState, HOME_TTL_MS);
+  const { data, loading, error, refresh } = useCached<HomeState>(HOME_KEY, fetchHomeState, HOME_TTL_MS);
 
   useEffect(() => {
     const unsubscribe = subscribeQueue((event) => {
@@ -98,5 +98,5 @@ export function useHomeState() {
     return unsubscribe;
   }, []);
 
-  return { data, loading, refresh };
+  return { data, loading, error, refresh };
 }
