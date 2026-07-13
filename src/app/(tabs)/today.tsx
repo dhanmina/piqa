@@ -195,7 +195,7 @@ export default function TodayScreen() {
             <Text style={styles.resultLine}>{resultLine}</Text>
           </View>
           <View style={styles.potdHearts}>
-            <HeartGlyph size={13} color={colors.paper60} strokeWidth={2} />
+            <HeartGlyph size={13} color={colors.paper60} />
             <Mono size={typeScale.caption} color={colors.paper60}>
               {lastResult.hearts}
             </Mono>
@@ -258,7 +258,7 @@ export default function TodayScreen() {
                 <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
                 <Text style={styles.shooter}>{potd.shooter}</Text>
                 <View style={styles.potdHearts}>
-                  <HeartGlyph size={13} color={colors.paper60} strokeWidth={2} />
+                  <HeartGlyph size={13} color={colors.paper60} />
                   <Mono size={typeScale.caption} color={colors.paper60}>
                     {potd.hearts}
                   </Mono>

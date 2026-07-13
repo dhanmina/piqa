@@ -65,7 +65,7 @@ export function PhotoTile({ uri, hearts, badge, aspectRatio = photo.aspect, styl
           every tile is what made the grid feel busy. */}
       {hearts !== undefined && hearts > 0 && (
         <View style={styles.heartsRow}>
-          <HeartGlyph size={12} color={colors.paper60} strokeWidth={2} />
+          <HeartGlyph size={12} color={colors.paper60} />
           <Mono size={typeScale.caption} color={colors.paper60}>
             {hearts}
           </Mono>
