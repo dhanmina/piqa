@@ -1,3 +1,4 @@
+import { Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -6,7 +7,7 @@ import { Countdown } from '@/components/atoms/Countdown';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
-import { colors, fonts, radius, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
 
 type ShotCardProps = {
   prompt: string;
@@ -60,8 +61,9 @@ export function ShotCard({
           {/* Urgency is a reward, never a punishment — a bonus, not a penalty. */}
           {showQuickDraw && (
             <View style={styles.quick}>
+              <Zap size={12} strokeWidth={icons.strokeWidth} color={colors.safelight} />
               <Mono size={11} weight="medium" color={colors.safelight}>
-                ⚡ QUICK DRAW +10
+                QUICK DRAW +10
               </Mono>
               <Mono size={11} color={colors.safelight}>
                 ·
