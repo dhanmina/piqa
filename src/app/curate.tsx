@@ -30,7 +30,7 @@ export default function CurateScreen() {
   const [phase, setPhase] = useState<Phase>('loading');
   const [set, setSet] = useState<MatchupSet | null>(null);
   const [idx, setIdx] = useState(0);
-  const [picked, setPicked] = useState(0); // picks made in the current set
+  const [sessionPicks, setSessionPicks] = useState(0); // picks across every set this session
   const [remaining, setRemaining] = useState(0);
   const [cap, setCap] = useState(50); // daily pick cap (config, never hardcoded)
 
@@ -56,7 +56,6 @@ export default function CurateScreen() {
       if (next.pairs.length === 0) return setPhase('empty');
       setSet(next);
       setIdx(0);
-      setPicked(0);
       setPhase('judging');
     } catch {
       setPhase('error');
@@ -83,7 +82,7 @@ export default function CurateScreen() {
     const winner = which === 'top' ? pair.aId : pair.bId;
     const loser = which === 'top' ? pair.bId : pair.aId;
     if (set.dropId) senderRef.current?.enqueue({ winner, loser, drop: set.dropId });
-    setPicked((p) => p + 1);
+    setSessionPicks((n) => n + 1);
     setTimeout(() => advance(set.pairs.length), 160);
   };
 
@@ -120,15 +119,28 @@ export default function CurateScreen() {
   }
 
   if (phase === 'empty') {
+    // Two very different empties: you judged everything available (a real
+    // completion — expected early when only a few shots exist), or nothing is
+    // in yet. Reframe the first as done, not as a dead-end.
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.center}>
-          <EmptyState
-            icon={Aperture}
-            line="No shots to curate yet. Check back soon."
-            ctaLabel="Back to Today"
-            onCta={close}
-          />
+          {sessionPicks > 0 ? (
+            <>
+              <Text style={styles.bigLine}>You’re all caught up ✓</Text>
+              <Text style={styles.subLine}>
+                You judged every shot in today’s round. More appear as people shoot.
+              </Text>
+              <Button label="Back to Today" fullWidth onPress={close} />
+            </>
+          ) : (
+            <EmptyState
+              icon={Aperture}
+              line="No shots to curate yet — they roll in as people shoot today."
+              ctaLabel="Back to Today"
+              onCta={close}
+            />
+          )}
         </View>
       </SafeAreaView>
     );
@@ -150,7 +162,7 @@ export default function CurateScreen() {
         <View style={styles.center}>
           <Text style={styles.bigLine}>Set done ✓</Text>
           <Text style={styles.subLine}>
-            {picked} {picked === 1 ? 'pick' : 'picks'} in · {remaining} left today
+            {sessionPicks} {sessionPicks === 1 ? 'shot' : 'shots'} judged so far
           </Text>
           {remaining > 0 ? (
             <>

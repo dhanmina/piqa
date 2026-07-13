@@ -38,14 +38,14 @@ export function MatchupPair({ topUri, bottomUri, index, total, onPick, onSkip }:
   return (
     <View style={styles.container}>
       <Pressable accessibilityRole="button" accessibilityLabel="Pick top photo" style={styles.photo} onPress={() => pick('top')}>
-        <Image source={{ uri: topUri }} style={StyleSheet.absoluteFill} contentFit="contain" />
+        <Image source={{ uri: topUri }} style={StyleSheet.absoluteFill} contentFit="contain" transition={150} />
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, topFlashStyle]} />
       </Pressable>
 
       <View style={styles.divider} />
 
       <Pressable accessibilityRole="button" accessibilityLabel="Pick bottom photo" style={styles.photo} onPress={() => pick('bottom')}>
-        <Image source={{ uri: bottomUri }} style={StyleSheet.absoluteFill} contentFit="contain" />
+        <Image source={{ uri: bottomUri }} style={StyleSheet.absoluteFill} contentFit="contain" transition={150} />
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, bottomFlashStyle]} />
       </Pressable>
 
@@ -86,7 +86,9 @@ const styles = StyleSheet.create({
   },
   photo: {
     flex: 1,
-    backgroundColor: colors.ink2,
+    // Seamless canvas: each contained print floats on one continuous dark field,
+    // separated only by the hairline — no lopsided side-letterbox.
+    backgroundColor: colors.ink,
   },
   flash: {
     backgroundColor: colors.paper,
@@ -116,7 +118,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   segDone: {
-    backgroundColor: colors.paper,
+    backgroundColor: colors.safelight, // the one accent — progress glows Piqa orange
   },
   segPending: {
     backgroundColor: colors.paper40,
