@@ -168,6 +168,9 @@ export function useFollowingGallery() {
   return { photos: data ?? [], loading, error, refresh };
 }
 
+const globalBaseHearts: Record<string, boolean> = {};
+const globalOptimisticHearts: Record<string, boolean> = {};
+
 /**
  * Direct hearting from the gallery (grid + PotD) without opening the photo.
  * Loads which of these photos I've already hearted (the count alone can't tell),
@@ -196,7 +199,11 @@ export function useGalleryHearts(photos: { id: string; hearts: number }[]) {
       .in("submission_id", idsKey.split(","))
       .then(
         ({ data }) => {
-          if (alive) setLiked(new Set((data ?? []).map((r) => (r as { submission_id: string }).submission_id)));
+          const fetchedSet = new Set((data ?? []).map((r) => r.submission_id));
+          idsKey.split(",").forEach(id => {
+            globalBaseHearts[id] = fetchedSet.has(id);
+          });
+          if (alive) setLiked(fetchedSet);
         },
         (e) => console.warn('Failed to fetch gallery hearts:', e)
       );
@@ -207,11 +214,12 @@ export function useGalleryHearts(photos: { id: string; hearts: number }[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myId, idsKey]);
 
-  const isLiked = useCallback((id: string) => optimistic[id] ?? liked.has(id), [optimistic, liked]);
+  const getBase = useCallback((id: string) => globalBaseHearts[id] ?? liked.has(id), [liked]);
+  const isLiked = useCallback((id: string) => optimistic[id] ?? globalOptimisticHearts[id] ?? getBase(id), [optimistic, getBase]);
 
   const count = useCallback(
-    (p: { id: string; hearts: number }) => Math.max(0, p.hearts - (liked.has(p.id) ? 1 : 0) + (isLiked(p.id) ? 1 : 0)),
-    [liked, isLiked],
+    (p: { id: string; hearts: number }) => Math.max(0, p.hearts - (getBase(p.id) ? 1 : 0) + (isLiked(p.id) ? 1 : 0)),
+    [getBase, isLiked],
   );
 
   const toggle = useCallback(
@@ -219,6 +227,7 @@ export function useGalleryHearts(photos: { id: string; hearts: number }[]) {
       if (!myId) return;
       const next = !isLiked(id);
       setOptimistic((m) => ({ ...m, [id]: next })); // flip instantly
+      globalOptimisticHearts[id] = next; // persist across tab switches
       try {
         if (next) {
           const { error } = await supabase.from("reactions").insert({ user_id: myId, submission_id: id, emoji: "heart" });
@@ -230,6 +239,7 @@ export function useGalleryHearts(photos: { id: string; hearts: number }[]) {
       } catch (e) {
         console.warn('Failed to toggle heart:', e);
         setOptimistic((m) => ({ ...m, [id]: !next })); // revert on failure
+        globalOptimisticHearts[id] = !next;
       }
     },
     [myId, isLiked],
