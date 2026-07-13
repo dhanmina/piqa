@@ -11,7 +11,7 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
-import { Calendar, CloudOff, Image as ImageIcon, Users } from 'lucide-react-native';
+import { Calendar, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -141,17 +141,28 @@ export default function GalleryScreen() {
           </Pressable>
         ))}
       </View>
-      {hasPast && (
+      <View style={styles.headerIcons}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Past galleries"
+          accessibilityLabel="Search users"
           hitSlop={10}
-          style={styles.calBtn}
-          onPress={() => setShowPast(true)}
+          style={styles.iconBtn}
+          onPress={() => router.push('/search')}
         >
-          <Calendar size={20} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+          <Search size={20} strokeWidth={icons.strokeWidth} color={colors.paper60} />
         </Pressable>
-      )}
+        {hasPast && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Past galleries"
+            hitSlop={10}
+            style={styles.iconBtn}
+            onPress={() => setShowPast(true)}
+          >
+            <Calendar size={20} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 
@@ -355,7 +366,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   segments: { flexDirection: 'row', gap: 24 },
-  calBtn: { padding: 4 },
+  headerIcons: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  iconBtn: { padding: 4 },
   segment: { alignItems: 'center', gap: 6 },
   segmentLabel: { fontSize: typeScale.sub },
   segmentActive: { fontFamily: fonts.sansMedium, color: colors.paper },
