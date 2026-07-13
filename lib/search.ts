@@ -4,23 +4,21 @@ export type SearchUser = {
   id: string;
   username: string;
   avatar_url: string | null;
+  is_following: boolean;
+  followers: number;
+  hearts: number;
 };
 
 export async function searchUsers(query: string): Promise<SearchUser[]> {
-  if (!query || query.trim().length < 2) return [];
+  const term = query.trim();
+  if (term.length < 2) return [];
   
-  const safeQuery = query.trim().replace(/[%_]/g, ''); // sanitize basic like wildcards
-  
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, username, avatar_url')
-    .ilike('username', `%${safeQuery}%`)
-    .limit(20);
+  const { data, error } = await (supabase.rpc as any)('search_users', { p_query: term });
     
   if (error) {
     console.warn('Search error:', error);
     return [];
   }
   
-  return data ?? [];
+  return (data as SearchUser[]) ?? [];
 }
