@@ -248,21 +248,32 @@ export function useGalleryHearts(photos: { id: string; hearts: number }[]) {
   return { isLiked, count, toggle };
 }
 
-// Morning reveal plays once per gallery, then never again (spec §11c / moment 2).
+// Two distinct "have you seen it?" flags for one drop. They cannot be the same
+// key: the Today dot has to clear the moment you read your own result, while the
+// gallery's confetti has to survive until the gallery itself is opened. Sharing
+// one flag meant reading your result on Today never cleared Today's own dot.
+//   reveal — the morning reveal animation, plays once per gallery (spec §11c / moment 2).
+//   result — your personal result card on Today.
 const revealKey = (dropId: string) => `piqa:reveal-seen:${dropId}`;
+const resultKey = (dropId: string) => `piqa:result-seen:${dropId}`;
 
-export async function isRevealSeen(dropId: string): Promise<boolean> {
+async function isSeen(key: string): Promise<boolean> {
   try {
-    return (await AsyncStorage.getItem(revealKey(dropId))) !== null;
+    return (await AsyncStorage.getItem(key)) !== null;
   } catch {
-    return true; // fail closed — a storage hiccup shouldn't replay confetti
+    return true; // fail closed — a storage hiccup shouldn't replay confetti or nag
   }
 }
 
-export async function markRevealSeen(dropId: string): Promise<void> {
+async function markSeen(key: string): Promise<void> {
   try {
-    await AsyncStorage.setItem(revealKey(dropId), "1");
+    await AsyncStorage.setItem(key, "1");
   } catch {
     // best-effort
   }
 }
+
+export const isRevealSeen = (dropId: string) => isSeen(revealKey(dropId));
+export const markRevealSeen = (dropId: string) => markSeen(revealKey(dropId));
+export const isResultSeen = (dropId: string) => isSeen(resultKey(dropId));
+export const markResultSeen = (dropId: string) => markSeen(resultKey(dropId));
