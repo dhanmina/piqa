@@ -17,7 +17,7 @@ import { Button } from '@/components/atoms/Button';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
-import { colors, fonts, photo, space, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, photo, space, typeScale } from '@/components/tokens';
 
 type Props = {
   data: ProfileData | null;
@@ -79,7 +79,7 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
           <Stat label="galleries" value={data?.galleries ?? 0} />
           <Stat label="streak wks" value={data?.streakWeeks ?? 0} />
           <Stat label="hearts" value={data?.hearts ?? 0} />
-          <Stat label="crowns" value={data?.crowns ?? 0} icon={<Crown size={12} strokeWidth={2} color={colors.crown} fill={colors.crown} />} />
+          <Stat label="crowns" value={data?.crowns ?? 0} icon={<Crown size={12} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />} />
         </View>
 
         {!data?.isSelf && onFollowToggle && (
@@ -95,7 +95,7 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
         {data?.isSelf && data.starred.length > 0 && (
           <View style={styles.starredBlock}>
             <View style={styles.rowHead}>
-              <Star size={13} strokeWidth={2} color={colors.paper60} fill={colors.paper60} />
+              <Star size={13} strokeWidth={icons.strokeWidth} color={colors.paper60} fill={colors.paper60} />
               <Mono size={typeScale.caption} color={colors.paper60}>
                 STARRED
               </Mono>
@@ -127,7 +127,7 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
           </View>
         ) : (data?.wins.length ?? 0) === 0 ? (
           <View style={styles.winsEmpty}>
-            <Trophy size={28} strokeWidth={2} color={colors.paper40} />
+            <Trophy size={28} strokeWidth={icons.strokeWidth} color={colors.paper40} />
             <Text style={styles.winsLine}>{data?.isSelf ? 'Your wins will live here' : 'No gallery wins yet'}</Text>
             <Text style={styles.winsSub}>
               {data?.isSelf
