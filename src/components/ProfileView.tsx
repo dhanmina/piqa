@@ -9,7 +9,7 @@ import { ChevronLeft, CloudOff, Crown, MoreHorizontal, Settings, Star, Trophy } 
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { frameForLevel, titleForLevel } from '@lib/cosmetics';
+import { ringForLevel, titleForLevel } from '@lib/cosmetics';
 import type { ProfileData, ProfileWin } from '@lib/profile';
 import { levelProgress } from '@lib/xp';
 import { Avatar } from '@/components/atoms/Avatar';
@@ -17,8 +17,8 @@ import { Button } from '@/components/atoms/Button';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
-import { PhotoTile } from '@/components/molecules/PhotoTile';
-import { colors, fonts, icons, photo, radius, space, typeScale } from '@/components/tokens';
+import { FramedPhoto } from '@/components/molecules/FramedPhoto';
+import { colors, fonts, frame, icons, radius, space, typeScale } from '@/components/tokens';
 
 type Props = {
   data: ProfileData | null;
@@ -37,7 +37,7 @@ type Props = {
 export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWin, onBack, onMore, onSettings, followBusy, error, onRetry }: Props) {
   void onSignOut; // sign out now lives in the settings sheet (owned by the screen)
   const prog = levelProgress(data?.xp ?? 0);
-  const frame = frameForLevel(prog.level);
+  const ring = ringForLevel(prog.level);
   const title = titleForLevel(prog.level);
   const xpPct = prog.toNext > 0 ? Math.min(100, (prog.into / prog.toNext) * 100) : 0;
 
@@ -67,8 +67,8 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
             username={data?.username ?? '·'}
             uri={data?.avatarUrl}
             size={72}
-            frameColor={frame.color}
-            frameWidth={frame.width}
+            ringColor={ring.color}
+            ringWidth={ring.width}
           />
           <Text style={styles.username} numberOfLines={1}>
             {data?.username ?? ' '}
@@ -138,7 +138,7 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
         {loading ? (
           <View style={styles.winsGrid}>
             {[0, 1, 2].map((i) => (
-              <View key={i} style={[styles.winCell, styles.skeleton]} />
+              <View key={i} style={[styles.winCell, styles.winSkel, styles.skeleton]} />
             ))}
           </View>
         ) : (data?.wins.length ?? 0) === 0 ? (
@@ -160,7 +160,14 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
                 style={styles.winCell}
                 onPress={() => onOpenWin?.(w, data.username)}
               >
-                <PhotoTile uri={w.uri} badge={w.isPotd ? 'crown' : undefined} />
+                {/* No crown badge: the print carries its own status glyph, and at
+                    3 columns a badge on top of it was just two crowns. */}
+                <FramedPhoto
+                  photoUri={w.uri}
+                  dayNumber={w.dayNumber}
+                  frameId={data.equippedFrame}
+                  status={w.status}
+                />
               </Pressable>
             ))}
           </View>
@@ -214,7 +221,8 @@ const styles = StyleSheet.create({
   starredImg: { width: 72, height: 90, backgroundColor: colors.ink2 },
   winsHead: { flexDirection: 'row' },
   winsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  winCell: { width: '32%', aspectRatio: photo.aspect },
+  winCell: { width: '32%' }, // FramedPhoto owns the 3:4 print aspect
+  winSkel: { aspectRatio: frame.aspect }, // the loader has no print to size it
   skeleton: { backgroundColor: colors.ink2 },
   errorWrap: { flex: 1, justifyContent: 'center' },
   winsEmpty: { alignItems: 'center', gap: 10, paddingVertical: space.gutter * 2 },

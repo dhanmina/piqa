@@ -40,6 +40,18 @@ export function invalidate(key: string) {
   emit(key);
 }
 
+/**
+ * Drop every key under a prefix. Needed when one write changes a field that is
+ * embedded in many dynamically-keyed reads — equipping a frame re-skins every
+ * gallery (`gallery:<dropId>`) and every profile (`profile:<id>`) at once, and
+ * there is no way to name those keys up front.
+ */
+export function invalidatePrefix(prefix: string) {
+  for (const key of [...store.keys()]) {
+    if (key.startsWith(prefix)) invalidate(key);
+  }
+}
+
 /** Fetch a key, deduping concurrent callers and caching the result. */
 export async function fetchKey<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   const existing = inflight.get(key);

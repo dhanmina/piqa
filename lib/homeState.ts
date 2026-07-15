@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 import { subscribeQueue } from "./captureQueue";
 import { fetchKey, invalidate, useCached } from "./cache";
+import type { FrameId, PhotoStatus } from "./frames";
 import { supabase } from "./supabase";
 
 export type HomeDrop = {
@@ -11,6 +12,8 @@ export type HomeDrop = {
   drops_at: string;
   submit_closes_at: string;
   voting_closes_at: string;
+  /** Global day counter, server-owned. Printed on the frame rail. */
+  day_number: number;
   is_live: boolean;
 };
 
@@ -24,6 +27,9 @@ export type HomeSubmission = {
   quick_draw: boolean;
   in_gallery: boolean;
   is_potd: boolean;
+  /** null until the day closes — status is only ever written by close_day. */
+  status: PhotoStatus;
+  day_number: number;
 };
 
 export type YesterdayPotd = {
@@ -32,6 +38,10 @@ export type YesterdayPotd = {
   thumb_path: string | null;
   hearts: number;
   shooter: string;
+  /** The winner's CURRENT frame, read live — not frozen at close. */
+  equipped_frame: FrameId;
+  day_number: number;
+  status: PhotoStatus;
 };
 
 export type HomeStreak = {
@@ -45,10 +55,12 @@ export type HomeStreak = {
 export type LastResult = {
   drop_id: string;
   drop_date: string;
+  day_number: number;
   thumb_path: string | null;
   hearts: number;
   in_gallery: boolean;
   is_potd: boolean;
+  status: PhotoStatus;
   xp_awarded: number;
 };
 
@@ -62,11 +74,13 @@ export type HomeState = {
   streak: HomeStreak | null;
   /** Viewer total XP (level is derived; quiet-mode surface). */
   xp: number;
+  /** The viewer's own equipped frame — their in-flight shot wears it. */
+  equipped_frame: FrameId;
   /** Result to reveal between close and the next drop; null otherwise. */
   last_result: LastResult | null;
 };
 
-const HOME_KEY = "home_state";
+export const HOME_KEY = "home_state";
 // Home state is mostly time-derived on the client (is_live/votingOpen from
 // timestamps); the fetched data (submission, streak, PotD) changes on events
 // we invalidate explicitly (a landed submission) or at fixed cycle times

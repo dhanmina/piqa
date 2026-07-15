@@ -6,12 +6,15 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { equipFrame, type FrameId } from '@lib/frames';
 import { deleteAccount, useProfile, type ProfileWin } from '@lib/profile';
 import { supabase } from '@lib/supabase';
 import { Button } from '@/components/atoms/Button';
+import { Mono } from '@/components/atoms/Mono';
 import { ProfileView } from '@/components/ProfileView';
+import { FramePicker } from '@/components/molecules/FramePicker';
 import { Sheet } from '@/components/molecules/Sheet';
-import { colors, fonts, typeScale } from '@/components/tokens';
+import { colors, fonts, space, typeScale } from '@/components/tokens';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -19,10 +22,20 @@ export default function ProfileScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [equipping, setEquipping] = useState(false);
 
   const closeSettings = () => {
     setShowSettings(false);
     setConfirmDelete(false);
+  };
+
+  // Equipping touches no photo — it flips one column, and every framed surface
+  // re-reads it. So all this has to do is refetch the profile.
+  const onEquip = async (id: FrameId) => {
+    setEquipping(true);
+    const ok = await equipFrame(id);
+    setEquipping(false);
+    if (ok) await refresh();
   };
 
   const onDelete = async () => {
@@ -38,7 +51,16 @@ export default function ProfileScreen() {
   const openWin = (w: ProfileWin, username: string) => {
     router.push({
       pathname: '/photo/[id]',
-      params: { id: w.id, path: w.thumbPath ?? '', shooter: username, potd: w.isPotd ? '1' : '', user: data?.id ?? '' },
+      params: {
+        id: w.id,
+        path: w.thumbPath ?? '',
+        shooter: username,
+        potd: w.isPotd ? '1' : '',
+        user: data?.id ?? '',
+        day: String(w.dayNumber),
+        status: w.status ?? '',
+        frame: data?.equippedFrame ?? 'default',
+      },
     });
   };
 
@@ -56,6 +78,19 @@ export default function ProfileScreen() {
       <Sheet visible={showSettings} onClose={closeSettings} title={confirmDelete ? 'Delete account?' : 'Settings'}>
         {!confirmDelete ? (
           <>
+            <View style={styles.frameBlock}>
+              <Mono size={typeScale.caption} color={colors.paper60}>
+                FRAME
+              </Mono>
+              <FramePicker
+                equipped={data?.equippedFrame ?? 'default'}
+                owned={data?.ownedFrames ?? []}
+                previewUri={data?.wins[0]?.uri}
+                previewDay={data?.wins[0]?.dayNumber ?? 1}
+                busy={equipping}
+                onEquip={(id) => void onEquip(id)}
+              />
+            </View>
             <Button label="Sign out" variant="ghost" fullWidth onPress={() => void supabase.auth.signOut()} />
             <Pressable accessibilityRole="button" style={styles.deleteRow} onPress={() => setConfirmDelete(true)}>
               <Text style={styles.deleteText}>Delete account</Text>
@@ -79,6 +114,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  frameBlock: { alignSelf: 'stretch', gap: 10, marginBottom: space.gridGap },
   deleteRow: { alignItems: 'center', paddingVertical: 12 },
   deleteText: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.heart },
   warn: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center' },

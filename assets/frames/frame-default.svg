@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 1000" fill="none">
+<!-- PIQA v4 DEFAULT. 750x1000 overlay; photo window x24-726 y24-904 transparent.
+     data-dynamic drawn at runtime. Never render frames in voting. -->
+  <path id="border" d="M0 0 H750 V1000 H0 Z M24 24 H726 V904 H24 Z" fill="#201D19" fill-rule="evenodd"/>
+  <line id="hairline" x1="24" y1="904" x2="726" y2="904" stroke="#F2EDE4" stroke-width="2" opacity="0.35"/>
+  <text id="maker" x="40" y="962" font-family="IBM Plex Mono" font-size="30" letter-spacing="6" fill="#F2EDE4" opacity="0.75">PIQA</text>
+  <path id="marker" d="M169 940 L187 951 L169 962 Z" fill="#F2EDE4" opacity="0.75"/>
+  <text id="counter" data-dynamic="counter" x="205" y="962" font-family="IBM Plex Mono" font-size="30" letter-spacing="6" fill="#F2EDE4" opacity="0.75">034</text>
+  <!-- STATUS ZONE x560-660: system-only, per photo -->
+  <circle id="dot" cx="694" cy="951" r="11" fill="#FF5A36"/>
+</svg>

@@ -4,14 +4,14 @@
  * (spec §0 never-do list, §18 stolen from ThemeSnap minus the location). Tap the
  * name → profile (placeholder; Profile is Phase 4).
  */
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Crown, MoreHorizontal, X } from 'lucide-react-native';
+import { MoreHorizontal, X } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { asFrameId, asStatus } from '@lib/frames';
 import { useSignedThumb } from '@lib/gallery';
 import { REPORT_REASONS, reportSubmission } from '@lib/moderation';
 import { useSession } from '@lib/session';
@@ -21,9 +21,10 @@ import { HeartButton } from '@/components/atoms/HeartButton';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
+import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fade, fonts, icons, photo, space, typeScale } from '@/components/tokens';
+import { colors, fade, fonts, frame, space, typeScale } from '@/components/tokens';
 
 type Reactor = { id: string; username: string; avatar_url: string | null };
 
@@ -40,11 +41,21 @@ export default function PhotoDetail() {
     captured?: string;
     potd?: string;
     user?: string;
+    day?: string;
+    status?: string;
+    frame?: string;
   }>();
 
   const uri = useSignedThumb(params.path || null);
-  const isPotd = params.potd === '1';
   const baseHearts = Number(params.hearts ?? 0);
+
+  // This is the one screen that says the frame's marks out loud. That is why
+  // there is no tooltip and no legend sheet anywhere else in the app — the print
+  // shows the glyph, and the detail view spells it out in words.
+  const dayNumber = Number(params.day ?? 0);
+  const status = asStatus(params.status);
+  const frameId = asFrameId(params.frame);
+  const statusWords = status === 'crown' ? 'Photo of the Day' : status === 'top10' ? 'Top 10' : null;
 
   const [liked, setLiked] = useState(false);
   const [delta, setDelta] = useState(0); // local heart adjustment on top of the base
@@ -122,24 +133,16 @@ export default function PhotoDetail() {
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <View style={styles.stage}>
-        <View style={styles.photoFrame}>
-          {uri ? (
-            <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={120} />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, styles.skeleton]} />
-          )}
+        <View>
+          <FramedPhoto photoUri={uri} dayNumber={dayNumber} frameId={frameId} status={status} />
 
           {/* Legibility scrim: a bottom fade so overlaid details read on any
               photo. A text scrim, not decoration — the print itself is untouched.
+              It stops at the rail; the rail is part of the print, not free canvas.
               No location is ever shown here (spec §0). */}
-          <LinearGradient
-            pointerEvents="none"
-            colors={fade}
-            locations={[0, 1]}
-            style={styles.fade}
-          />
+          <LinearGradient pointerEvents="none" colors={fade} locations={[0, 1]} style={styles.fade} />
 
-          <View style={styles.overlay}>
+          <View pointerEvents="box-none" style={styles.overlay}>
             <View style={styles.identity}>
               <Pressable
                 accessibilityRole="button"
@@ -148,11 +151,15 @@ export default function PhotoDetail() {
                 disabled={!params.user}
                 onPress={() => params.user && router.push({ pathname: '/u/[id]', params: { id: params.user } })}
               >
-                {isPotd && <Crown size={18} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />}
                 <Text style={styles.shooter} numberOfLines={1}>
                   {params.shooter || 'shooter'}
                 </Text>
               </Pressable>
+              {statusWords && (
+                <Mono size={typeScale.caption} weight="medium" color={status === 'crown' ? colors.crown : colors.safelight}>
+                  {statusWords}
+                </Mono>
+              )}
             </View>
             <HeartButton
               onPhoto
@@ -219,14 +226,14 @@ export default function PhotoDetail() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   stage: { flex: 1, justifyContent: 'center' },
-  photoFrame: { width: '100%', aspectRatio: photo.aspect, backgroundColor: colors.ink2 },
-  skeleton: { backgroundColor: colors.ink2 },
-  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '45%' },
+  // Both overlays stop at the top of the frame's rail (the bottom 9.6% of the
+  // print), so PIQA, the day counter and the dot are never covered.
+  fade: { position: 'absolute', left: 0, right: 0, bottom: frame.window.bottom, height: '40%' },
   overlay: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: frame.window.bottom,
     padding: space.gutter,
     flexDirection: 'row',
     alignItems: 'center',

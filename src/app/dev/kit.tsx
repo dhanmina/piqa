@@ -21,6 +21,7 @@ import { Toggle } from '@/components/atoms/Toggle';
 import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
 import { EmptyState } from '@/components/molecules/EmptyState';
+import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { GalleryGrid } from '@/components/molecules/GalleryGrid';
 import { MatchupPair } from '@/components/molecules/MatchupPair';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
@@ -182,13 +183,13 @@ export default function DarkroomKit() {
           <Toggle label="Disabled" value={false} onChange={() => {}} disabled />
         </Section>
 
-        <Section title="Avatar — ink2 fallback, frame = ring">
+        <Section title="Avatar — ink2 fallback, level ring">
           <View style={styles.row}>
             <Avatar username="liwanag" />
-            <Avatar username="kodachrome" frameColor={colors.safelight} />
-            <Avatar username="goldenhour" size={56} frameColor={BRONZE} />
+            <Avatar username="kodachrome" ringColor={colors.safelight} />
+            <Avatar username="goldenhour" size={56} ringColor={BRONZE} />
           </View>
-          <Caption>frame tones: safelight, bronze — crown gold is PotD-only, never a frame</Caption>
+          <Caption>ring tones: safelight, bronze — crown gold is PotD-only, never a ring</Caption>
         </Section>
 
         <Section title="Brackets — the viewfinder motif">
@@ -240,16 +241,32 @@ export default function DarkroomKit() {
           <Caption>tap a photo to pick — paper flash + haptic</Caption>
         </Section>
 
+        <Section title="FramedPhoto — the print">
+          <View style={styles.row}>
+            <FramedPhoto photoUri={img('g1')} dayNumber={34} width={110} />
+            <FramedPhoto photoUri={img('g2')} dayNumber={34} width={110} status="top10" />
+            <FramedPhoto photoUri={img('potd')} dayNumber={34} width={110} status="crown" />
+          </View>
+          <Caption>default frame · status: none, top10, crown — status is per-photo, from close_day</Caption>
+          <View style={styles.row}>
+            <FramedPhoto photoUri={img('g3')} dayNumber={34} width={110} frameId="crown" />
+            <FramedPhoto photoUri={img('g4')} dayNumber={7} width={110} frameId="crown" status="crown" />
+            <FramedPhoto photoUri={img('g1')} dayNumber={10342} width={110} frameId="crown" />
+          </View>
+          <Caption>crown frame · gold marker + · CROWN — the rail is who you are, the glyph is what the photo did</Caption>
+          <Caption>counters: 034 zero-pads, 007 zero-pads, 10342 does not — layout holds to 5 digits</Caption>
+        </Section>
+
         <Section title="GalleryGrid — PotD cover + 2-col grid">
           <GalleryGrid
             key={`g-${revealKey}`}
             reveal={revealKey > 0}
             photos={[
-              { id: 'p0', uri: img('potd'), hearts: 143, isPotd: true, shooter: 'liwanag' },
-              { id: 'p1', uri: img('g1'), hearts: 88 },
-              { id: 'p2', uri: img('g2'), hearts: 76 },
-              { id: 'p3', uri: img('g3'), hearts: 64 },
-              { id: 'p4', uri: img('g4'), hearts: 51 },
+              { id: 'p0', uri: img('potd'), hearts: 143, isPotd: true, shooter: 'liwanag', frameId: 'crown', status: 'crown', dayNumber: 34 },
+              { id: 'p1', uri: img('g1'), hearts: 88, frameId: 'default', status: 'top10', dayNumber: 34 },
+              { id: 'p2', uri: img('g2'), hearts: 76, frameId: 'default', status: 'top10', dayNumber: 34 },
+              { id: 'p3', uri: img('g3'), hearts: 64, frameId: 'default', status: null, dayNumber: 34 },
+              { id: 'p4', uri: img('g4'), hearts: 51, frameId: 'crown', status: null, dayNumber: 34 },
             ]}
           />
           <Button label="Replay morning reveal" variant="ghost" onPress={() => setRevealKey((k) => k + 1)} />

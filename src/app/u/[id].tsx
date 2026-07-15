@@ -38,7 +38,16 @@ export default function UserProfileScreen() {
   const openWin = (w: ProfileWin, username: string) => {
     router.push({
       pathname: '/photo/[id]',
-      params: { id: w.id, path: w.thumbPath ?? '', shooter: username, potd: w.isPotd ? '1' : '', user: data?.id ?? '' },
+      params: {
+        id: w.id,
+        path: w.thumbPath ?? '',
+        shooter: username,
+        potd: w.isPotd ? '1' : '',
+        user: data?.id ?? '',
+        day: String(w.dayNumber),
+        status: w.status ?? '',
+        frame: data?.equippedFrame ?? 'default',
+      },
     });
   };
 

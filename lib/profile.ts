@@ -1,10 +1,19 @@
-import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
 import { invalidate, signThumbs, useCached } from "./cache";
+import { asFrameId, asStatus, type FrameId, type PhotoStatus } from "./frames";
 import { supabase } from "./supabase";
 
-export type ProfileWin = { id: string; uri: string | null; thumbPath: string | null; isPotd: boolean; dropDate: string };
+export type ProfileWin = {
+  id: string;
+  uri: string | null;
+  thumbPath: string | null;
+  isPotd: boolean;
+  dropDate: string;
+  /** Everything the wins wall needs to draw the print. */
+  dayNumber: number;
+  status: PhotoStatus;
+};
 
 export type ProfileData = {
   id: string;
@@ -17,6 +26,10 @@ export type ProfileData = {
   crowns: number;
   wins: ProfileWin[];
   starred: { key: string; uri: string | null }[];
+  /** This profile's equipped frame — every photo they own wears it. */
+  equippedFrame: FrameId;
+  /** The VIEWER's unlocked frames (never someone else's). Drives the equip picker. */
+  ownedFrames: FrameId[];
   isSelf: boolean;
   isFollowing: boolean;
 };
@@ -31,7 +44,16 @@ type RawProfile = {
   streak_weeks: number;
   hearts: number;
   crowns: number;
-  wins: { id: string; thumb_path: string | null; is_potd: boolean; drop_date: string }[];
+  wins: {
+    id: string;
+    thumb_path: string | null;
+    is_potd: boolean;
+    drop_date: string;
+    day_number: number;
+    status: string | null;
+  }[];
+  equipped_frame: string;
+  owned_frames: string[];
   is_self: boolean;
   is_following: boolean;
 };
@@ -76,8 +98,12 @@ export function useProfile(targetId: string | null) {
         uri: w.thumb_path ? (signed.get(w.thumb_path) ?? null) : null,
         isPotd: w.is_potd,
         dropDate: w.drop_date,
+        dayNumber: w.day_number,
+        status: asStatus(w.status),
       })),
       starred: starRows.map((r) => ({ key: r.id, uri: r.thumb_path ? (signed.get(r.thumb_path) ?? null) : null })),
+      equippedFrame: asFrameId(p.equipped_frame),
+      ownedFrames: (p.owned_frames ?? []).map(asFrameId),
       isSelf: p.is_self,
       isFollowing: p.is_following,
     };
