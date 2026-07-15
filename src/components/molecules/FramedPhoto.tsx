@@ -42,6 +42,12 @@ function MarkerGlyph({ shape }: { shape: MarkerShape }) {
 
 type FramedPhotoProps = {
   photoUri?: string | null;
+  /**
+   * An already-loaded (cached) image to show instantly under photoUri — e.g. the
+   * grid's signed thumb when opening a shot fullscreen, so the print appears with
+   * no reload while the sharper photoUri decodes in behind it.
+   */
+  placeholderUri?: string | null;
   /** Global day, from the server. Never computed on device. */
   dayNumber: number;
   /** The photo OWNER's equipped frame id — resolved to a definition from the catalog. */
@@ -108,6 +114,7 @@ function StatusGlyph({ status }: { status: PhotoStatus }) {
  */
 export function FramedPhoto({
   photoUri,
+  placeholderUri,
   dayNumber,
   frameId = 'default',
   status = null,
@@ -122,8 +129,18 @@ export function FramedPhoto({
 
   return (
     <View style={[styles.print, width !== undefined && { width }, style]}>
-      {photoUri ? (
-        <Image source={{ uri: photoUri }} style={styles.window} contentFit="cover" transition={100} />
+      {photoUri || placeholderUri ? (
+        <Image
+          // Progressive, no blink: the cached thumb sits in `placeholder` and holds
+          // the frame; `source` (full-res) is the ONLY thing that loads, crossfading
+          // in on top. Keeping source stable — never thumb→full-res — avoids a reload.
+          source={photoUri ? { uri: photoUri } : undefined}
+          placeholder={placeholderUri ? { uri: placeholderUri } : undefined}
+          placeholderContentFit="cover"
+          style={styles.window}
+          contentFit="cover"
+          transition={100}
+        />
       ) : (
         <View style={[styles.window, styles.skeleton]} />
       )}

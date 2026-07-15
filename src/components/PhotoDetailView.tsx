@@ -47,6 +47,9 @@ export type PhotoDetailData = {
   day?: number;
   status?: string | null;
   frame?: string | null;
+  /** An already-cached thumb (e.g. the gallery grid's) shown instantly under the
+   *  full-res image, so opening a shot never waits on a reload. */
+  placeholderUri?: string | null;
 };
 
 type Props = PhotoDetailData & {
@@ -69,6 +72,7 @@ export function PhotoDetailView({
   day = 0,
   status: statusRaw,
   frame: frameRaw,
+  placeholderUri,
   onClose,
   onOpenProfile,
   lightbox = false,
@@ -215,7 +219,14 @@ export function PhotoDetailView({
       )}
       <View style={[styles.stage, lightbox && styles.stageCentered]} pointerEvents="box-none">
         <View>
-          <FramedPhoto photoUri={uri} dayNumber={day} frameId={frameId} status={status} width={printW} />
+          <FramedPhoto
+            photoUri={uri}
+            placeholderUri={placeholderUri}
+            dayNumber={day}
+            frameId={frameId}
+            status={status}
+            width={printW}
+          />
 
           {/* Route mode signs the print on its cover — name + heart over a scrim. The
               lightbox keeps the photo clean and moves them to a bottom bar (the archive

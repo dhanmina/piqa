@@ -9,6 +9,7 @@
  * until Profile/Follow lands in Phase 4.
  */
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import { Calendar, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
@@ -26,6 +27,7 @@ import {
   useGalleryHearts,
   type GalleryDetailPhoto,
 } from '@lib/gallery';
+import { signThumbs } from '@lib/cache';
 import { useSession } from '@lib/session';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { Button } from '@/components/atoms/Button';
@@ -65,6 +67,23 @@ export default function GalleryScreen() {
   // Direct hearting for the active tab's photos (grid + PotD).
   const activePhotos = tab === 'following' ? followingPhotos : data?.photos ?? [];
   const gHearts = useGalleryHearts(activePhotos);
+
+  // Warm full-res in the background while the grid is browsed. Signed URLs are
+  // cached per path, so when a shot is opened the viewer reuses this exact URL and
+  // expo already has the bytes — fullscreen is instant AND sharp, no thumb→full-res
+  // swap (which is what blinked). Prefetch dedupes, so re-runs are cheap.
+  useEffect(() => {
+    const photos = tab === 'following' ? followingPhotos : data?.photos ?? [];
+    const paths = photos.map((p) => p.imagePath).filter((x): x is string => !!x);
+    if (paths.length === 0) return;
+    let alive = true;
+    void signThumbs(paths).then((m) => {
+      if (alive) void Image.prefetch([...m.values()]);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [tab, data?.photos, followingPhotos]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -362,6 +381,7 @@ export default function GalleryScreen() {
             lightbox
             id={viewer.id}
             path={viewer.imagePath ?? viewer.thumbPath ?? ''}
+            placeholderUri={viewer.uri}
             shooter={viewer.shooter}
             hearts={viewer.hearts}
             userId={viewer.userId}
