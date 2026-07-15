@@ -14,8 +14,19 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { MoreHorizontal, X } from 'lucide-react-native';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { asFrameId, asStatus } from '@lib/frames';
@@ -25,6 +36,7 @@ import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
 import { Avatar } from '@/components/atoms/Avatar';
 import { HeartButton } from '@/components/atoms/HeartButton';
+import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
@@ -32,6 +44,9 @@ import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fade, fonts, frame, space, typeScale } from '@/components/tokens';
+
+// The heart that blooms at a double-tap and flies into the heart control.
+const FLY_HEART = 64;
 
 type Reactor = { id: string; username: string; avatar_url: string | null };
 
@@ -173,6 +188,77 @@ export function PhotoDetailView({
 
   const baseHeartsValue = liveBase ?? baseHearts;
 
+  // Double-tap to like — others' photos only (you can't heart your own). A heart
+  // blooms where you tapped and sails into the heart control. Double-tap only ever
+  // LIKES, never un-likes, the way people expect the gesture to behave.
+  // The overlay lives in the root view, so tap + target must be in ROOT-LOCAL
+  // space. Gestures report window coords, so we subtract the root's window origin.
+  // (The route presentation can offset the view from the window's top-left.)
+  const rootRef = useRef<View>(null);
+  const rootOrigin = useRef({ x: 0, y: 0 });
+  const measureRoot = () => {
+    rootRef.current?.measureInWindow((x, y) => {
+      rootOrigin.current = { x, y };
+    });
+  };
+  const heartRef = useRef<View>(null);
+
+  const flyX = useSharedValue(0);
+  const flyY = useSharedValue(0);
+  const flyScale = useSharedValue(0);
+  const flyOpacity = useSharedValue(0);
+  const flyStyle = useAnimatedStyle(() => ({
+    opacity: flyOpacity.value,
+    transform: [
+      { translateX: flyX.value - FLY_HEART / 2 },
+      { translateY: flyY.value - FLY_HEART / 2 },
+      { scale: flyScale.value },
+    ],
+  }));
+
+  // A slow, soft beat: bloom gently at the tap, hold, then glide into the heart.
+  const flyTo = (startX: number, startY: number, targetX: number, targetY: number) => {
+    flyX.value = startX;
+    flyY.value = startY;
+    flyScale.value = 0.3;
+    const glide = { duration: 620, easing: Easing.inOut(Easing.cubic) };
+    flyOpacity.value = withSequence(withTiming(1, { duration: 160 }), withDelay(320, withTiming(0, { duration: 540 })));
+    flyScale.value = withSequence(
+      withSpring(1, { damping: 13, stiffness: 130 }),
+      withDelay(180, withTiming(0.4, { duration: 620, easing: Easing.in(Easing.cubic) })),
+    );
+    flyX.value = withDelay(360, withTiming(targetX, glide));
+    flyY.value = withDelay(360, withTiming(targetY, glide));
+  };
+
+  const likeFromDoubleTap = (absX: number, absY: number) => {
+    if (isOwn) return; // never heart your own photo
+    if (!liked) void toggle();
+    const ox = rootOrigin.current.x;
+    const oy = rootOrigin.current.y;
+    const startX = absX - ox;
+    const startY = absY - oy;
+    // Measure the heart button fresh on each tap (its onLayout position can be
+    // stale before the bar has settled), then fly into its center.
+    if (heartRef.current) {
+      heartRef.current.measureInWindow((x, y, w, h) => {
+        const hasBox = w > 0 || h > 0;
+        const targetX = hasBox ? x + w / 2 - ox : startX;
+        const targetY = hasBox ? y + h / 2 - oy : startY + 160;
+        flyTo(startX, startY, targetX, targetY);
+      });
+    } else {
+      flyTo(startX, startY, startX, startY + 160);
+    }
+  };
+
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .maxDuration(280)
+    .onEnd((e) => {
+      runOnJS(likeFromDoubleTap)(e.absoluteX, e.absoluteY);
+    });
+
   // The signed-appreciation pair — shooter (→ profile) + heart. Shared by the
   // route's on-cover overlay and the lightbox's bottom bar.
   const identityBlock = (
@@ -201,24 +287,31 @@ export function PhotoDetailView({
     </View>
   );
   const heartControl = (
-    <HeartButton
-      onPhoto
-      readOnly={isOwn}
-      liked={liked}
-      count={Math.max(baseHeartsValue + delta, 0)}
-      onToggle={() => void toggle()}
-      onCountPress={() => setShowReactors(true)}
-    />
+    <View ref={heartRef} collapsable={false}>
+      <HeartButton
+        onPhoto
+        readOnly={isOwn}
+        liked={liked}
+        count={Math.max(baseHeartsValue + delta, 0)}
+        onToggle={() => void toggle()}
+        onCountPress={() => setShowReactors(true)}
+      />
+    </View>
   );
 
   return (
-    <View style={[styles.root, lightbox && styles.lightboxRoot]}>
+    <GestureHandlerRootView style={styles.ghRoot}>
+    <View ref={rootRef} onLayout={measureRoot} style={[styles.root, lightbox && styles.lightboxRoot]}>
       {/* Lightbox backdrop: a tap anywhere off the print dismisses. Sits behind the
           interactive stage; the print's own controls (heart, shooter) still work. */}
       {lightbox && (
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close photo" />
       )}
       <View style={[styles.stage, lightbox && styles.stageCentered]} pointerEvents="box-none">
+        {/* Double-tap the print to like it. The detector also stops a single tap on
+            the print from reaching the lightbox backdrop, so the photo never
+            dismisses by accident. */}
+        <GestureDetector gesture={doubleTap}>
         <View>
           <FramedPhoto
             photoUri={uri}
@@ -242,6 +335,7 @@ export function PhotoDetailView({
             </>
           )}
         </View>
+        </GestureDetector>
       </View>
 
       {lightbox && (
@@ -301,11 +395,19 @@ export function PhotoDetailView({
       </Sheet>
 
       <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} />
+
+      {/* The flying like-heart — absolute, above everything, never a touch target. */}
+      <Animated.View pointerEvents="none" style={[styles.flyHeart, flyStyle]}>
+        <HeartGlyph size={FLY_HEART} color={colors.heart} fill={colors.heart} />
+      </Animated.View>
     </View>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  ghRoot: { flex: 1 },
+  flyHeart: { position: 'absolute', left: 0, top: 0 },
   root: { flex: 1, backgroundColor: colors.ink },
   // Dimmed, see-through backdrop so the print reads as a floating card (archive feel).
   lightboxRoot: { backgroundColor: 'rgba(12,11,10,0.95)' },
