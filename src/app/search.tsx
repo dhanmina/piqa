@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { plural } from '@lib/format';
 import { follow, unfollow } from '@lib/profile';
 import { searchUsers, type SearchUser } from '@lib/search';
 import { Avatar } from '@/components/atoms/Avatar';
@@ -39,7 +40,8 @@ function UserRow({ user, onPress }: { user: SearchUser; onPress: () => void }) {
           {user.username}
         </Text>
         <Text style={styles.userSub} numberOfLines={1}>
-          {compact.format(followers)} followers · {compact.format(user.hearts || 0)} hearts
+          {compact.format(followers)} {plural(followers, 'follower')} · {compact.format(user.hearts || 0)}{' '}
+          {plural(user.hearts || 0, 'heart')}
         </Text>
       </View>
       <Pressable
