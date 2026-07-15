@@ -8,12 +8,13 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { BookImage, CloudOff, Star, Trash2, X } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { deleteFreeShot, toggleStar, useArchive, type ArchiveItem } from '@lib/archive';
+import { signThumbs, useSignedThumb } from '@lib/cache';
 import { Chip } from '@/components/atoms/Chip';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
@@ -69,6 +70,29 @@ export default function ArchiveScreen() {
 
   const items = data?.items ?? [];
   const equippedFrame = data?.equippedFrame ?? 'default';
+
+  // Starred shots are the ones kept at full resolution — so warm ONLY their full-res
+  // in the background. Opening a starred shot is then instant and sharp; unstarred
+  // shots (whose full-res may be gone) stay on their cached thumb.
+  useEffect(() => {
+    const paths = (data?.items ?? [])
+      .filter((it) => it.starred)
+      .map((it) => it.imagePath)
+      .filter((x): x is string => !!x);
+    if (paths.length === 0) return;
+    let alive = true;
+    void signThumbs(paths).then((m) => {
+      if (alive) void Image.prefetch([...m.values()]);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [data?.items]);
+
+  // Full-res for the open shot, but only if it's starred (else its full-res may be
+  // purged). The thumb stays as the placeholder, so it's shown instantly with no blink.
+  const viewerFull = useSignedThumb(selected?.starred ? selected.imagePath : null);
+
   const filtered = items.filter((it) =>
     filter === 'all' ? true : filter === 'daily' ? it.type === 'daily' : it.starred,
   );
@@ -326,15 +350,20 @@ export default function ArchiveScreen() {
             <View style={styles.viewerStage} pointerEvents="none">
               {selected.type === 'daily' ? (
                 <FramedPhoto
-                  photoUri={selected.uri}
+                  // Full-res for a starred shot (viewerFull); the thumb holds the frame
+                  // as placeholder so it shows instantly and sharpens with no blink.
+                  photoUri={viewerFull}
+                  placeholderUri={selected.uri}
                   dayNumber={selected.dayNumber ?? 1}
                   frameId={equippedFrame}
                   status={selected.status}
                   width={Math.min(SCREEN_W - GUTTER * 2, STAGE_MAX_H * frame.aspect)}
                 />
-              ) : selected.uri ? (
+              ) : selected.uri || viewerFull ? (
                 <Image
-                  source={{ uri: selected.uri }}
+                  source={viewerFull ? { uri: viewerFull } : undefined}
+                  placeholder={selected.uri ? { uri: selected.uri } : undefined}
+                  placeholderContentFit="contain"
                   style={{ width: Math.min(SCREEN_W - GUTTER * 2, STAGE_MAX_H * photo.aspect), aspectRatio: photo.aspect }}
                   contentFit="contain"
                 />
