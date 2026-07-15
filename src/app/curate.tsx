@@ -6,33 +6,35 @@
  * server's 2s guard so none is ever lost. Pushed from Today — never a tab.
  */
 import { useRouter } from 'expo-router';
-import { Aperture, X } from 'lucide-react-native';
+import { Aperture } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getConfig } from '@lib/config';
 import { createVoteSender, fetchMatchupSet, type MatchupSet } from '@lib/matchup';
 import { Button } from '@/components/atoms/Button';
-import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { MatchupPair } from '@/components/molecules/MatchupPair';
+import { ReportSheet } from '@/components/molecules/ReportSheet';
+import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, space, typeScale } from '@/components/tokens';
 
 type Phase = 'loading' | 'judging' | 'setDone' | 'capped' | 'empty' | 'error';
 
 export default function CurateScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [phase, setPhase] = useState<Phase>('loading');
   const [set, setSet] = useState<MatchupSet | null>(null);
   const [idx, setIdx] = useState(0);
   const [sessionPicks, setSessionPicks] = useState(0); // picks across every set this session
   const [remaining, setRemaining] = useState(0);
   const [cap, setCap] = useState(50); // daily pick cap (config, never hardcoded)
+  const [reportId, setReportId] = useState<string | null>(null); // photo being reported
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     void getConfig('vote_cap').then(setCap);
@@ -83,12 +85,24 @@ export default function CurateScreen() {
     const loser = which === 'top' ? pair.bId : pair.aId;
     if (set.dropId) senderRef.current?.enqueue({ winner, loser, drop: set.dropId });
     setSessionPicks((n) => n + 1);
-    setTimeout(() => advance(set.pairs.length), 160);
+    setTimeout(() => advance(set.pairs.length), 260); // let the pick beat land first
   };
 
   const onSkip = () => {
     if (!set) return;
     advance(set.pairs.length);
+  };
+
+  const onReport = (which: 'top' | 'bottom') => {
+    if (!set) return;
+    const pair = set.pairs[idx];
+    setReportId(which === 'top' ? pair.aId : pair.bId);
+  };
+
+  const onReported = () => {
+    setReportId(null);
+    setToast("Thanks. We'll take a look.");
+    if (set) advance(set.pairs.length); // don't judge a pair you just flagged
   };
 
   const close = () => router.replace('/(tabs)/today');
@@ -180,7 +194,7 @@ export default function CurateScreen() {
   // ---- judging ------------------------------------------------------------
   const pair = set!.pairs[idx];
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+    <View style={styles.root}>
       <Animated.View key={idx} entering={FadeIn.duration(150)} style={styles.pairWrap}>
         <MatchupPair
           topUri={pair.aUri ?? ''}
@@ -189,26 +203,19 @@ export default function CurateScreen() {
           total={set!.pairs.length}
           onPick={onPick}
           onSkip={onSkip}
+          onReport={onReport}
+          onClose={close}
         />
       </Animated.View>
-      <IconButton
-        icon={X}
-        accessibilityLabel="Close"
-        variant="chrome"
-        onPress={close}
-        style={[styles.close, { top: insets.top + 8 }]}
-      />
-    </SafeAreaView>
+      <ReportSheet visible={reportId !== null} submissionId={reportId} onClose={() => setReportId(null)} onReported={onReported} />
+      <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14, padding: space.gutter },
-  close: {
-    position: 'absolute',
-    left: 16, // match the app's close inset (camera / photo detail / archive)
-  },
   pairWrap: { flex: 1 },
   bigLine: {
     fontFamily: displayFamily,
