@@ -17,10 +17,11 @@ import { Button } from '@/components/atoms/Button';
 import { Chip } from '@/components/atoms/Chip';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
+import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, photo, radius, space, typeScale } from '@/components/tokens';
+import { colors, fonts, frame, icons, photo, radius, space, typeScale } from '@/components/tokens';
 
 type Filter = 'all' | 'daily' | 'starred';
 
@@ -56,6 +57,7 @@ export default function ArchiveScreen() {
   const starKey = (it: ArchiveItem) => `${it.type}:${it.id}`;
 
   const items = data?.items ?? [];
+  const equippedFrame = data?.equippedFrame ?? 'default';
   const filtered = items.filter((it) =>
     filter === 'all' ? true : filter === 'daily' ? it.type === 'daily' : it.starred,
   );
@@ -220,10 +222,20 @@ export default function ArchiveScreen() {
                       style={styles.cell}
                       onPress={() => setSelected({ ...it, starred })}
                     >
-                      {/* Only the meaningful mark: crown = PotD. The daily/practice
-                          split lives in the filter + detail sheet, not a per-tile
-                          badge (the bracket glyph read as a fullscreen icon). */}
-                      <PhotoTile uri={it.uri} badge={it.isPotd ? 'crown' : undefined} />
+                      {/* Daily shots render as the framed print — the rail already
+                          carries the day counter and any crown/top-10 status, so no
+                          badge. Practice shots have no drop (no day, no status), so
+                          they stay a plain tile in the same print-sized footprint. */}
+                      {it.type === 'daily' ? (
+                        <FramedPhoto
+                          photoUri={it.uri}
+                          dayNumber={it.dayNumber ?? 1}
+                          frameId={equippedFrame}
+                          status={it.status}
+                        />
+                      ) : (
+                        <PhotoTile uri={it.uri} aspectRatio={frame.aspect} />
+                      )}
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={starred ? 'Unstar shot' : 'Star shot'}

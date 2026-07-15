@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 
 import { signThumbs } from "./cache";
 import { getConfig } from "./config";
+import { asFrameId, type FrameId, type PhotoStatus } from "./frames";
 import { supabase } from "./supabase";
 
 export type ArchiveType = "free" | "daily";
@@ -17,6 +18,10 @@ export type ArchiveItem = {
   starred: boolean;
   inGallery: boolean;
   isPotd: boolean;
+  /** The drop's global day counter. Only daily shots belong to a drop; free shots are null. */
+  dayNumber: number | null;
+  /** Competition result, server-owned. Free shots are always null. */
+  status: PhotoStatus;
 };
 
 export type Archive = {
@@ -26,7 +31,22 @@ export type Archive = {
   starsCap: number;
   /** Earliest captured_at, for the "since {month}" header. */
   since: string | null;
+  /** The owner's equipped frame, applied to their framed (daily) shots. */
+  equippedFrame: FrameId;
 };
+
+/** Mirror of the server's photo_status(is_potd, gallery_rank). */
+function deriveStatus(isPotd: boolean, rank: number | null): PhotoStatus {
+  if (isPotd) return "crown";
+  if (rank != null && rank <= 10) return "top10";
+  return null;
+}
+
+/** PostgREST embeds a to-one relation as an object, but types can widen to an array. */
+function dayOf(rel: { day_number: number } | { day_number: number }[] | null): number | null {
+  if (!rel) return null;
+  return Array.isArray(rel) ? (rel[0]?.day_number ?? null) : rel.day_number;
+}
 
 function isThisMonth(iso: string | null): boolean {
   if (!iso) return false;
@@ -51,13 +71,13 @@ export function useArchive() {
     const uid = auth.user?.id;
     if (!uid) {
       if (alive()) {
-        setData({ items: [], starsUsed: 0, starsCap: 5, since: null });
+        setData({ items: [], starsUsed: 0, starsCap: 5, since: null, equippedFrame: "default" });
         setLoading(false);
       }
       return;
     }
 
-    const [{ data: free }, { data: daily }, cap] = await Promise.all([
+    const [{ data: free }, { data: daily }, { data: prof }, cap] = await Promise.all([
       supabase
         .from("free_shots")
         .select("id, image_path, thumb_path, captured_at, starred, starred_at")
@@ -65,10 +85,13 @@ export function useArchive() {
         .order("captured_at", { ascending: false }),
       supabase
         .from("submissions")
-        .select("id, image_path, thumb_path, captured_at, starred, starred_at, in_gallery, is_potd")
+        .select(
+          "id, image_path, thumb_path, captured_at, starred, starred_at, in_gallery, is_potd, gallery_rank, prompt_drops(day_number)",
+        )
         .eq("user_id", uid)
         .not("thumb_path", "is", null)
         .order("captured_at", { ascending: false }),
+      supabase.from("profiles").select("equipped_frame").eq("id", uid).maybeSingle(),
       getConfig("stars_per_month"),
     ]);
 
@@ -82,6 +105,8 @@ export function useArchive() {
       starredAt: r.starred_at,
       inGallery: false,
       isPotd: false,
+      dayNumber: null as number | null,
+      status: null as PhotoStatus,
     }));
     const rawDaily = (daily ?? []).map((r) => ({
       id: r.id,
@@ -93,6 +118,8 @@ export function useArchive() {
       starredAt: r.starred_at,
       inGallery: r.in_gallery,
       isPotd: r.is_potd,
+      dayNumber: dayOf(r.prompt_drops),
+      status: deriveStatus(r.is_potd, r.gallery_rank),
     }));
 
     const merged = [...rawFree, ...rawDaily].sort(
@@ -110,13 +137,15 @@ export function useArchive() {
       starred: m.starred,
       inGallery: m.inGallery,
       isPotd: m.isPotd,
+      dayNumber: m.dayNumber,
+      status: m.status,
     }));
 
     const starsUsed = merged.filter((m) => m.starred && isThisMonth(m.starredAt)).length;
     const since = merged.length > 0 ? merged[merged.length - 1].capturedAt : null;
 
     if (alive()) {
-      setData({ items, starsUsed, starsCap: cap, since });
+      setData({ items, starsUsed, starsCap: cap, since, equippedFrame: asFrameId(prof?.equipped_frame) });
       setLoading(false);
     }
   }, []);
