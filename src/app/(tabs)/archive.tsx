@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { deleteFreeShot, toggleStar, useArchive, type ArchiveItem } from '@lib/archive';
 import { Chip } from '@/components/atoms/Chip';
+import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
@@ -343,15 +344,7 @@ export default function ArchiveScreen() {
             </View>
 
             <SafeAreaView edges={['top']} style={styles.viewerClose} pointerEvents="box-none">
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-                hitSlop={12}
-                style={styles.closeBtn}
-                onPress={() => setSelected(null)}
-              >
-                <X size={22} strokeWidth={icons.strokeWidth} color={colors.paper} />
-              </Pressable>
+              <IconButton icon={X} variant="chrome" accessibilityLabel="Close" onPress={() => setSelected(null)} />
             </SafeAreaView>
 
             <SafeAreaView edges={['bottom']} style={styles.viewerBarSafe} pointerEvents="box-none">
@@ -450,8 +443,9 @@ const styles = StyleSheet.create({
   // Fullscreen viewer: near-opaque backdrop so the print reads as a single object.
   viewer: { flex: 1, backgroundColor: 'rgba(12,11,10,0.97)', justifyContent: 'center', alignItems: 'center' },
   viewerStage: { alignItems: 'center', justifyContent: 'center' },
-  viewerClose: { position: 'absolute', top: 0, right: 0, padding: GUTTER },
-  closeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  // Close sits top-left in a chrome chip — the app's one close convention (camera,
+  // photo detail, curate all match): safe-area inset + 8 down, 16 in.
+  viewerClose: { position: 'absolute', top: 0, left: 0, paddingTop: 8, paddingLeft: 16 },
   viewerBarSafe: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   // Center-aligned so the meta column and the icon cluster are vertically
   // independent — neither can push the other when the star toggles.
