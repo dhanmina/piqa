@@ -1,7 +1,7 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { signThumbs } from "./cache";
+import { invalidate, signThumbs } from "./cache";
 import { getQueueItems, subscribeQueue, type QueueItem } from "./captureQueue";
 import { getConfig } from "./config";
 import { asFrameId, type FrameId, type PhotoStatus } from "./frames";
@@ -239,6 +239,9 @@ export type StarResult = { ok: boolean; reason?: string; starred?: boolean; used
 export async function toggleStar(type: ArchiveType, id: string): Promise<StarResult> {
   const { data, error } = await supabase.rpc("toggle_star", { p_type: type, p_id: id });
   if (error) return { ok: false, reason: error.message };
+  // The starred shelf lives on your own profile too, so drop its cache — otherwise
+  // it keeps showing the pre-star list until the TTL expires.
+  invalidate("profile:self");
   return data as unknown as StarResult;
 }
 
