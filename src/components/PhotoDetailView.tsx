@@ -35,6 +35,7 @@ import { REPORT_REASONS, reportSubmission } from '@lib/moderation';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
 import { Avatar } from '@/components/atoms/Avatar';
+import { Button } from '@/components/atoms/Button';
 import { HeartButton } from '@/components/atoms/HeartButton';
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { IconButton } from '@/components/atoms/IconButton';
@@ -116,6 +117,10 @@ export function PhotoDetailView({
   const [reactors, setReactors] = useState<Reactor[]>([]);
   const [showReactors, setShowReactors] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  // Two-step report: pick a reason, then confirm — a mistap shouldn't file a
+  // report (three distinct reports quarantine a photo). null = the reason list.
+  const [reportReason, setReportReason] = useState<(typeof REPORT_REASONS)[number] | null>(null);
+  const [reporting, setReporting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const isOwn = Boolean(myId && userId && myId === userId);
 
@@ -124,12 +129,22 @@ export function PhotoDetailView({
     else router.push({ pathname: '/u/[id]', params: { id: uid } });
   };
 
-  const onReport = async (reason: string) => {
-    if (!id) return;
+  const openReport = () => {
+    setReportReason(null);
+    setShowReport(true);
+  };
+  const closeReport = () => {
     setShowReport(false);
-    await reportSubmission(id, reason);
-    setToast("Thanks. We'll take a look.");
-    setTimeout(onClose, 900); // hide it from the reporter (spec §12)
+    setReportReason(null);
+  };
+  const submitReport = async () => {
+    if (!id || !reportReason) return;
+    setReporting(true);
+    await reportSubmission(id, reportReason.value);
+    setReporting(false);
+    closeReport();
+    setToast("Thanks. We'll take a look, and you won't see this photo again.");
+    setTimeout(onClose, 1100); // hide it from the reporter (spec §12)
   };
 
   // Signed reactors only (votes stay anonymous) — spec §8.
@@ -352,7 +367,7 @@ export function PhotoDetailView({
       <View style={[styles.headerFloat, { top: insets.top + 8 }]} pointerEvents="box-none">
         <IconButton icon={X} variant="chrome" accessibilityLabel="Close" onPress={onClose} />
         {!isOwn && (
-          <IconButton icon={MoreHorizontal} variant="chrome" accessibilityLabel="More" onPress={() => setShowReport(true)} />
+          <IconButton icon={MoreHorizontal} variant="chrome" accessibilityLabel="Report photo" onPress={openReport} />
         )}
       </View>
 
@@ -381,17 +396,36 @@ export function PhotoDetailView({
         )}
       </Sheet>
 
-      <Sheet visible={showReport} onClose={() => setShowReport(false)} title="Report this photo">
-        {REPORT_REASONS.map((r) => (
-          <Pressable
-            key={r.value}
-            accessibilityRole="button"
-            style={styles.reasonRow}
-            onPress={() => void onReport(r.value)}
-          >
-            <Text style={styles.reasonLabel}>{r.label}</Text>
-          </Pressable>
-        ))}
+      <Sheet visible={showReport} onClose={closeReport} title={reportReason ? 'Report this photo?' : 'Report this photo'}>
+        {!reportReason ? (
+          <>
+            <Text style={styles.reportIntro}>
+              Reporting is anonymous. Pick what's wrong and we'll take a look.
+            </Text>
+            {REPORT_REASONS.map((r) => (
+              <Pressable
+                key={r.value}
+                accessibilityRole="button"
+                style={styles.reasonRow}
+                onPress={() => setReportReason(r)}
+              >
+                <Text style={styles.reasonLabel}>{r.label}</Text>
+                <Text style={styles.reasonDesc}>{r.desc}</Text>
+              </Pressable>
+            ))}
+          </>
+        ) : (
+          <View style={styles.confirmBody}>
+            <Text style={styles.confirmReason}>{reportReason.label}</Text>
+            <Text style={styles.reportIntro}>
+              We'll review this photo. It won't show up for you again, and the shooter won't know who reported it.
+            </Text>
+            <Button label="Submit report" variant="primary" fullWidth loading={reporting} onPress={() => void submitReport()} />
+            <Pressable accessibilityRole="button" style={styles.backRow} disabled={reporting} onPress={() => setReportReason(null)}>
+              <Text style={styles.backText}>Pick a different reason</Text>
+            </Pressable>
+          </View>
+        )}
       </Sheet>
 
       <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} />
@@ -458,6 +492,12 @@ const styles = StyleSheet.create({
   reactorScroll: { maxHeight: 320 },
   reactorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   reactorName: { flexShrink: 1, fontFamily: displayFamily, fontSize: typeScale.body, color: colors.paper },
-  reasonRow: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.ink },
+  reportIntro: { fontFamily: fonts.sans, fontSize: typeScale.sub, lineHeight: typeScale.sub * 1.4, color: colors.paper60, marginBottom: 6 },
+  reasonRow: { gap: 2, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.ink },
   reasonLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.paper },
+  reasonDesc: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
+  confirmBody: { gap: 12 },
+  confirmReason: { fontFamily: fonts.sansSemiBold, fontSize: typeScale.title, color: colors.paper },
+  backRow: { alignItems: 'center', paddingVertical: 10 },
+  backText: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper60 },
 });

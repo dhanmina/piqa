@@ -3,11 +3,11 @@ import { supabase } from "./supabase";
 
 /** Report reasons (spec §12). Values must match the reports.reason check. */
 export const REPORT_REASONS = [
-  { value: "nudity", label: "Nudity" },
-  { value: "violence", label: "Violence or gore" },
-  { value: "harassment", label: "Harassment or hate" },
-  { value: "not_real_photo", label: "Not a real photo (AI / stolen)" },
-  { value: "other", label: "Other" },
+  { value: "nudity", label: "Nudity or sexual content", desc: "Explicit or sexual imagery" },
+  { value: "violence", label: "Violence or gore", desc: "Graphic or disturbing content" },
+  { value: "harassment", label: "Harassment or hate", desc: "Targets or demeans someone" },
+  { value: "not_real_photo", label: "Not a real photo", desc: "AI-generated, or not their own shot" },
+  { value: "other", label: "Something else", desc: "Doesn't belong on Piqa" },
 ] as const;
 
 function refreshPublicSurfaces() {
