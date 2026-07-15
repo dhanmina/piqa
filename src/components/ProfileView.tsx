@@ -1,17 +1,19 @@
 /**
- * Profile — same layout own/others (spec §11c). Avatar+frame → username · title ·
- * level → stat strip (galleries · streak weeks · hearts · crowns) → wins wall
- * (hero). Own: starred row + sign out. Others: Follow. Follower/following counts
+ * Profile — same layout own/others (spec §11c). Identity-first: a left-aligned
+ * crest (avatar+frame · name+streak · title·level · galleries·crowns) over a
+ * quiet XP hairline, then the work — a Wins/Starred segment above a 2-column
+ * print grid. Metrics are whispered, not a headline; follower/following counts
  * are never shown, to anyone (spec §9).
  */
 import { Image } from 'expo-image';
-import { ChevronLeft, CloudOff, Crown, MoreHorizontal, Settings, Star, Trophy } from 'lucide-react-native';
+import { ChevronLeft, CloudOff, Crown, Flame, MoreHorizontal, Settings, Trophy } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { imageCacheKey, signThumbs } from '@lib/cache';
 import { ringForLevel, titleForLevel } from '@lib/cosmetics';
+import { plural } from '@lib/format';
 import type { ProfileData, ProfileWin } from '@lib/profile';
 import { levelProgress } from '@lib/xp';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
@@ -22,7 +24,7 @@ import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { StarredLightbox } from '@/components/molecules/StarredLightbox';
-import { colors, fonts, frame, icons, radius, space, typeScale } from '@/components/tokens';
+import { colors, fonts, frame, icons, space, typeScale } from '@/components/tokens';
 
 type Props = {
   data: ProfileData | null;
@@ -50,6 +52,20 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onBack, 
   // Starred shots are private and unframed (a mix of practice free shots and
   // submissions), so they open in a plain paged photo viewer, not a framed print.
   const [starIndex, setStarIndex] = useState<number | null>(null);
+
+  // One photo surface at a time. Starred is a self-only shelf, so the segment
+  // only appears when there's something on it; everyone else just sees the wins.
+  const [tab, setTab] = useState<'wins' | 'starred'>('wins');
+  const showSegment = !!data?.isSelf && (data?.starred.length ?? 0) > 0;
+
+  // Open on whichever surface has content: gallery placements take time (and PotD
+  // is one a day), so a shooter with no wins yet but a starred shelf should land on
+  // Starred, not a blank Wins. Re-decided per profile, then the user can toggle.
+  const profileId = data?.id;
+  useEffect(() => {
+    if (!data) return;
+    setTab(data.isSelf && data.wins.length === 0 && data.starred.length > 0 ? 'starred' : 'wins');
+  }, [profileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Warm each win's full-res under the exact cacheKey FramedPhoto reads (the signed
   // URL minus its rotating token), so opening a win is instant and sharp with no
@@ -100,41 +116,59 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onBack, 
       )}
       {!(error && !data) && (
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.identity}>
+        {/* Crest — identity first: who they are and what they've earned, left
+            aligned so the work below is the page, not the numbers. */}
+        <View style={styles.crest}>
           <Avatar
             username={data?.username ?? '·'}
             uri={data?.avatarUrl}
-            size={72}
+            size={64}
             ringColor={ring.color}
             ringWidth={ring.width}
           />
-          <Text style={styles.username} numberOfLines={1}>
-            {data?.username ?? ' '}
-          </Text>
-          <View style={styles.levelRow}>
-            <Text style={styles.title}>{title}</Text>
-            <Mono size={typeScale.caption} color={colors.paper60}>
-              LV {prog.level}
-            </Mono>
-          </View>
-          {data?.isSelf && !prog.atMax && (
-            <View style={styles.xpWrap}>
-              <View style={styles.xpTrack}>
-                <View style={[styles.xpFill, { width: `${xpPct}%` }]} />
-              </View>
-              <Mono size={typeScale.caption} color={colors.paper60}>
-                {prog.into} / {prog.toNext} XP
-              </Mono>
+          <View style={styles.crestText}>
+            <View style={styles.nameRow}>
+              <Text style={styles.username} numberOfLines={1}>
+                {data?.username ?? ' '}
+              </Text>
+              {(data?.streakWeeks ?? 0) > 0 && (
+                <View style={styles.flame}>
+                  <Flame size={13} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
+                  <Mono size={typeScale.caption} color={colors.safelight}>
+                    {data!.streakWeeks}w
+                  </Mono>
+                </View>
+              )}
             </View>
-          )}
+            <View style={styles.metaRow}>
+              <Text style={styles.title}>{title}</Text>
+              <Mono size={typeScale.caption} color={colors.paper40}>·</Mono>
+              <Mono size={typeScale.caption} color={colors.paper60}>LV {prog.level}</Mono>
+            </View>
+            <View style={styles.tallyRow}>
+              <Mono size={typeScale.caption} color={colors.paper60}>
+                {data?.galleries ?? 0} {plural(data?.galleries ?? 0, 'gallery', 'galleries')}
+              </Mono>
+              <Mono size={typeScale.caption} color={colors.paper40}>·</Mono>
+              <View style={styles.tallyCrown}>
+                <Crown size={11} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
+                <Mono size={typeScale.caption} color={colors.paper60}>{data?.crowns ?? 0}</Mono>
+              </View>
+            </View>
+          </View>
         </View>
 
-        <View style={styles.statStrip}>
-          <Stat label="galleries" value={data?.galleries ?? 0} />
-          <Stat label="streak wks" value={data?.streakWeeks ?? 0} />
-          <Stat label="hearts" value={data?.hearts ?? 0} />
-          <Stat label="crowns" value={data?.crowns ?? 0} icon={<Crown size={12} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />} />
-        </View>
+        {/* XP — a quiet hairline, self only. */}
+        {data?.isSelf && !prog.atMax && (
+          <View style={styles.xpWrap}>
+            <View style={styles.xpTrack}>
+              <View style={[styles.xpFill, { width: `${xpPct}%` }]} />
+            </View>
+            <Mono size={typeScale.caption} color={colors.paper60}>
+              {prog.into}/{prog.toNext} XP
+            </Mono>
+          </View>
+        )}
 
         {!data?.isSelf && onFollowToggle && (
           <Button
@@ -146,56 +180,54 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onBack, 
           />
         )}
 
-        {data?.isSelf && data.starred.length > 0 && (
-          <View style={styles.starredBlock}>
-            <View style={styles.rowHead}>
-              <Star size={13} strokeWidth={icons.strokeWidth} color={colors.paper60} fill={colors.paper60} />
-              <Mono size={typeScale.caption} color={colors.paper60}>
-                STARRED
-              </Mono>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.starredRow}>
-              {data.starred.map((s, i) => (
-                <Pressable
-                  key={s.key}
-                  accessibilityRole="button"
-                  style={styles.starredTile}
-                  onPress={() => setStarIndex(i)}
-                >
-                  {s.uri ? (
-                    <Image source={{ uri: s.uri, cacheKey: imageCacheKey(s.uri) }} style={styles.starredImg} contentFit="cover" />
-                  ) : (
-                    <View style={[styles.starredImg, styles.skeleton]} />
-                  )}
-                </Pressable>
-              ))}
-            </ScrollView>
+        {/* Work — one surface at a time. Others just see the wins. */}
+        {showSegment ? (
+          <View style={styles.segment}>
+            {(['wins', 'starred'] as const).map((t) => (
+              <Pressable key={t} accessibilityRole="button" style={styles.segItem} onPress={() => setTab(t)}>
+                <Mono size={typeScale.caption} weight={tab === t ? 'semibold' : 'regular'} color={tab === t ? colors.paper : colors.paper60}>
+                  {t === 'wins' ? 'WINS' : 'STARRED'}
+                </Mono>
+                <View style={[styles.segBar, tab === t && styles.segBarOn]} />
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.winsHead}>
+            <Mono size={typeScale.caption} color={colors.paper60}>WINS</Mono>
           </View>
         )}
 
-        <View style={styles.winsHead}>
-          <Mono size={typeScale.caption} color={colors.paper60}>
-            WINS WALL
-          </Mono>
-        </View>
-        {loading ? (
-          <View style={styles.winsGrid}>
-            {[0, 1, 2].map((i) => (
+        {showSegment && tab === 'starred' ? (
+          <View style={styles.grid}>
+            {data?.starred.map((s, i) => (
+              <Pressable key={s.key} accessibilityRole="button" style={styles.starCell} onPress={() => setStarIndex(i)}>
+                {s.uri ? (
+                  <Image source={{ uri: s.uri, cacheKey: imageCacheKey(s.uri) }} style={styles.starImg} contentFit="cover" />
+                ) : (
+                  <View style={[styles.starImg, styles.skeleton]} />
+                )}
+              </Pressable>
+            ))}
+          </View>
+        ) : loading ? (
+          <View style={styles.grid}>
+            {[0, 1, 2, 3].map((i) => (
               <View key={i} style={[styles.winCell, styles.winSkel, styles.skeleton]} />
             ))}
           </View>
         ) : (data?.wins.length ?? 0) === 0 ? (
           <View style={styles.winsEmpty}>
             <Trophy size={28} strokeWidth={icons.strokeWidth} color={colors.paper40} />
-            <Text style={styles.winsLine}>{data?.isSelf ? 'Your wins will live here' : 'No gallery wins yet'}</Text>
+            <Text style={styles.winsLine}>{data?.isSelf ? 'Your best shots live here' : 'No gallery shots yet'}</Text>
             <Text style={styles.winsSub}>
               {data?.isSelf
-                ? 'Gallery photos earn a permanent spot on your wall.'
-                : 'Gallery placements will appear here.'}
+                ? 'Any shot that makes the daily gallery stays here for good, not just the Photo of the Day. Star shots you love to start your shelf.'
+                : 'Shots that make the gallery show up here.'}
             </Text>
           </View>
         ) : (
-          <View style={styles.winsGrid}>
+          <View style={styles.grid}>
             {data?.wins.map((w) => (
               <Pressable
                 key={w.id}
@@ -203,8 +235,7 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onBack, 
                 style={styles.winCell}
                 onPress={() => setViewer(w)}
               >
-                {/* No crown badge: the print carries its own status glyph, and at
-                    3 columns a badge on top of it was just two crowns. */}
+                {/* No crown badge: the print carries its own status glyph. */}
                 <FramedPhoto
                   photoUri={w.uri}
                   dayNumber={w.dayNumber}
@@ -264,50 +295,35 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onBack, 
   );
 }
 
-function Stat({ label, value, icon }: { label: string; value: number; icon?: React.ReactNode }) {
-  return (
-    <View style={styles.stat}>
-      <View style={styles.statValue}>
-        {icon}
-        <Mono weight="semibold" size={typeScale.title} color={colors.paper}>
-          {value}
-        </Mono>
-      </View>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   backHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 },
-  content: { padding: space.gutter, gap: space.gutter * 1.5 },
-  identity: { alignItems: 'center', gap: 8, paddingTop: space.gutter },
-  username: { fontFamily: fonts.sansSemiBold, fontSize: typeScale.title, color: colors.paper },
-  levelRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  content: { padding: space.gutter, gap: space.gutter },
+  // Crest: avatar left, identity block right.
+  crest: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingTop: 4 },
+  crestText: { flex: 1, gap: 3 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  username: { flexShrink: 1, fontFamily: fonts.sansSemiBold, fontSize: typeScale.title, color: colors.paper },
+  flame: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   title: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
-  xpWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
-  xpTrack: { width: 120, height: 4, borderRadius: 2, backgroundColor: colors.ink2, overflow: 'hidden' },
-  xpFill: { height: 4, borderRadius: 2, backgroundColor: colors.safelight },
-  statStrip: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: colors.ink2,
-    borderRadius: radius.card,
-    paddingVertical: 18,
-  },
-  stat: { alignItems: 'center', gap: 4 },
-  statValue: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  statLabel: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
-  starredBlock: { gap: 10 },
-  rowHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  starredRow: { gap: 8, paddingRight: space.gutter },
-  starredTile: { width: 72, height: 96 },
-  starredImg: { width: 72, height: 90, backgroundColor: colors.ink2 },
-  winsHead: { flexDirection: 'row' },
-  winsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  winCell: { width: '32%' }, // FramedPhoto owns the 3:4 print aspect
+  tallyRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 1 },
+  tallyCrown: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  // XP hairline, full width and thin.
+  xpWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  xpTrack: { flex: 1, height: 3, borderRadius: 2, backgroundColor: colors.ink2, overflow: 'hidden' },
+  xpFill: { height: 3, borderRadius: 2, backgroundColor: colors.safelight },
+  // Segment (Wins/Starred) — mirrors the gallery's segmented control.
+  segment: { flexDirection: 'row', gap: 22, marginTop: 4 },
+  segItem: { alignItems: 'center', gap: 5 },
+  segBar: { height: 2, width: 18, backgroundColor: 'transparent', borderRadius: 1 },
+  segBarOn: { backgroundColor: colors.safelight },
+  winsHead: { flexDirection: 'row', marginTop: 4 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.gridGap },
+  winCell: { width: '48.8%' }, // 2 columns; FramedPhoto owns the 3:4 print aspect
   winSkel: { aspectRatio: frame.aspect }, // the loader has no print to size it
+  starCell: { width: '48.8%', aspectRatio: frame.aspect, backgroundColor: colors.ink2 },
+  starImg: { width: '100%', height: '100%' },
   skeleton: { backgroundColor: colors.ink2 },
   errorWrap: { flex: 1, justifyContent: 'center' },
   winsEmpty: { alignItems: 'center', gap: 10, paddingVertical: space.gutter * 2 },
