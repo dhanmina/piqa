@@ -3,10 +3,12 @@
  * Dev-only screen; every button hits a beta_mode-guarded RPC. Not a product
  * surface, so it ignores the one-accent-per-screen law like /dev/kit.
  *
- *   Force drop now  → current BETA drop goes live now, pristine (pre-vote)
- *   Seed votes      → house accounts vote (8–20 comparisons/photo, non-uniform)
- *   Run close-day   → BT fit → gallery flags → PotD → materialized blob
- *   Reset day       → clear votes + gallery flags to re-test
+ *   Force drop now   → current BETA drop goes live now, pristine (pre-vote)
+ *   Seed house shots → @joinpiqa.com submissions (reusing real objects) so
+ *                      curation has pairs — get_matchup excludes your own photo
+ *   Seed votes       → house accounts vote (8–20 comparisons/photo, non-uniform)
+ *   Run close-day    → BT fit → gallery flags → PotD → materialized blob
+ *   Reset day        → clear votes + gallery flags to re-test
  */
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -22,6 +24,7 @@ import {
   devGrantXp,
   devResetDay,
   devRunCloseDay,
+  devSeedSubmissions,
   devSeedVotes,
   devStatus,
   type DevStatus,
@@ -35,7 +38,7 @@ import { displayFamily } from '@/components/fonts';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, space, typeScale } from '@/components/tokens';
 
-type Action = 'force' | 'seed' | 'close' | 'reset' | 'advance' | 'xp' | 'break' | 'comeback' | 'fillcap';
+type Action = 'force' | 'seedsubs' | 'seed' | 'close' | 'reset' | 'advance' | 'xp' | 'break' | 'comeback' | 'fillcap';
 
 export default function TimeMachine() {
   const router = useRouter();
@@ -130,7 +133,16 @@ export default function TimeMachine() {
             }
           />
           <Button
-            label="② Seed votes"
+            label="② Seed house shots"
+            variant="ghost"
+            fullWidth
+            loading={busy === 'seedsubs'}
+            onPress={() =>
+              void run('seedsubs', devSeedSubmissions, (r) => `+${r.seeded ?? 0} shots · ${r.submissions ?? 0} in drop`)
+            }
+          />
+          <Button
+            label="③ Seed votes"
             variant="ghost"
             fullWidth
             loading={busy === 'seed'}
@@ -139,7 +151,7 @@ export default function TimeMachine() {
             }
           />
           <Button
-            label="③ Run close-day now"
+            label="④ Run close-day now"
             variant="ghost"
             fullWidth
             loading={busy === 'close'}
@@ -148,7 +160,7 @@ export default function TimeMachine() {
             }
           />
           <Button
-            label="④ Reset day"
+            label="⑤ Reset day"
             variant="ghost"
             fullWidth
             loading={busy === 'reset'}
