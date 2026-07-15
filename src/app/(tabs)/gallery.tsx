@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import { Calendar, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import confettiSource from '@/assets/lottie/confetti.json';
@@ -27,6 +27,7 @@ import {
   type GalleryDetailPhoto,
 } from '@lib/gallery';
 import { useSession } from '@lib/session';
+import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
 import { Mono } from '@/components/atoms/Mono';
@@ -51,6 +52,7 @@ export default function GalleryScreen() {
   const [selectedDropId, setSelectedDropId] = useState<string | null>(null);
   const [showPast, setShowPast] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [viewer, setViewer] = useState<GalleryDetailPhoto | null>(null);
 
   const { data, loading, error, refresh } = useGallery(selectedDropId);
   const {
@@ -111,24 +113,12 @@ export default function GalleryScreen() {
     };
   }, [data, selectedDropId]);
 
+  // Open the shot in-place (fullscreen modal on this tab) rather than routing to
+  // /photo/[id] — the gallery zooms into the print, like the archive viewer.
   const openPhoto = (p: GalleryPhoto) => {
     const full = (data?.photos.find((x) => x.id === p.id) ??
       followingPhotos.find((x) => x.id === p.id)) as GalleryDetailPhoto | undefined;
-    router.push({
-      pathname: '/photo/[id]',
-      params: {
-        id: p.id,
-        path: full?.imagePath ?? full?.thumbPath ?? '',
-        shooter: full?.shooter ?? '',
-        hearts: String(full?.hearts ?? 0),
-        captured: full?.capturedAt ?? '',
-        potd: full?.isPotd ? '1' : '',
-        user: full?.userId ?? '',
-        day: String(full?.dayNumber ?? p.dayNumber),
-        status: full?.status ?? p.status ?? '',
-        frame: full?.frameId ?? p.frameId,
-      },
-    });
+    setViewer(full ?? { ...p });
   };
 
   const hasPast = tab === 'world' && (data?.past?.length ?? 0) > 0;
@@ -356,6 +346,36 @@ export default function GalleryScreen() {
           ))}
         </ScrollView>
       </Sheet>
+
+      {/* In-place fullscreen viewer — press a shot and the gallery zooms into the
+          print (no route), the same feel as the archive. onOpenProfile closes this
+          modal first, since it sits above the navigator. */}
+      <Modal
+        visible={viewer !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setViewer(null)}
+        statusBarTranslucent
+      >
+        {viewer && (
+          <PhotoDetailView
+            lightbox
+            id={viewer.id}
+            path={viewer.imagePath ?? viewer.thumbPath ?? ''}
+            shooter={viewer.shooter}
+            hearts={viewer.hearts}
+            userId={viewer.userId}
+            day={viewer.dayNumber}
+            status={viewer.status}
+            frame={viewer.frameId}
+            onClose={() => setViewer(null)}
+            onOpenProfile={(uid) => {
+              setViewer(null);
+              router.push({ pathname: '/u/[id]', params: { id: uid } });
+            }}
+          />
+        )}
+      </Modal>
     </SafeAreaView>
   );
 }
