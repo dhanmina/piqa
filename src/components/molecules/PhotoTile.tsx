@@ -3,6 +3,7 @@ import { Crown, RefreshCw } from 'lucide-react-native';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { imageCacheKey } from '@lib/cache';
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { Mono } from '@/components/atoms/Mono';
 import { colors, icons, overlay, photo, radius, typeScale } from '@/components/tokens';
@@ -38,7 +39,12 @@ export function PhotoTile({ uri, hearts, badge, aspectRatio = photo.aspect, styl
     <View style={style}>
       <View style={[styles.photoBox, { aspectRatio }]}>
         {uri ? (
-          <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={100} />
+          <Image
+            source={{ uri, cacheKey: imageCacheKey(uri) }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            transition={100}
+          />
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.skeleton]} />
         )}
