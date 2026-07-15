@@ -7,7 +7,7 @@ import { Text, Pressable, StyleSheet } from 'react-native';
 import { useState } from 'react';
 
 import { blockUser } from '@lib/moderation';
-import { follow, unfollow, useProfile, type ProfileWin } from '@lib/profile';
+import { follow, unfollow, useProfile } from '@lib/profile';
 import { ProfileView } from '@/components/ProfileView';
 import { Sheet } from '@/components/molecules/Sheet';
 import { colors, fonts, typeScale } from '@/components/tokens';
@@ -35,22 +35,6 @@ export default function UserProfileScreen() {
     router.back(); // they vanish from my surfaces, and I from theirs
   };
 
-  const openWin = (w: ProfileWin, username: string) => {
-    router.push({
-      pathname: '/photo/[id]',
-      params: {
-        id: w.id,
-        path: w.thumbPath ?? '',
-        shooter: username,
-        potd: w.isPotd ? '1' : '',
-        user: data?.id ?? '',
-        day: String(w.dayNumber),
-        status: w.status ?? '',
-        frame: data?.equippedFrame ?? 'default',
-      },
-    });
-  };
-
   return (
     <>
       <ProfileView
@@ -61,7 +45,6 @@ export default function UserProfileScreen() {
         onBack={() => router.back()}
         onMore={data && !data.isSelf ? () => setShowMenu(true) : undefined}
         onFollowToggle={() => void onFollowToggle()}
-        onOpenWin={openWin}
         followBusy={busy}
       />
       <Sheet visible={showMenu} onClose={() => setShowMenu(false)} title={data ? `@${data.username}` : undefined}>

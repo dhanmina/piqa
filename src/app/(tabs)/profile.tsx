@@ -2,12 +2,11 @@
  * Own profile — thin wrapper over the shared ProfileView. The gear opens a
  * settings sheet (spec §11c): sign out + account deletion with a confirm step.
  */
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { claimEventFrame, equipFrame, type FrameId } from '@lib/frames';
-import { deleteAccount, useProfile, type ProfileWin } from '@lib/profile';
+import { deleteAccount, useProfile } from '@lib/profile';
 import { supabase } from '@lib/supabase';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
@@ -17,7 +16,6 @@ import { Sheet } from '@/components/molecules/Sheet';
 import { colors, fonts, space, typeScale } from '@/components/tokens';
 
 export default function ProfileScreen() {
-  const router = useRouter();
   const { data, loading, error, refresh } = useProfile(null);
   const [showSettings, setShowSettings] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -57,22 +55,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const openWin = (w: ProfileWin, username: string) => {
-    router.push({
-      pathname: '/photo/[id]',
-      params: {
-        id: w.id,
-        path: w.thumbPath ?? '',
-        shooter: username,
-        potd: w.isPotd ? '1' : '',
-        user: data?.id ?? '',
-        day: String(w.dayNumber),
-        status: w.status ?? '',
-        frame: data?.equippedFrame ?? 'default',
-      },
-    });
-  };
-
   return (
     <>
       <ProfileView
@@ -81,7 +63,6 @@ export default function ProfileScreen() {
         error={error}
         onRetry={() => void refresh()}
         onSettings={() => setShowSettings(true)}
-        onOpenWin={openWin}
       />
 
       <Sheet visible={showSettings} onClose={closeSettings} title={confirmDelete ? 'Delete account?' : 'Settings'}>
