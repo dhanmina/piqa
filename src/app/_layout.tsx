@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { initCaptureQueue } from '@lib/captureQueue';
+import { FrameCatalogProvider } from '@lib/frames';
 import { registerForPush } from '@lib/push';
 import { SessionProvider, useSession } from '@lib/session';
 import { useAppFonts } from '@/components/fonts';
@@ -75,8 +76,10 @@ export default function RootLayout() {
 
   return (
     <SessionProvider>
-      <StatusBar style="light" />
-      <RootNavigator />
+      <FrameCatalogProvider>
+        <StatusBar style="light" />
+        <RootNavigator />
+      </FrameCatalogProvider>
     </SessionProvider>
   );
 }

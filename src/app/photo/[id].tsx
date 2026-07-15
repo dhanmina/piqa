@@ -156,8 +156,13 @@ export default function PhotoDetail() {
                 </Text>
               </Pressable>
               {statusWords && (
-                <Mono size={typeScale.caption} weight="medium" color={status === 'crown' ? colors.crown : colors.safelight}>
-                  {statusWords}
+                <Mono
+                  size={typeScale.caption}
+                  weight="medium"
+                  color={status === 'crown' ? colors.crown : colors.safelight}
+                  style={styles.statusEyebrow}
+                >
+                  {statusWords.toUpperCase()}
                 </Mono>
               )}
             </View>
@@ -228,15 +233,17 @@ const styles = StyleSheet.create({
   stage: { flex: 1, justifyContent: 'center' },
   // Both overlays stop at the top of the frame's rail (the bottom 9.6% of the
   // print), so PIQA, the day counter and the dot are never covered.
-  fade: { position: 'absolute', left: 0, right: 0, bottom: frame.window.bottom, height: '40%' },
+  fade: { position: 'absolute', left: 0, right: 0, bottom: frame.window.bottom, height: '46%' },
   overlay: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: frame.window.bottom,
-    padding: space.gutter,
+    paddingHorizontal: space.gutter,
+    // Extra air above the rail so the caption doesn't crowd PIQA / the day counter.
+    paddingBottom: space.gutter + 8,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end', // heart sits on the name/eyebrow baseline
     gap: 12,
   },
   headerFloat: {
@@ -247,9 +254,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  identity: { flex: 1, gap: 4 },
+  // Name + status read as one unit — tight pairing, with the air below (overlay
+  // paddingBottom) separating them from the rail.
+  identity: { flex: 1, gap: 3 },
   nameLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   shooter: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper, flexShrink: 1 },
+  statusEyebrow: { letterSpacing: 1.5 },
   emptyReactors: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
   reactorScroll: { maxHeight: 320 },
   reactorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },

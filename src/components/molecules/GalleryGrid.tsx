@@ -1,12 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import type { FrameId, PhotoStatus } from '@lib/frames';
 import { HeartButton } from '@/components/atoms/HeartButton';
 import { Mono } from '@/components/atoms/Mono';
-import { displayFamily } from '@/components/fonts';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { colors, fade, frame, motion, radius, space, typeScale } from '@/components/tokens';
 
@@ -169,25 +168,23 @@ export function GalleryGrid({
           )}
           <View>
             {wrap(potd, print(potd))}
-            {/* The winner's credit lives on the cover — signed appreciation. The
-                crown itself is already on the frame, so the name stands alone. */}
-            <LinearGradient pointerEvents="none" colors={fade} style={styles.potdFade} />
-            <View pointerEvents="box-none" style={styles.potdCaption}>
-              {potd.shooter && (
-                <Text style={styles.shooter} numberOfLines={1}>
-                  {potd.shooter}
-                </Text>
-              )}
-              {onHeart && (
-                <HeartButton
-                  onPhoto
-                  liked={isHearted?.(potd.id) ?? false}
-                  count={heartCount ? heartCount(potd) : potd.hearts}
-                  onToggle={() => onHeart(potd)}
-                  size={20}
-                />
-              )}
-            </View>
+            {/* Gallery stays name-free — just the heart, like the tiles. The crown on
+                the frame already marks the winner; the shooter's name shows only in
+                fullscreen (photo detail). */}
+            {onHeart && (
+              <>
+                <LinearGradient pointerEvents="none" colors={fade} style={styles.potdFade} />
+                <View pointerEvents="box-none" style={styles.potdCaption}>
+                  <HeartButton
+                    onPhoto
+                    liked={isHearted?.(potd.id) ?? false}
+                    count={heartCount ? heartCount(potd) : potd.hearts}
+                    onToggle={() => onHeart(potd)}
+                    size={20}
+                  />
+                </View>
+              </>
+            )}
           </View>
         </View>
       )}
@@ -241,30 +238,21 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     gap: 8,
   },
-  // Overlays stop at the top of the rail — the frame's rail is never covered.
+  // Overlays stop at the top of the rail — the frame's rail is never covered. The
+  // hero heart matches the grid tiles' treatment: bottom-left over a short fade.
   potdFade: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: frame.window.bottom,
-    height: '40%',
+    height: '45%',
   },
   potdCaption: {
     position: 'absolute',
     left: 0,
-    right: 0,
     bottom: frame.window.bottom,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 14,
-    gap: 12,
-  },
-  shooter: {
-    fontFamily: displayFamily,
-    fontSize: typeScale.title,
-    color: colors.paper,
-    flexShrink: 1,
+    paddingHorizontal: 14,
+    paddingBottom: 10,
   },
   grid: {
     flexDirection: 'row',
