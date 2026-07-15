@@ -8,23 +8,23 @@ type AvatarProps = {
   uri?: string | null;
   username: string;
   size?: number;
-  /** Cosmetic frame = a simple ring; frames are config, not art. */
-  frameColor?: string | null;
-  /** Ring thickness for the equipped frame (defaults to 2). */
-  frameWidth?: number;
+  /** Level-earned ring around the face. NOT a photo frame — see lib/frames.ts. */
+  ringColor?: string | null;
+  /** Ring thickness (defaults to 2). */
+  ringWidth?: number;
 };
 
-const FRAME_PAD = 2;
+const RING_PAD = 2;
 
-export function Avatar({ uri, username, size = 40, frameColor, frameWidth = 2 }: AvatarProps) {
+export function Avatar({ uri, username, size = 40, ringColor, ringWidth = 2 }: AvatarProps) {
   const initials = username.slice(0, 2).toUpperCase();
   // Border-box sizing: width/height include padding + border, so the outer box
   // is size + the ring's padding and stroke on both sides. Radius = outer / 2
   // is an exact circle — never rely on RN clamping an oversized radius (which
   // renders square once a borderWidth is present on Fabric).
-  const outer = frameColor ? size + FRAME_PAD * 2 + frameWidth * 2 : size;
-  const ring = frameColor
-    ? { borderWidth: frameWidth, borderColor: frameColor, padding: FRAME_PAD }
+  const outer = ringColor ? size + RING_PAD * 2 + ringWidth * 2 : size;
+  const ring = ringColor
+    ? { borderWidth: ringWidth, borderColor: ringColor, padding: RING_PAD }
     : null;
 
   return (

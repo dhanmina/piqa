@@ -123,6 +123,21 @@ export type Database = {
           },
         ]
       }
+      frames: {
+        Row: {
+          id: string
+          label: string
+        }
+        Insert: {
+          id: string
+          label: string
+        }
+        Update: {
+          id?: string
+          label?: string
+        }
+        Relationships: []
+      }
       free_shots: {
         Row: {
           captured_at: string
@@ -197,6 +212,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          equipped_frame: string
           id: string
           is_premium: boolean
           push_token: string | null
@@ -208,6 +224,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          equipped_frame?: string
           id: string
           is_premium?: boolean
           push_token?: string | null
@@ -219,6 +236,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          equipped_frame?: string
           id?: string
           is_premium?: boolean
           push_token?: string | null
@@ -227,11 +245,20 @@ export type Database = {
           username?: string
           xp?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_equipped_frame_fkey"
+            columns: ["equipped_frame"]
+            isOneToOne: false
+            referencedRelation: "frames"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prompt_drops: {
         Row: {
           created_at: string
+          day_number: number
           drop_date: string
           drops_at: string
           id: string
@@ -243,6 +270,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          day_number: number
           drop_date: string
           drops_at: string
           id?: string
@@ -254,6 +282,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          day_number?: number
           drop_date?: string
           drops_at?: string
           id?: string
@@ -431,6 +460,7 @@ export type Database = {
           captured_at: string
           created_at: string
           drop_id: string
+          gallery_rank: number | null
           id: string
           image_path: string | null
           in_gallery: boolean
@@ -451,6 +481,7 @@ export type Database = {
           captured_at: string
           created_at?: string
           drop_id: string
+          gallery_rank?: number | null
           id?: string
           image_path?: string | null
           in_gallery?: boolean
@@ -471,6 +502,7 @@ export type Database = {
           captured_at?: string
           created_at?: string
           drop_id?: string
+          gallery_rank?: number | null
           id?: string
           image_path?: string | null
           in_gallery?: boolean
@@ -496,6 +528,39 @@ export type Database = {
           },
           {
             foreignKeyName: "submissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_frames: {
+        Row: {
+          frame_id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          frame_id: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          frame_id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_frames_frame_id_fkey"
+            columns: ["frame_id"]
+            isOneToOne: false
+            referencedRelation: "frames"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_frames_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -576,6 +641,7 @@ export type Database = {
       cfg_num: { Args: { p_default: number; p_key: string }; Returns: number }
       close_day: { Args: { p_drop: string }; Returns: Json }
       close_due_drops: { Args: never; Returns: Json }
+      decorate_photos: { Args: { p_photos: Json }; Returns: Json }
       delete_account: { Args: never; Returns: Json }
       dev_advance_day: { Args: { p_i_submitted?: boolean }; Returns: Json }
       dev_break_streak: { Args: never; Returns: Json }
@@ -618,6 +684,10 @@ export type Database = {
       get_matchup: { Args: never; Returns: Json }
       get_profile: { Args: { p_user?: string }; Returns: Json }
       is_live_drop_thumb: { Args: { object_name: string }; Returns: boolean }
+      photo_status: {
+        Args: { p_is_potd: boolean; p_rank: number }
+        Returns: string
+      }
       report_submission: {
         Args: { p_reason: string; p_submission: string }
         Returns: Json

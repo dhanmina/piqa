@@ -84,6 +84,24 @@ export const photo = {
   aspect: 4 / 5, // width / height — portrait
 } as const;
 
+/**
+ * The frame is a print: a 750x1000 canvas whose photo window is x24-726 / y24-904,
+ * with a rail below it carrying the maker's mark, the day counter and the dot.
+ *
+ * FramedPhoto states every coordinate in these reference units and lets the SVG
+ * viewBox do the scaling — nothing is ever multiplied by a device scale factor by
+ * hand, so there are no pixel values to drift. The window is expressed as
+ * percentages for the same reason.
+ *
+ * Note the two aspects are NOT the same: the print is 3:4 (it includes the rail),
+ * the window inside it is 702x880 ≈ 4:5 — which is the photo aspect above, so a
+ * stored photo fills the window with no visible crop.
+ */
+export const frame = {
+  aspect: 3 / 4, // the whole print, rail included
+  window: { left: '3.2%', right: '3.2%', top: '2.4%', bottom: '9.6%' }, // 24 / 24 / 24 / 96 of 750x1000
+} as const;
+
 export const space = {
   gutter: 20,
   gridGap: 8,

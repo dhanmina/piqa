@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { GalleryPhoto } from "@/components/molecules/GalleryGrid";
 import { signThumbs, useCached, useSignedThumb } from "./cache";
+import { asFrameId, asStatus } from "./frames";
 import { useSession } from "./session";
 import { supabase } from "./supabase";
 
@@ -10,54 +11,9 @@ import { supabase } from "./supabase";
 // imports (`@lib/gallery`) keep working while signing is deduped app-wide.
 export { useSignedThumb };
 
-type GalleryRow = {
-  id: string;
-  thumb_path: string | null;
-  hearts: number;
-  shooter: string;
-  is_potd: boolean;
-};
-
-type LatestGalleryResult = {
-  drop: { id: string; prompt: string | null; drop_date: string } | null;
-  photos: GalleryRow[];
-  is_seed: boolean;
-};
-
-export type LatestGallery = {
-  drop: { id: string; prompt: string | null; drop_date: string } | null;
-  /** Whether this is the seed fallback (no real gallery has closed yet). */
-  isSeed: boolean;
-  photos: GalleryPhoto[];
-};
-
-// The latest gallery only changes at the 9am reveal; a specific past gallery is
-// immutable. Short TTL for "latest", long for a pinned back-issue.
+// A specific past gallery is immutable; the latest one changes at the 9am reveal.
 const LATEST_TTL_MS = 60_000;
 const PAST_TTL_MS = 10 * 60_000;
-
-async function loadLatestGallery(): Promise<LatestGallery> {
-  const { data: res, error } = await supabase.rpc("get_latest_gallery");
-  if (error) throw error;
-  const result = res as unknown as LatestGalleryResult;
-  if (!result?.drop) return { drop: null, isSeed: false, photos: [] };
-
-  const signed = await signThumbs(result.photos.map((p) => p.thumb_path).filter((p): p is string => !!p));
-  const photos: GalleryPhoto[] = result.photos.map((p) => ({
-    id: p.id,
-    uri: p.thumb_path ? (signed.get(p.thumb_path) ?? null) : null,
-    hearts: p.hearts,
-    isPotd: p.is_potd,
-    shooter: p.shooter,
-  }));
-  return { drop: result.drop, isSeed: result.is_seed, photos };
-}
-
-/** The most recent revealed gallery for my region, or the seed fallback. */
-export function useLatestGallery() {
-  const { data, loading, error } = useCached<LatestGallery>("gallery:latest", loadLatestGallery, LATEST_TTL_MS);
-  return { data, loading, error };
-}
 
 // ---------------------------------------------------------------------------
 // The full World view — one RPC (get_gallery) returns the latest (or a
@@ -74,15 +30,42 @@ type RichPhotoRow = {
   is_potd: boolean;
   bt_score: number | null;
   captured_at: string | null;
+  /** Added by decorate_photos — the owner's CURRENT frame, not a frozen one. */
+  equipped_frame: string;
+  status: string | null;
+  day_number: number;
 };
 
 type GetGalleryResult = {
-  drop: { id: string | null; prompt: string | null; drop_date: string | null } | null;
+  drop: {
+    id: string | null;
+    prompt: string | null;
+    drop_date: string | null;
+    day_number: number | null;
+  } | null;
   photos: RichPhotoRow[];
   is_seed: boolean;
   past: { drop_id: string; drop_date: string; prompt: string | null }[];
   next_drop_at: string | null;
 };
+
+/** Everything a FramedPhoto needs, mapped off one decorated row. */
+function toGalleryPhoto(p: RichPhotoRow, signed: Map<string, string>): GalleryDetailPhoto {
+  return {
+    id: p.id,
+    uri: p.thumb_path ? (signed.get(p.thumb_path) ?? null) : null,
+    hearts: p.hearts,
+    isPotd: p.is_potd,
+    shooter: p.shooter,
+    userId: p.user_id,
+    imagePath: p.image_path,
+    thumbPath: p.thumb_path,
+    capturedAt: p.captured_at,
+    frameId: asFrameId(p.equipped_frame),
+    status: asStatus(p.status),
+    dayNumber: p.day_number,
+  };
+}
 
 /** GalleryPhoto plus the fields the photo-detail route needs. */
 export type GalleryDetailPhoto = GalleryPhoto & {
@@ -93,7 +76,7 @@ export type GalleryDetailPhoto = GalleryPhoto & {
 };
 
 export type GalleryFeed = {
-  drop: { id: string; prompt: string | null; drop_date: string } | null;
+  drop: { id: string; prompt: string | null; drop_date: string; day_number: number } | null;
   isSeed: boolean;
   photos: GalleryDetailPhoto[];
   past: { drop_id: string; drop_date: string; prompt: string | null }[];
@@ -111,20 +94,15 @@ async function loadGallery(dropId: string | null): Promise<GalleryFeed> {
   }
 
   const signed = await signThumbs(result.photos.map((p) => p.thumb_path).filter((p): p is string => !!p));
-  const photos: GalleryDetailPhoto[] = result.photos.map((p) => ({
-    id: p.id,
-    uri: p.thumb_path ? (signed.get(p.thumb_path) ?? null) : null,
-    hearts: p.hearts,
-    isPotd: p.is_potd,
-    shooter: p.shooter,
-    userId: p.user_id,
-    imagePath: p.image_path,
-    thumbPath: p.thumb_path,
-    capturedAt: p.captured_at,
-  }));
+  const photos: GalleryDetailPhoto[] = result.photos.map((p) => toGalleryPhoto(p, signed));
 
   return {
-    drop: { id: result.drop.id, prompt: result.drop.prompt, drop_date: result.drop.drop_date! },
+    drop: {
+      id: result.drop.id,
+      prompt: result.drop.prompt,
+      drop_date: result.drop.drop_date!,
+      day_number: result.drop.day_number ?? 0,
+    },
     isSeed: result.is_seed,
     photos,
     past: result.past ?? [],
@@ -149,17 +127,7 @@ async function loadFollowingGallery(): Promise<GalleryDetailPhoto[]> {
   if (error) throw error;
   const rows = (data as unknown as { photos: RichPhotoRow[] }).photos ?? [];
   const signed = await signThumbs(rows.map((r) => r.thumb_path).filter((p): p is string => !!p));
-  return rows.map((r) => ({
-    id: r.id,
-    uri: r.thumb_path ? (signed.get(r.thumb_path) ?? null) : null,
-    hearts: r.hearts,
-    isPotd: r.is_potd,
-    shooter: r.shooter,
-    userId: r.user_id,
-    imagePath: r.image_path,
-    thumbPath: r.thumb_path,
-    capturedAt: r.captured_at,
-  }));
+  return rows.map((r) => toGalleryPhoto(r, signed));
 }
 
 /** Gallery placements from the people I follow (the Following sub-tab). */

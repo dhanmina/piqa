@@ -124,6 +124,9 @@ export default function GalleryScreen() {
         captured: full?.capturedAt ?? '',
         potd: full?.isPotd ? '1' : '',
         user: full?.userId ?? '',
+        day: String(full?.dayNumber ?? p.dayNumber),
+        status: full?.status ?? p.status ?? '',
+        frame: full?.frameId ?? p.frameId,
       },
     });
   };

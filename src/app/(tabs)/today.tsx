@@ -8,7 +8,7 @@
  */
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { CloudOff, Crown, Zap } from 'lucide-react-native';
+import { CloudOff, RefreshCw, Zap } from 'lucide-react-native';
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,10 +25,10 @@ import { StreakFlame } from '@/components/atoms/StreakFlame';
 import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
 import { EmptyState } from '@/components/molecules/EmptyState';
-import { PhotoTile } from '@/components/molecules/PhotoTile';
+import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { ShotCard } from '@/components/molecules/ShotCard';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, icons, photo, radius, space, typeScale } from '@/components/tokens';
+import { colors, fonts, frame, icons, overlay, radius, space, typeScale } from '@/components/tokens';
 
 /** "8 AM" — drops the minutes when they're zero, so the common case reads as speech. */
 const clockTime = (iso: string) => {
@@ -158,12 +158,26 @@ export default function TodayScreen() {
     body = (
       <View style={styles.stateFill}>
         <View style={styles.submittedHero}>
+          {/* The brackets stay: they are the focus-lock submit moment (spec §11d),
+              not a status marker. Status is null here by definition — the day has
+              not closed, so close_day has not ruled on this photo yet. */}
           <Brackets animated color={colors.paper} style={styles.stretch}>
-            <PhotoTile
-              uri={pending?.originalUri ?? signedSubThumb}
-              badge={queued || blocked ? 'queued' : undefined}
-              aspectRatio={photo.aspect}
-            />
+            <View>
+              <FramedPhoto
+                photoUri={pending?.originalUri ?? signedSubThumb}
+                dayNumber={drop?.day_number ?? submission?.day_number ?? 0}
+                frameId={data?.equipped_frame ?? 'default'}
+                status={submission?.status ?? null}
+              />
+              {(queued || blocked) && (
+                <View style={styles.queuedBadge}>
+                  <RefreshCw size={11} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+                  <Mono size={10} color={colors.paper60}>
+                    queued
+                  </Mono>
+                </View>
+              )}
+            </View>
           </Brackets>
           <Text style={styles.statusLine}>{statusLine}</Text>
           {submission?.quick_draw && (
@@ -254,19 +268,22 @@ export default function TodayScreen() {
               YOUR RESULT
             </Mono>
             {/* The print is the door into the gallery — same affordance as the PotD tile below. */}
+            {/* No gold brackets and no crown icon: the print already carries the
+                crown in its status slot, and the caption already says the words.
+                Three ways of saying "you won" is two too many. */}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="See today's gallery"
               style={styles.resultPress}
               onPress={() => router.push('/(tabs)/gallery')}
             >
-              <Brackets color={lastResult.is_potd ? colors.crown : colors.paper} style={styles.stretch}>
-                <PhotoTile uri={signedResultThumb} aspectRatio={photo.aspect} />
-              </Brackets>
+              <FramedPhoto
+                photoUri={signedResultThumb}
+                dayNumber={lastResult.day_number}
+                frameId={data?.equipped_frame ?? 'default'}
+                status={lastResult.status}
+              />
               <View style={styles.resultCaption}>
-                {lastResult.is_potd && (
-                  <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
-                )}
                 <Text style={styles.resultLine}>{resultLine}</Text>
               </View>
             </Pressable>
@@ -310,11 +327,15 @@ export default function TodayScreen() {
                 YESTERDAY’S WINNER
               </Mono>
               <View style={styles.potdSpacer} />
-              <Brackets color={colors.crown} style={styles.stretch}>
-                <PhotoTile uri={signedPotdThumb} aspectRatio={photo.aspect} />
-              </Brackets>
+              {/* The winner wears their own frame and their own crown — the tile
+                  needs no gold brackets and no second crown to say so. */}
+              <FramedPhoto
+                photoUri={signedPotdThumb}
+                dayNumber={potd.day_number}
+                frameId={potd.equipped_frame}
+                status={potd.status}
+              />
               <View style={styles.potdCaption}>
-                <Crown size={16} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
                 <Text style={styles.shooter}>{potd.shooter}</Text>
                 <View style={styles.potdHearts}>
                   <HeartGlyph size={13} color={colors.paper60} />
@@ -440,7 +461,7 @@ const styles = StyleSheet.create({
   },
   skeletonCard: {
     alignSelf: 'stretch',
-    aspectRatio: photo.aspect,
+    aspectRatio: frame.aspect, // every real state resolves to a print in this slot
     borderRadius: radius.card,
     backgroundColor: colors.ink2,
   },
@@ -481,6 +502,19 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     fontSize: typeScale.body,
     color: colors.paper,
+  },
+  // Offline is first-class: the queued mark sits inside the photo window (never on
+  // the rail), so a shot waiting to upload still reads as a print, not an error.
+  queuedBadge: {
+    position: 'absolute',
+    top: '6%',
+    left: '8%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: overlay.badge,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
   },
   quickDraw: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   subNote: {
