@@ -6,19 +6,22 @@
  */
 import { Image } from 'expo-image';
 import { ChevronLeft, CloudOff, Crown, MoreHorizontal, Settings, Star, Trophy } from 'lucide-react-native';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { imageCacheKey } from '@lib/cache';
+import { imageCacheKey, signThumbs } from '@lib/cache';
 import { ringForLevel, titleForLevel } from '@lib/cosmetics';
 import type { ProfileData, ProfileWin } from '@lib/profile';
 import { levelProgress } from '@lib/xp';
+import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { Avatar } from '@/components/atoms/Avatar';
 import { Button } from '@/components/atoms/Button';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
+import { StarredLightbox } from '@/components/molecules/StarredLightbox';
 import { colors, fonts, frame, icons, radius, space, typeScale } from '@/components/tokens';
 
 type Props = {
@@ -26,7 +29,6 @@ type Props = {
   loading: boolean;
   onFollowToggle?: () => void;
   onSignOut?: () => void;
-  onOpenWin?: (win: ProfileWin, username: string) => void;
   onBack?: () => void;
   onMore?: () => void;
   onSettings?: () => void;
@@ -35,12 +37,47 @@ type Props = {
   onRetry?: () => void;
 };
 
-export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWin, onBack, onMore, onSettings, followBusy, error, onRetry }: Props) {
+export function ProfileView({ data, loading, onFollowToggle, onSignOut, onBack, onMore, onSettings, followBusy, error, onRetry }: Props) {
   void onSignOut; // sign out now lives in the settings sheet (owned by the screen)
   const prog = levelProgress(data?.xp ?? 0);
   const ring = ringForLevel(prog.level);
   const title = titleForLevel(prog.level);
   const xpPct = prog.toNext > 0 ? Math.min(100, (prog.into / prog.toNext) * 100) : 0;
+
+  // A tapped win opens in place as a fullscreen lightbox — the same feel as the
+  // gallery, no route change. Lives here so both own-profile and /u/[id] get it.
+  const [viewer, setViewer] = useState<ProfileWin | null>(null);
+  // Starred shots are private and unframed (a mix of practice free shots and
+  // submissions), so they open in a plain paged photo viewer, not a framed print.
+  const [starIndex, setStarIndex] = useState<number | null>(null);
+
+  // Warm each win's full-res under the exact cacheKey FramedPhoto reads (the signed
+  // URL minus its rotating token), so opening a win is instant and sharp with no
+  // thumb→full-res blink. Mirrors the gallery's warmer.
+  const wins = data?.wins;
+  useEffect(() => {
+    const paths = (wins ?? []).map((w) => w.imagePath).filter((x): x is string => !!x);
+    if (paths.length === 0) return;
+    let alive = true;
+    void signThumbs(paths).then((m) => {
+      if (!alive) return;
+      for (const url of m.values()) {
+        void Image.loadAsync({ uri: url, cacheKey: imageCacheKey(url) }).catch(() => {});
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [wins]);
+
+  // Same warming for starred full-res. These URLs are already signed, so no signing
+  // pass — just seed the cache under the render's cacheKey.
+  const starred = data?.starred;
+  useEffect(() => {
+    for (const s of starred ?? []) {
+      if (s.fullUri) void Image.loadAsync({ uri: s.fullUri, cacheKey: imageCacheKey(s.fullUri) }).catch(() => {});
+    }
+  }, [starred]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -118,14 +155,19 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
               </Mono>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.starredRow}>
-              {data.starred.map((s) => (
-                <View key={s.key} style={styles.starredTile}>
+              {data.starred.map((s, i) => (
+                <Pressable
+                  key={s.key}
+                  accessibilityRole="button"
+                  style={styles.starredTile}
+                  onPress={() => setStarIndex(i)}
+                >
                   {s.uri ? (
                     <Image source={{ uri: s.uri, cacheKey: imageCacheKey(s.uri) }} style={styles.starredImg} contentFit="cover" />
                   ) : (
                     <View style={[styles.starredImg, styles.skeleton]} />
                   )}
-                </View>
+                </Pressable>
               ))}
             </ScrollView>
           </View>
@@ -159,7 +201,7 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
                 key={w.id}
                 accessibilityRole="button"
                 style={styles.winCell}
-                onPress={() => onOpenWin?.(w, data.username)}
+                onPress={() => setViewer(w)}
               >
                 {/* No crown badge: the print carries its own status glyph, and at
                     3 columns a badge on top of it was just two crowns. */}
@@ -176,6 +218,48 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
 
       </ScrollView>
       )}
+
+      {/* In-place fullscreen viewer — the win zooms into the print (no route), like
+          the gallery. The shooter here IS this profile's owner, so tapping the name
+          just dismisses rather than navigating to the page you're already on. */}
+      <Modal
+        visible={viewer !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setViewer(null)}
+        statusBarTranslucent
+      >
+        {viewer && data && (
+          <PhotoDetailView
+            lightbox
+            id={viewer.id}
+            path={viewer.imagePath ?? viewer.thumbPath ?? ''}
+            placeholderUri={viewer.uri}
+            shooter={data.username}
+            userId={data.id}
+            day={viewer.dayNumber}
+            status={viewer.status}
+            frame={data.equippedFrame}
+            onClose={() => setViewer(null)}
+            onOpenProfile={() => setViewer(null)}
+          />
+        )}
+      </Modal>
+
+      {/* Starred: a plain paged photo viewer (no print frame) — these are private
+          shots, some never part of a gallery. Swipe to page the filmstrip, drag
+          down to dismiss. Its own GestureHandlerRootView lives inside the Modal. */}
+      <Modal
+        visible={starIndex !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setStarIndex(null)}
+        statusBarTranslucent
+      >
+        {starIndex !== null && data && (
+          <StarredLightbox items={data.starred} index={starIndex} onClose={() => setStarIndex(null)} />
+        )}
+      </Modal>
     </SafeAreaView>
   );
 }

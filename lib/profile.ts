@@ -8,6 +8,8 @@ export type ProfileWin = {
   id: string;
   uri: string | null;
   thumbPath: string | null;
+  /** Full-res object, for the in-place fullscreen lightbox. Null on old payloads. */
+  imagePath: string | null;
   isPotd: boolean;
   dropDate: string;
   /** Everything the wins wall needs to draw the print. */
@@ -25,7 +27,9 @@ export type ProfileData = {
   hearts: number;
   crowns: number;
   wins: ProfileWin[];
-  starred: { key: string; uri: string | null }[];
+  /** Private starred shots (own profile only) — a mix of practice free shots and
+   *  gallery submissions, shown unframed. fullUri is the full-res for the lightbox. */
+  starred: { key: string; uri: string | null; fullUri: string | null }[];
   /** This profile's equipped frame — every photo they own wears it. */
   equippedFrame: FrameId;
   /** The VIEWER's unlocked frames (never someone else's). Drives the equip picker. */
@@ -47,6 +51,7 @@ type RawProfile = {
   wins: {
     id: string;
     thumb_path: string | null;
+    image_path: string | null;
     is_potd: boolean;
     drop_date: string;
     day_number: number;
@@ -70,18 +75,20 @@ export function useProfile(targetId: string | null) {
 
     const winPaths = (p.wins ?? []).map((w) => w.thumb_path).filter((x): x is string => !!x);
 
-    let starRows: { id: string; thumb_path: string | null; starred_at: string | null }[] = [];
+    let starRows: { id: string; thumb_path: string | null; image_path: string | null; starred_at: string | null }[] = [];
     if (p.is_self) {
       const [{ data: sf }, { data: sd }] = await Promise.all([
-        supabase.from("free_shots").select("id, thumb_path, starred_at").eq("user_id", p.id).eq("starred", true).order("starred_at", { ascending: false }).limit(12),
-        supabase.from("submissions").select("id, thumb_path, starred_at").eq("user_id", p.id).eq("starred", true).order("starred_at", { ascending: false }).limit(12),
+        supabase.from("free_shots").select("id, thumb_path, image_path, starred_at").eq("user_id", p.id).eq("starred", true).order("starred_at", { ascending: false }).limit(12),
+        supabase.from("submissions").select("id, thumb_path, image_path, starred_at").eq("user_id", p.id).eq("starred", true).order("starred_at", { ascending: false }).limit(12),
       ]);
       starRows = [...(sf ?? []), ...(sd ?? [])]
         .sort((a, b) => Date.parse(b.starred_at ?? "") - Date.parse(a.starred_at ?? ""))
         .slice(0, 12);
     }
 
-    const signed = await signThumbs([...winPaths, ...starRows.map((r) => r.thumb_path).filter((x): x is string => !!x)]);
+    const starThumbPaths = starRows.map((r) => r.thumb_path).filter((x): x is string => !!x);
+    const starImagePaths = starRows.map((r) => r.image_path).filter((x): x is string => !!x);
+    const signed = await signThumbs([...winPaths, ...starThumbPaths, ...starImagePaths]);
 
     return {
       id: p.id,
@@ -95,13 +102,18 @@ export function useProfile(targetId: string | null) {
       wins: (p.wins ?? []).map((w) => ({
         id: w.id,
         thumbPath: w.thumb_path,
+        imagePath: w.image_path ?? null,
         uri: w.thumb_path ? (signed.get(w.thumb_path) ?? null) : null,
         isPotd: w.is_potd,
         dropDate: w.drop_date,
         dayNumber: w.day_number,
         status: asStatus(w.status),
       })),
-      starred: starRows.map((r) => ({ key: r.id, uri: r.thumb_path ? (signed.get(r.thumb_path) ?? null) : null })),
+      starred: starRows.map((r) => ({
+        key: r.id,
+        uri: r.thumb_path ? (signed.get(r.thumb_path) ?? null) : null,
+        fullUri: r.image_path ? (signed.get(r.image_path) ?? null) : null,
+      })),
       equippedFrame: asFrameId(p.equipped_frame),
       ownedFrames: (p.owned_frames ?? []).map(asFrameId),
       isSelf: p.is_self,
