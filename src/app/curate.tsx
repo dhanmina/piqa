@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14, padding: space.gutter },
   close: {
     position: 'absolute',
-    left: 12,
+    left: 16, // match the app's close inset (camera / photo detail / archive)
   },
   pairWrap: { flex: 1 },
   bigLine: {
