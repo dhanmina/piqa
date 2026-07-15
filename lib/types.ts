@@ -125,16 +125,49 @@ export type Database = {
       }
       frames: {
         Row: {
+          counter_color: string
+          event_end: string | null
+          event_start: string | null
+          hairline_color: string
+          hairline_opacity: number
           id: string
           label: string
+          marker_shape: string | null
+          marker_svg: string | null
+          suffix_color: string | null
+          suffix_text: string | null
+          unlock_kind: string
+          unlock_label: string | null
         }
         Insert: {
+          counter_color?: string
+          event_end?: string | null
+          event_start?: string | null
+          hairline_color?: string
+          hairline_opacity?: number
           id: string
           label: string
+          marker_shape?: string | null
+          marker_svg?: string | null
+          suffix_color?: string | null
+          suffix_text?: string | null
+          unlock_kind?: string
+          unlock_label?: string | null
         }
         Update: {
+          counter_color?: string
+          event_end?: string | null
+          event_start?: string | null
+          hairline_color?: string
+          hairline_opacity?: number
           id?: string
           label?: string
+          marker_shape?: string | null
+          marker_svg?: string | null
+          suffix_color?: string | null
+          suffix_text?: string | null
+          unlock_kind?: string
+          unlock_label?: string | null
         }
         Relationships: []
       }
@@ -639,6 +672,7 @@ export type Database = {
       }
       cfg_int: { Args: { p_default: number; p_key: string }; Returns: number }
       cfg_num: { Args: { p_default: number; p_key: string }; Returns: number }
+      claim_event_frame: { Args: { p_frame: string }; Returns: Json }
       close_day: { Args: { p_drop: string }; Returns: Json }
       close_due_drops: { Args: never; Returns: Json }
       decorate_photos: { Args: { p_photos: Json }; Returns: Json }

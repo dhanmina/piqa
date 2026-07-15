@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { equipFrame, type FrameId } from '@lib/frames';
+import { claimEventFrame, equipFrame, type FrameId } from '@lib/frames';
 import { deleteAccount, useProfile, type ProfileWin } from '@lib/profile';
 import { supabase } from '@lib/supabase';
 import { Button } from '@/components/atoms/Button';
@@ -34,6 +34,15 @@ export default function ProfileScreen() {
   const onEquip = async (id: FrameId) => {
     setEquipping(true);
     const ok = await equipFrame(id);
+    setEquipping(false);
+    if (ok) await refresh();
+  };
+
+  // Claiming an event frame grants ownership (server-verified against its window),
+  // then the profile refetch surfaces it as equippable.
+  const onClaim = async (id: FrameId) => {
+    setEquipping(true);
+    const ok = await claimEventFrame(id);
     setEquipping(false);
     if (ok) await refresh();
   };
@@ -89,6 +98,7 @@ export default function ProfileScreen() {
                 previewDay={data?.wins[0]?.dayNumber ?? 1}
                 busy={equipping}
                 onEquip={(id) => void onEquip(id)}
+                onClaim={(id) => void onClaim(id)}
               />
             </View>
             <Button label="Sign out" variant="ghost" fullWidth onPress={() => void supabase.auth.signOut()} />
