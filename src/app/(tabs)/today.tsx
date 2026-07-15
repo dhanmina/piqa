@@ -8,9 +8,9 @@
  */
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { CloudOff, RefreshCw, Zap } from 'lucide-react-native';
+import { CloudOff, RefreshCw } from 'lucide-react-native';
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getPendingItemForDrop, retryBlocked, subscribeQueue, type QueueItem } from '@lib/captureQueue';
@@ -148,6 +148,13 @@ export default function TodayScreen() {
   // Derived from the drop, rendered in the viewer's own timezone.
   const resultsAt = drop ? clockTime(drop.voting_closes_at) : null;
 
+  // The submitted print is the hero, but a full-bleed 3:4 print swallowed the column
+  // and left the status + action crammed. Cap its height to ~a third of the screen so
+  // the composition breathes; a centered print with margins also reads more like a
+  // print than an edge-to-edge crop.
+  const { width: winW, height: winH } = useWindowDimensions();
+  const heroPrintW = Math.min(winW - space.gutter * 2, winH * 0.34);
+
   let body: ReactElement;
   if (error && !data) {
     // Couldn't load with nothing cached → recoverable, not an endless skeleton.
@@ -177,10 +184,11 @@ export default function TodayScreen() {
     // (c) SUBMITTED — the print is the hero; status comes from the queue.
     const queued = pending?.lastErrorKind === 'network';
     const blocked = pending?.status === 'blocked';
+    const inRound = Boolean(submission); // uploaded + entered — now waiting on results
     // The status line names the problem, the button names the fix — "Upload needs a
     // retry" sitting on top of a "Retry upload" button said the cure twice, the cause never.
-    const statusLine = submission
-      ? 'In the running'
+    const statusLine = inRound
+      ? 'Curators are picking'
       : blocked
         ? 'Upload didn’t go through'
         : queued
@@ -192,13 +200,14 @@ export default function TodayScreen() {
           {/* The brackets stay: they are the focus-lock submit moment (spec §11d),
               not a status marker. Status is null here by definition — the day has
               not closed, so close_day has not ruled on this photo yet. */}
-          <Brackets animated color={colors.paper} style={styles.stretch}>
+          <Brackets animated color={colors.paper}>
             <View>
               <FramedPhoto
                 photoUri={pending?.originalUri ?? signedSubThumb}
                 dayNumber={drop?.day_number ?? submission?.day_number ?? 0}
                 frameId={data?.equipped_frame ?? 'default'}
                 status={submission?.status ?? null}
+                width={heroPrintW}
               />
               {(queued || blocked) && (
                 <View style={styles.queuedBadge}>
@@ -210,19 +219,14 @@ export default function TodayScreen() {
               )}
             </View>
           </Brackets>
-          <Text style={styles.statusLine}>{statusLine}</Text>
-          {submission?.quick_draw && (
-            <View style={styles.quickDraw}>
-              <Zap size={13} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-              <Mono size={typeScale.caption} color={colors.paper60}>
-                Quick Draw
-              </Mono>
-            </View>
-          )}
+          {/* One status unit: the shot's state, then when results land. No Quick Draw
+              here — it's a past-tense reward for the result screen, and next to the
+              live Quick Draw prompt it just read as "why is this still here?". */}
+          <View style={styles.submittedStatus}>
+            <Text style={styles.statusLine}>{statusLine}</Text>
+            {inRound && resultsAt && <Text style={styles.subNote}>Results at {resultsAt}</Text>}
+          </View>
           {blocked && <Button label="Retry upload" variant="ghost" onPress={() => void retryBlocked()} fullWidth />}
-          {!blocked && drop?.is_live && resultsAt && (
-            <Text style={styles.subNote}>Curators are already picking · results at {resultsAt}</Text>
-          )}
         </View>
         {!blocked && votingOpen && (
           <View style={styles.submittedAction}>
@@ -468,9 +472,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     backgroundColor: colors.ink2,
   },
-  stretch: {
-    alignSelf: 'stretch',
-  },
   // Three-zone layout: header pinned top, hero optically centered, contextual
   // action pinned into the thumb zone. Used by live / waiting / submitted.
   stateFill: {
@@ -489,7 +490,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 14,
+    gap: space.gutter + 8, // generous air between the print, its status, and the retry
   },
   waitingHero: {
     flex: 1,
@@ -498,6 +499,7 @@ const styles = StyleSheet.create({
   },
   submittedAction: {
     alignSelf: 'stretch',
+    alignItems: 'center', // center the eyebrow onto the hero's axis; the fullWidth button still stretches
     gap: 10,
     marginTop: 4,
   },
@@ -519,8 +521,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 4,
   },
-  quickDraw: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  // Status + results time read as one unit, tightly stacked and centered under the print.
+  submittedStatus: { alignItems: 'center', gap: 6 },
   subNote: {
+    textAlign: 'center',
     fontFamily: fonts.sans,
     fontSize: typeScale.caption,
     color: colors.paper60,
@@ -575,6 +579,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   actionBlock: {
+    alignItems: 'center', // eyebrow centered onto the column; the fullWidth button still stretches
     gap: 10,
   },
   devLink: {
