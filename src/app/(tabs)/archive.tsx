@@ -7,23 +7,26 @@
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { BookImage, CloudOff, Star, Trash2 } from 'lucide-react-native';
+import { BookImage, CloudOff, Star, Trash2, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { deleteFreeShot, toggleStar, useArchive, type ArchiveItem } from '@lib/archive';
-import { Button } from '@/components/atoms/Button';
 import { Chip } from '@/components/atoms/Chip';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
-import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, frame, icons, photo, radius, space, typeScale } from '@/components/tokens';
 
 type Filter = 'all' | 'daily' | 'starred';
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+// Cap the fullscreen photo's height so the action bar always clears it, then let
+// width follow from the print/photo aspect. Whichever the screen width limits wins.
+const STAGE_MAX_H = SCREEN_H * 0.66;
 
 const monthKey = (iso: string) => {
   const d = new Date(iso);
@@ -271,57 +274,109 @@ export default function ArchiveScreen() {
         )}
       </ScrollView>
 
-      <Sheet visible={selected !== null} onClose={() => setSelected(null)} title={undefined}>
+      {/* Tap a shot → fullscreen viewer, in place (no route push). Daily shots show
+          the framed print; practice shots the bare photo. The photo is sized to fit
+          above the action bar; tapping the backdrop dismisses. */}
+      <Modal
+        visible={selected !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelected(null)}
+        statusBarTranslucent
+      >
         {selected && (
-          <>
-            <View style={styles.sheetHead}>
-              {selected.uri ? (
-                <Image source={{ uri: selected.uri }} style={styles.sheetThumb} contentFit="cover" />
+          <Pressable style={styles.viewer} onPress={() => setSelected(null)} accessibilityLabel="Close photo">
+            <View style={styles.viewerStage} pointerEvents="none">
+              {selected.type === 'daily' ? (
+                <FramedPhoto
+                  photoUri={selected.uri}
+                  dayNumber={selected.dayNumber ?? 1}
+                  frameId={equippedFrame}
+                  status={selected.status}
+                  width={Math.min(SCREEN_W - GUTTER * 2, STAGE_MAX_H * frame.aspect)}
+                />
+              ) : selected.uri ? (
+                <Image
+                  source={{ uri: selected.uri }}
+                  style={{ width: Math.min(SCREEN_W - GUTTER * 2, STAGE_MAX_H * photo.aspect), aspectRatio: photo.aspect }}
+                  contentFit="contain"
+                />
               ) : (
-                <View style={[styles.sheetThumb, styles.skelTile]} />
+                <View style={[styles.skelTile, { width: Math.min(SCREEN_W - GUTTER * 2, STAGE_MAX_H * photo.aspect) }]} />
               )}
-              <View style={styles.sheetInfo}>
-                <Mono size={typeScale.sub} color={colors.paper}>
-                  {capturedStamp(selected.capturedAt)}
-                </Mono>
-                <Text style={styles.sheetMeta}>{metaLine(selected)}</Text>
-                {selected.starred && (
-                  <View style={styles.starLine}>
-                    <Star size={12} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
-                    <Text style={styles.starText}>Starred · full resolution</Text>
-                  </View>
-                )}
-              </View>
             </View>
 
-            {!selected.starred && (
-              <Text style={styles.antiRansom}>
-                Starred shots keep full resolution. {starsLeft} of {data?.starsCap ?? 5} stars left this month.
-              </Text>
-            )}
-            <Button
-              label={selected.starred ? 'Starred' : 'Star this shot'}
-              variant={selected.starred ? 'ghost' : 'primary'}
-              fullWidth
-              loading={busy}
-              onPress={() => void onToggleStar(selected)}
-            />
-            {selected.type === 'free' ? (
+            <SafeAreaView edges={['top']} style={styles.viewerClose} pointerEvents="box-none">
               <Pressable
                 accessibilityRole="button"
-                style={styles.deleteRow}
-                disabled={busy}
-                onPress={() => void onDelete(selected)}
+                accessibilityLabel="Close"
+                hitSlop={12}
+                style={styles.closeBtn}
+                onPress={() => setSelected(null)}
               >
-                <Trash2 size={16} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-                <Text style={styles.deleteLabel}>Delete shot</Text>
+                <X size={22} strokeWidth={icons.strokeWidth} color={colors.paper} />
               </Pressable>
-            ) : (
-              <Text style={styles.recordNote}>Daily Shots stay in your record and can’t be deleted.</Text>
-            )}
-          </>
+            </SafeAreaView>
+
+            <SafeAreaView edges={['bottom']} style={styles.viewerBarSafe} pointerEvents="box-none">
+              <View style={styles.viewerBar}>
+                <View style={styles.viewerMeta}>
+                  <Mono size={typeScale.sub} color={colors.paper}>
+                    {capturedStamp(selected.capturedAt)}
+                  </Mono>
+                  <Text style={styles.sheetMeta}>{metaLine(selected)}</Text>
+                  {selected.starred ? (
+                    <View style={styles.starLine}>
+                      <Star size={12} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
+                      <Text style={styles.starText}>Starred · full resolution</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.antiRansom}>
+                      Starred shots keep full resolution. {starsLeft} of {data?.starsCap ?? 5} stars left this month.
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.viewerActions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={selected.starred ? 'Unstar shot' : 'Star shot'}
+                    disabled={busy}
+                    style={styles.viewerAction}
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      void onToggleStar(selected);
+                    }}
+                  >
+                    <Star
+                      size={20}
+                      strokeWidth={icons.strokeWidth}
+                      color={selected.starred ? colors.safelight : colors.paper}
+                      fill={selected.starred ? colors.safelight : 'transparent'}
+                    />
+                    <Text style={[styles.viewerActionLabel, selected.starred && { color: colors.safelight }]}>
+                      {selected.starred ? 'Starred' : 'Star'}
+                    </Text>
+                  </Pressable>
+
+                  {selected.type === 'free' && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Delete shot"
+                      disabled={busy}
+                      style={styles.viewerAction}
+                      onPress={() => void onDelete(selected)}
+                    >
+                      <Trash2 size={20} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+                      <Text style={styles.viewerActionLabel}>Delete</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+            </SafeAreaView>
+          </Pressable>
         )}
-      </Sheet>
+      </Modal>
 
       <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} />
     </SafeAreaView>
@@ -359,20 +414,26 @@ const styles = StyleSheet.create({
   starHalo: { position: 'absolute', top: 5, left: 5 },
   emptyFilter: { paddingVertical: GUTTER * 2, alignItems: 'center' },
   emptyFilterLine: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center' },
-  sheetHead: { flexDirection: 'row', gap: 14, alignItems: 'center' },
-  sheetThumb: { width: 64, aspectRatio: photo.aspect, backgroundColor: colors.ink2 },
-  sheetInfo: { flex: 1, gap: 4 },
   sheetMeta: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
   starLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   starText: { fontFamily: fonts.sansMedium, fontSize: typeScale.caption, color: colors.safelight },
-  antiRansom: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
-  deleteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 6 },
-  deleteLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper60 },
-  recordNote: {
-    fontFamily: fonts.sans,
-    fontSize: typeScale.caption,
-    color: colors.paper60,
-    textAlign: 'center',
-    paddingVertical: 6,
+  antiRansom: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60, marginTop: 2 },
+  // Fullscreen viewer: near-opaque backdrop so the print reads as a single object.
+  viewer: { flex: 1, backgroundColor: 'rgba(12,11,10,0.97)', justifyContent: 'center', alignItems: 'center' },
+  viewerStage: { alignItems: 'center', justifyContent: 'center' },
+  viewerClose: { position: 'absolute', top: 0, right: 0, padding: GUTTER },
+  closeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  viewerBarSafe: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  viewerBar: { padding: GUTTER, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 },
+  viewerMeta: { flex: 1, gap: 4 },
+  viewerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  viewerAction: {
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+    backgroundColor: colors.ink2,
   },
+  viewerActionLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.caption, color: colors.paper },
 });
