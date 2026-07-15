@@ -9,6 +9,7 @@ import { ChevronLeft, CloudOff, Crown, MoreHorizontal, Settings, Star, Trophy } 
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { imageCacheKey } from '@lib/cache';
 import { ringForLevel, titleForLevel } from '@lib/cosmetics';
 import type { ProfileData, ProfileWin } from '@lib/profile';
 import { levelProgress } from '@lib/xp';
@@ -120,7 +121,7 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onOpenWi
               {data.starred.map((s) => (
                 <View key={s.key} style={styles.starredTile}>
                   {s.uri ? (
-                    <Image source={{ uri: s.uri }} style={styles.starredImg} contentFit="cover" />
+                    <Image source={{ uri: s.uri, cacheKey: imageCacheKey(s.uri) }} style={styles.starredImg} contentFit="cover" />
                   ) : (
                     <View style={[styles.starredImg, styles.skeleton]} />
                   )}

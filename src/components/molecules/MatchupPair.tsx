@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
+import { imageCacheKey } from '@lib/cache';
 import { colors, fonts, overlay, radius, typeScale } from '@/components/tokens';
 
 type MatchupPairProps = {
@@ -38,14 +39,14 @@ export function MatchupPair({ topUri, bottomUri, index, total, onPick, onSkip }:
   return (
     <View style={styles.container}>
       <Pressable accessibilityRole="button" accessibilityLabel="Pick top photo" style={styles.photo} onPress={() => pick('top')}>
-        <Image source={{ uri: topUri }} style={StyleSheet.absoluteFill} contentFit="contain" transition={150} />
+        <Image source={{ uri: topUri, cacheKey: imageCacheKey(topUri) }} style={StyleSheet.absoluteFill} contentFit="contain" transition={150} />
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, topFlashStyle]} />
       </Pressable>
 
       <View style={styles.divider} />
 
       <Pressable accessibilityRole="button" accessibilityLabel="Pick bottom photo" style={styles.photo} onPress={() => pick('bottom')}>
-        <Image source={{ uri: bottomUri }} style={StyleSheet.absoluteFill} contentFit="contain" transition={150} />
+        <Image source={{ uri: bottomUri, cacheKey: imageCacheKey(bottomUri) }} style={StyleSheet.absoluteFill} contentFit="contain" transition={150} />
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, bottomFlashStyle]} />
       </Pressable>
 

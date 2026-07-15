@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
+import { imageCacheKey } from '@lib/cache';
 import { useFrameDef, type FrameId, type MarkerShape, type PhotoStatus } from '@lib/frames';
 import { colors, fonts, frame } from '@/components/tokens';
 
@@ -134,8 +135,10 @@ export function FramedPhoto({
           // Progressive, no blink: the cached thumb sits in `placeholder` and holds
           // the frame; `source` (full-res) is the ONLY thing that loads, crossfading
           // in on top. Keeping source stable — never thumb→full-res — avoids a reload.
-          source={photoUri ? { uri: photoUri } : undefined}
-          placeholder={placeholderUri ? { uri: placeholderUri } : undefined}
+          // cacheKey pins the disk cache to the object (not the rotating signed URL),
+          // so a restart reuses saved bytes instead of re-downloading on mobile data.
+          source={photoUri ? { uri: photoUri, cacheKey: imageCacheKey(photoUri) } : undefined}
+          placeholder={placeholderUri ? { uri: placeholderUri, cacheKey: imageCacheKey(placeholderUri) } : undefined}
           placeholderContentFit="cover"
           style={styles.window}
           contentFit="cover"

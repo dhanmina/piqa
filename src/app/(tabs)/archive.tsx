@@ -14,7 +14,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, w
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { deleteFreeShot, toggleStar, useArchive, type ArchiveItem } from '@lib/archive';
-import { signThumbs, useSignedThumb } from '@lib/cache';
+import { imageCacheKey, signThumbs, useSignedThumb } from '@lib/cache';
 import { Chip } from '@/components/atoms/Chip';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
@@ -361,8 +361,8 @@ export default function ArchiveScreen() {
                 />
               ) : selected.uri || viewerFull ? (
                 <Image
-                  source={viewerFull ? { uri: viewerFull } : undefined}
-                  placeholder={selected.uri ? { uri: selected.uri } : undefined}
+                  source={viewerFull ? { uri: viewerFull, cacheKey: imageCacheKey(viewerFull) } : undefined}
+                  placeholder={selected.uri ? { uri: selected.uri, cacheKey: imageCacheKey(selected.uri) } : undefined}
                   placeholderContentFit="contain"
                   style={{ width: Math.min(SCREEN_W - GUTTER * 2, STAGE_MAX_H * photo.aspect), aspectRatio: photo.aspect }}
                   contentFit="contain"

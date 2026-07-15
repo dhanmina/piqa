@@ -230,3 +230,18 @@ export function useSignedThumb(path: string | null | undefined) {
 
   return uri;
 }
+
+/**
+ * Stable disk-cache key for a signed storage URL. Supabase signed URLs carry a
+ * rotating `?token=`, so expo-image's default (URL-keyed) disk cache misses once
+ * the token changes — every app restart re-downloads the same bytes off mobile
+ * data. Keying on the URL WITHOUT its query pins the cache to the object itself
+ * (the storage path never changes and its bytes are immutable), so a cached image
+ * survives token rotation and restarts and is never re-fetched. `undefined` for an
+ * absent uri (expo-image then just uses the uri).
+ */
+export function imageCacheKey(uri: string | null | undefined): string | undefined {
+  if (!uri) return undefined;
+  const q = uri.indexOf("?");
+  return q === -1 ? uri : uri.slice(0, q);
+}
