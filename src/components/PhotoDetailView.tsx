@@ -203,6 +203,7 @@ export function PhotoDetailView({
   const heartControl = (
     <HeartButton
       onPhoto
+      readOnly={isOwn}
       liked={liked}
       count={Math.max(baseHeartsValue + delta, 0)}
       onToggle={() => void toggle()}

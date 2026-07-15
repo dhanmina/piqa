@@ -14,6 +14,9 @@ type HeartButtonProps = {
   onCountPress?: () => void;
   size?: number;
   disabled?: boolean;
+  /** Own photo: the count (and its reactor list) still show — you see who hearted
+   *  you — but the heart is not a like button. You can't heart your own photo. */
+  readOnly?: boolean;
   /** Over a photo: wrap in a scrim pill + full-contrast glyph so it never washes
    *  out against a bright image. */
   onPhoto?: boolean;
@@ -25,7 +28,7 @@ type HeartButtonProps = {
  * icons (heart/flame/crown), stroke weight matched to Lucide 2.25.
  * (Glyph lives in HeartGlyph.tsx; tracked in TODO.md.)
  */
-export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, disabled = false, onPhoto = false }: HeartButtonProps) {
+export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, disabled = false, readOnly = false, onPhoto = false }: HeartButtonProps) {
   const scale = useSharedValue(1);
   const restColor = onPhoto ? colors.paper : colors.paper60; // unliked glyph / count
   // Count tracks the glyph so a big heart never gets a tiny number beside it.
@@ -36,6 +39,7 @@ export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, d
   }));
 
   const handlePress = () => {
+    if (disabled || readOnly) return;
     if (!liked) {
       scale.value = withSequence(
         withSpring(motion.heartSpring, { damping: 12, stiffness: 400 }),
@@ -49,21 +53,22 @@ export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, d
   };
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: liked, disabled }}
-      disabled={disabled}
-      hitSlop={12}
-      onPress={handlePress}
-      style={styles.row}
-    >
-      <Animated.View style={animatedStyle}>
-        <HeartGlyph
-          size={size}
-          color={disabled ? colors.paper30 : liked ? colors.heart : restColor}
-          fill={liked && !disabled ? colors.heart : 'transparent'}
-        />
-      </Animated.View>
+    <View style={styles.row}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ selected: liked, disabled: disabled || readOnly }}
+        disabled={disabled || readOnly}
+        hitSlop={12}
+        onPress={handlePress}
+      >
+        <Animated.View style={animatedStyle}>
+          <HeartGlyph
+            size={size}
+            color={disabled ? colors.paper30 : liked ? colors.heart : restColor}
+            fill={liked && !disabled ? colors.heart : 'transparent'}
+          />
+        </Animated.View>
+      </Pressable>
       {count !== undefined &&
         (onCountPress ? (
           <Pressable
@@ -83,7 +88,7 @@ export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, d
             </Mono>
           </View>
         ))}
-    </Pressable>
+    </View>
   );
 }
 
