@@ -27,7 +27,7 @@ import {
   useGalleryHearts,
   type GalleryDetailPhoto,
 } from '@lib/gallery';
-import { signThumbs } from '@lib/cache';
+import { imageCacheKey, signThumbs } from '@lib/cache';
 import { useSession } from '@lib/session';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { Button } from '@/components/atoms/Button';
@@ -68,17 +68,24 @@ export default function GalleryScreen() {
   const activePhotos = tab === 'following' ? followingPhotos : data?.photos ?? [];
   const gHearts = useGalleryHearts(activePhotos);
 
-  // Warm full-res in the background while the grid is browsed. Signed URLs are
-  // cached per path, so when a shot is opened the viewer reuses this exact URL and
-  // expo already has the bytes — fullscreen is instant AND sharp, no thumb→full-res
-  // swap (which is what blinked). Prefetch dedupes, so re-runs are cheap.
+  // Warm full-res in the background while the grid is browsed, so opening a shot
+  // is instant AND sharp — no thumb→full-res swap (that's what blinked). It MUST
+  // warm the cache under the same cacheKey FramedPhoto reads (the signed URL with
+  // the query stripped, so the disk cache survives token rotation). Image.prefetch
+  // can't set a cacheKey (expo-image v57), so it warms the rotating full URL — a
+  // key the render never looks up, leaving full-res cold on first open. loadAsync
+  // takes an ImageSource, so it can seed the exact key. Signing is cached per path;
+  // loadAsync dedupes on an already-cached key, so re-runs are cheap.
   useEffect(() => {
     const photos = tab === 'following' ? followingPhotos : data?.photos ?? [];
     const paths = photos.map((p) => p.imagePath).filter((x): x is string => !!x);
     if (paths.length === 0) return;
     let alive = true;
     void signThumbs(paths).then((m) => {
-      if (alive) void Image.prefetch([...m.values()]);
+      if (!alive) return;
+      for (const url of m.values()) {
+        void Image.loadAsync({ uri: url, cacheKey: imageCacheKey(url) }).catch(() => {});
+      }
     });
     return () => {
       alive = false;
@@ -139,6 +146,40 @@ export default function GalleryScreen() {
       followingPhotos.find((x) => x.id === p.id)) as GalleryDetailPhoto | undefined;
     setViewer(full ?? { ...p });
   };
+
+  // In-place fullscreen viewer — press a shot and the gallery zooms into the
+  // print (no route), the same feel as the archive. Shared by both tabs, so it
+  // must live outside the World-only return block. onOpenProfile closes this
+  // modal first, since it sits above the navigator.
+  const viewerModal = (
+    <Modal
+      visible={viewer !== null}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setViewer(null)}
+      statusBarTranslucent
+    >
+      {viewer && (
+        <PhotoDetailView
+          lightbox
+          id={viewer.id}
+          path={viewer.imagePath ?? viewer.thumbPath ?? ''}
+          placeholderUri={viewer.uri}
+          shooter={viewer.shooter}
+          hearts={viewer.hearts}
+          userId={viewer.userId}
+          day={viewer.dayNumber}
+          status={viewer.status}
+          frame={viewer.frameId}
+          onClose={() => setViewer(null)}
+          onOpenProfile={(uid) => {
+            setViewer(null);
+            router.push({ pathname: '/u/[id]', params: { id: uid } });
+          }}
+        />
+      )}
+    </Modal>
+  );
 
   const hasPast = tab === 'world' && (data?.past?.length ?? 0) > 0;
   const segmented = (
@@ -221,6 +262,7 @@ export default function GalleryScreen() {
             />
           </ScrollView>
         )}
+        {viewerModal}
       </SafeAreaView>
     );
   }
@@ -366,36 +408,7 @@ export default function GalleryScreen() {
         </ScrollView>
       </Sheet>
 
-      {/* In-place fullscreen viewer — press a shot and the gallery zooms into the
-          print (no route), the same feel as the archive. onOpenProfile closes this
-          modal first, since it sits above the navigator. */}
-      <Modal
-        visible={viewer !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setViewer(null)}
-        statusBarTranslucent
-      >
-        {viewer && (
-          <PhotoDetailView
-            lightbox
-            id={viewer.id}
-            path={viewer.imagePath ?? viewer.thumbPath ?? ''}
-            placeholderUri={viewer.uri}
-            shooter={viewer.shooter}
-            hearts={viewer.hearts}
-            userId={viewer.userId}
-            day={viewer.dayNumber}
-            status={viewer.status}
-            frame={viewer.frameId}
-            onClose={() => setViewer(null)}
-            onOpenProfile={(uid) => {
-              setViewer(null);
-              router.push({ pathname: '/u/[id]', params: { id: uid } });
-            }}
-          />
-        )}
-      </Modal>
+      {viewerModal}
     </SafeAreaView>
   );
 }
