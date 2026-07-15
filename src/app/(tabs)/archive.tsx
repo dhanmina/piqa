@@ -244,6 +244,15 @@ export default function ArchiveScreen() {
               </View>
               <View style={styles.grid}>
                 {section.items.map((it) => {
+                  // A syncing capture: show it now (local image) with the queued mark,
+                  // but no tap target and no star — there's no server row to act on yet.
+                  if (it.queued) {
+                    return (
+                      <View key={`${it.type}:${it.id}`} style={styles.cell}>
+                        <PhotoTile uri={it.uri} badge="queued" aspectRatio={frame.aspect} />
+                      </View>
+                    );
+                  }
                   const starred = optimisticStars[starKey(it)] ?? it.starred;
                   return (
                     <Pressable

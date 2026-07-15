@@ -1,7 +1,8 @@
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { signThumbs } from "./cache";
+import { getQueueItems, subscribeQueue, type QueueItem } from "./captureQueue";
 import { getConfig } from "./config";
 import { asFrameId, type FrameId, type PhotoStatus } from "./frames";
 import { supabase } from "./supabase";
@@ -22,6 +23,8 @@ export type ArchiveItem = {
   dayNumber: number | null;
   /** Competition result, server-owned. Free shots are always null. */
   status: PhotoStatus;
+  /** Local capture still syncing — shown from the queue before its DB row exists. */
+  queued?: boolean;
 };
 
 export type Archive = {
@@ -46,6 +49,35 @@ function deriveStatus(isPotd: boolean, rank: number | null): PhotoStatus {
 function dayOf(rel: { day_number: number } | { day_number: number }[] | null): number | null {
   if (!rel) return null;
   return Array.isArray(rel) ? (rel[0]?.day_number ?? null) : rel.day_number;
+}
+
+/**
+ * Whether a DB row is the landed copy of a queued capture. The upload writes a
+ * deterministic storage path — `free/{uid}/{id}_thumb.jpg` for free shots (carries
+ * the queue id), `{dropId}/{uid}_thumb.jpg` for daily — so the queued tile can hand
+ * off to its real row the moment that row appears.
+ */
+function rowMatchesQueued(dbThumbPath: string | null, q: QueueItem): boolean {
+  if (!dbThumbPath) return false;
+  return q.kind === "daily" && q.dropId ? dbThumbPath.includes(q.dropId) : dbThumbPath.includes(q.id);
+}
+
+/** A syncing capture rendered as a provisional archive tile (local image, no server fields). */
+function queuedToItem(q: QueueItem): ArchiveItem {
+  return {
+    id: q.id,
+    type: q.kind,
+    thumbPath: null,
+    imagePath: null,
+    uri: q.thumbUri ?? q.originalUri,
+    capturedAt: q.capturedAt,
+    starred: false,
+    inGallery: false,
+    isPotd: false,
+    dayNumber: null,
+    status: null,
+    queued: true,
+  };
 }
 
 function isThisMonth(iso: string | null): boolean {
@@ -168,7 +200,38 @@ export function useArchive() {
 
   const refresh = useCallback(() => load(() => true), [load]);
 
-  return { data, loading, error, refresh };
+  // Local-first: surface captures the instant they're taken, straight from the
+  // upload queue, instead of waiting on the compress → upload → insert round-trip
+  // (the DB query above only sees a shot once its row lands). Every other photo
+  // surface already reads the queue; the archive was the one that didn't.
+  //
+  // On each queue event we re-snapshot. The queue removes an item only AFTER it
+  // emits 'done', so that snapshot still holds the just-finished shot — it bridges
+  // (shown as queued) until the refetch below brings in its real row, at which
+  // point the merge filters it out. The stale entry is dropped on the next event.
+  const [pending, setPending] = useState<QueueItem[]>(() => [...getQueueItems()]);
+  useEffect(() => {
+    const unsubscribe = subscribeQueue((event) => {
+      setPending([...getQueueItems()]);
+      if (event.type === "done" || event.type === "duplicate") void refresh();
+    });
+    return unsubscribe;
+  }, [refresh]);
+
+  const merged = useMemo<Archive | null>(() => {
+    if (!data) return data;
+    const queued = pending
+      .filter((q) => q.status !== "blocked") // blocked = real error, surfaced on Today
+      .filter((q) => !data.items.some((db) => rowMatchesQueued(db.thumbPath, q)))
+      .map(queuedToItem);
+    if (queued.length === 0) return data;
+    const items = [...queued, ...data.items].sort(
+      (a, b) => Date.parse(b.capturedAt) - Date.parse(a.capturedAt),
+    );
+    return { ...data, items };
+  }, [data, pending]);
+
+  return { data: merged, loading, error, refresh };
 }
 
 export type StarResult = { ok: boolean; reason?: string; starred?: boolean; used?: number; cap?: number };
