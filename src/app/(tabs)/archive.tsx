@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { BookImage, CloudOff, Star, Trash2, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { deleteFreeShot, toggleStar, useArchive, type ArchiveItem } from '@lib/archive';
@@ -19,7 +20,7 @@ import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, frame, icons, photo, radius, space, typeScale } from '@/components/tokens';
+import { colors, fonts, frame, icons, motion, photo, radius, space, typeScale } from '@/components/tokens';
 
 type Filter = 'all' | 'daily' | 'starred';
 
@@ -58,6 +59,12 @@ export default function ArchiveScreen() {
   // waiting on the server round-trip + refresh. Cleared once real data lands.
   const [optimisticStars, setOptimisticStars] = useState<Record<string, boolean>>({});
   const starKey = (it: ArchiveItem) => `${it.type}:${it.id}`;
+  const isStarred = (it: ArchiveItem) => optimisticStars[starKey(it)] ?? it.starred;
+
+  // Fullscreen star: springs the glyph on the same frame the tap lands, so the
+  // fill reads as a state change, not a layout event. Never resizes anything.
+  const starScale = useSharedValue(1);
+  const starAnim = useAnimatedStyle(() => ({ transform: [{ scale: starScale.value }] }));
 
   const items = data?.items ?? [];
   const equippedFrame = data?.equippedFrame ?? 'default';
@@ -77,7 +84,10 @@ export default function ArchiveScreen() {
 
   const starsLeft = data ? Math.max(data.starsCap - data.starsUsed, 0) : 0;
 
-  const onToggleStar = async (item: ArchiveItem) => {
+  // `announce`: confirm the full-resolution guarantee via a toast on a successful
+  // star. It's the fullscreen viewer's replacement for the old inline note — a
+  // transient channel that can't shift layout. Off for the grid tile.
+  const onToggleStar = async (item: ArchiveItem, announce = false) => {
     const key = starKey(item);
     const next = !(optimisticStars[key] ?? item.starred);
     setOptimisticStars((m) => ({ ...m, [key]: next })); // flip instantly
@@ -94,6 +104,7 @@ export default function ArchiveScreen() {
       setToast(res.reason === 'cap' ? `That's all ${res.cap ?? data?.starsCap} stars this month` : 'Could not update the star');
       return;
     }
+    if (announce && next) setToast('Starred · kept at full resolution');
     setSelected((s) => (s ? { ...s, starred: res.starred ?? s.starred } : s));
     await refresh();
     // Real data now reflects the star; drop the optimistic override.
@@ -102,6 +113,22 @@ export default function ArchiveScreen() {
       delete copy[key];
       return copy;
     });
+  };
+
+  // Fullscreen star tap: spring + haptic (matching HeartButton) on the frame the
+  // tap lands, then the shared optimistic toggle. `announce` fires the full-res toast.
+  const onViewerStar = () => {
+    if (!selected || busy) return;
+    if (!isStarred(selected)) {
+      starScale.value = withSequence(
+        withSpring(motion.heartSpring, { damping: 12, stiffness: 400 }),
+        withTiming(1, { duration: 120 }),
+      );
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    void onToggleStar(selected, true);
   };
 
   const onDelete = async (item: ArchiveItem) => {
@@ -320,45 +347,25 @@ export default function ArchiveScreen() {
 
             <SafeAreaView edges={['bottom']} style={styles.viewerBarSafe} pointerEvents="box-none">
               <View style={styles.viewerBar}>
+                {/* Meta is height-stable: three constant lines. The quota reads the
+                    same in both star states (only the digit changes), so nothing
+                    reflows on toggle. */}
                 <View style={styles.viewerMeta}>
                   <Mono size={typeScale.sub} color={colors.paper}>
                     {capturedStamp(selected.capturedAt)}
                   </Mono>
-                  <Text style={styles.sheetMeta}>{metaLine(selected)}</Text>
-                  {selected.starred ? (
-                    <View style={styles.starLine}>
-                      <Star size={12} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
-                      <Text style={styles.starText}>Starred · full resolution</Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.antiRansom}>
-                      Starred shots keep full resolution. {starsLeft} of {data?.starsCap ?? 5} stars left this month.
-                    </Text>
-                  )}
+                  <Text style={styles.sheetMeta} numberOfLines={1}>
+                    {metaLine(selected)}
+                  </Text>
+                  <Text style={styles.viewerQuota} numberOfLines={1}>
+                    {starsLeft} of {data?.starsCap ?? 5} stars left this month
+                  </Text>
                 </View>
 
+                {/* Fixed icon buttons. Star is pinned to the right edge; delete
+                    inserts to its left for practice shots, so the star never moves
+                    between daily and practice. */}
                 <View style={styles.viewerActions}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={selected.starred ? 'Unstar shot' : 'Star shot'}
-                    disabled={busy}
-                    style={styles.viewerAction}
-                    onPress={() => {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      void onToggleStar(selected);
-                    }}
-                  >
-                    <Star
-                      size={20}
-                      strokeWidth={icons.strokeWidth}
-                      color={selected.starred ? colors.safelight : colors.paper}
-                      fill={selected.starred ? colors.safelight : 'transparent'}
-                    />
-                    <Text style={[styles.viewerActionLabel, selected.starred && { color: colors.safelight }]}>
-                      {selected.starred ? 'Starred' : 'Star'}
-                    </Text>
-                  </Pressable>
-
                   {selected.type === 'free' && (
                     <Pressable
                       accessibilityRole="button"
@@ -368,9 +375,25 @@ export default function ArchiveScreen() {
                       onPress={() => void onDelete(selected)}
                     >
                       <Trash2 size={20} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-                      <Text style={styles.viewerActionLabel}>Delete</Text>
                     </Pressable>
                   )}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={isStarred(selected) ? 'Unstar shot' : 'Star shot'}
+                    accessibilityState={{ selected: isStarred(selected), disabled: busy }}
+                    disabled={busy}
+                    style={styles.viewerAction}
+                    onPress={onViewerStar}
+                  >
+                    <Animated.View style={starAnim}>
+                      <Star
+                        size={20}
+                        strokeWidth={icons.strokeWidth}
+                        color={isStarred(selected) ? colors.safelight : colors.paper}
+                        fill={isStarred(selected) ? colors.safelight : 'transparent'}
+                      />
+                    </Animated.View>
+                  </Pressable>
                 </View>
               </View>
             </SafeAreaView>
@@ -415,25 +438,18 @@ const styles = StyleSheet.create({
   emptyFilter: { paddingVertical: GUTTER * 2, alignItems: 'center' },
   emptyFilterLine: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center' },
   sheetMeta: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
-  starLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
-  starText: { fontFamily: fonts.sansMedium, fontSize: typeScale.caption, color: colors.safelight },
-  antiRansom: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60, marginTop: 2 },
   // Fullscreen viewer: near-opaque backdrop so the print reads as a single object.
   viewer: { flex: 1, backgroundColor: 'rgba(12,11,10,0.97)', justifyContent: 'center', alignItems: 'center' },
   viewerStage: { alignItems: 'center', justifyContent: 'center' },
   viewerClose: { position: 'absolute', top: 0, right: 0, padding: GUTTER },
   closeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   viewerBarSafe: { position: 'absolute', left: 0, right: 0, bottom: 0 },
-  viewerBar: { padding: GUTTER, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 },
+  // Center-aligned so the meta column and the icon cluster are vertically
+  // independent — neither can push the other when the star toggles.
+  viewerBar: { padding: GUTTER, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
   viewerMeta: { flex: 1, gap: 4 },
-  viewerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  viewerAction: {
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: radius.pill,
-    backgroundColor: colors.ink2,
-  },
-  viewerActionLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.caption, color: colors.paper },
+  viewerQuota: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
+  viewerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  // Fixed 44x44 tap target, icon-only: no label means no width change on toggle.
+  viewerAction: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.ink2, alignItems: 'center', justifyContent: 'center' },
 });
