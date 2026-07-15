@@ -688,6 +688,7 @@ export type Database = {
       dev_reset_day: { Args: never; Returns: Json }
       dev_reset_drop: { Args: { p_drop: string }; Returns: undefined }
       dev_run_close_day: { Args: never; Returns: Json }
+      dev_seed_submissions: { Args: { p_count?: number }; Returns: Json }
       dev_seed_votes: { Args: never; Returns: Json }
       dev_sim_game: {
         Args: {

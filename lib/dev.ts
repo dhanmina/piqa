@@ -33,6 +33,7 @@ export type DevStatus = {
 
 type DevRpc =
   | "dev_force_drop"
+  | "dev_seed_submissions"
   | "dev_seed_votes"
   | "dev_run_close_day"
   | "dev_reset_day"
@@ -50,6 +51,7 @@ async function call<T>(fn: DevRpc, args?: Record<string, unknown>): Promise<T> {
 }
 
 export const devForceDrop = () => call<Record<string, unknown>>("dev_force_drop");
+export const devSeedSubmissions = () => call<Record<string, unknown>>("dev_seed_submissions");
 export const devSeedVotes = () => call<Record<string, unknown>>("dev_seed_votes");
 export const devRunCloseDay = () => call<Record<string, unknown>>("dev_run_close_day");
 export const devResetDay = () => call<Record<string, unknown>>("dev_reset_day");
