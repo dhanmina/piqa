@@ -94,7 +94,12 @@ export default function TodayScreen() {
   );
 
   const submitted = Boolean(submission || pending);
-  const votingOpen = Boolean(drop) && Date.now() < Date.parse(drop!.voting_closes_at);
+  // The server returns a drop only while it's votable (now within
+  // [drops_at, voting_closes_at) — the same bounds get_matchup uses), so the drop's
+  // presence IS the "voting is open" signal. Re-deriving it from the device clock
+  // (Date.now() vs voting_closes_at) only ever produced false negatives on clock
+  // skew / stale cache, hiding the Curate action after a valid submission.
+  const votingOpen = Boolean(drop);
   const brandNew = (streak?.current_weeks ?? 0) === 0 && (streak?.days_this_week ?? 0) === 0;
   const quickDrawUntil = drop
     ? new Date(Date.parse(drop.drops_at) + quickDrawMinutes * 60_000)
@@ -111,6 +116,32 @@ export default function TodayScreen() {
     month: 'short',
     day: '2-digit',
   });
+
+  // The "while you wait" action, shared by WAITING and DONE so they can't drift:
+  // curate when a drop is votable, otherwise a practice shot. (These live here
+  // because the tab bar deliberately can't reach curate or practice.)
+  const whileYouWait = (
+    <View style={styles.actionBlock}>
+      <Mono size={typeScale.caption} color={colors.paper60}>
+        WHILE YOU WAIT
+      </Mono>
+      {votingOpen && drop ? (
+        <Button
+          label="Curate today’s shots"
+          variant="ghost"
+          fullWidth
+          onPress={() => router.push('/curate')}
+        />
+      ) : (
+        <Button
+          label="Take a practice shot"
+          variant="ghost"
+          fullWidth
+          onPress={() => router.push('/camera?practice=1')}
+        />
+      )}
+    </View>
+  );
 
   // Never hardcode the reveal hour: voting closes at 08:00 Asia/Manila and is swept
   // hourly, so a literal "9am" was both an hour late and wrong outside that region.
@@ -296,18 +327,9 @@ export default function TodayScreen() {
             tab bar CAN'T reach (curate and practice have no tab, deliberately). The
             gallery has one — plus the print above is its door, and the Gallery tab
             wears the unseen-reveal dot. DONE is WAITING with a result, so it offers
-            what WAITING offers once voting has closed. */}
-        <View style={styles.actionBlock}>
-          <Mono size={typeScale.caption} color={colors.paper60}>
-            WHILE YOU WAIT
-          </Mono>
-          <Button
-            label="Take a practice shot"
-            variant="ghost"
-            fullWidth
-            onPress={() => router.push('/camera?practice=1')}
-          />
-        </View>
+            exactly what WAITING offers — curate while a drop is votable (a new round
+            can be live while yesterday's result still shows), else a practice shot. */}
+        {whileYouWait}
       </View>
     );
   } else {
@@ -348,26 +370,7 @@ export default function TodayScreen() {
           )}
         </View>
 
-        <View style={styles.actionBlock}>
-          <Mono size={typeScale.caption} color={colors.paper60}>
-            WHILE YOU WAIT
-          </Mono>
-          {votingOpen && drop ? (
-            <Button
-              label="Curate today’s shots"
-              variant="ghost"
-              onPress={() => router.push('/curate')}
-              fullWidth
-            />
-          ) : (
-            <Button
-              label="Take a practice shot"
-              variant="ghost"
-              onPress={() => router.push('/camera?practice=1')}
-              fullWidth
-            />
-          )}
-        </View>
+        {whileYouWait}
       </View>
     );
   }
