@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 
@@ -30,6 +31,61 @@ function emit(key: string) {
   subscribers.get(key)?.forEach((fn) => fn());
 }
 
+// --- disk persistence (survive cold starts) --------------------------------
+// The RPC store is mirrored to AsyncStorage so a relaunch paints last-known data
+// instantly (stale-while-revalidate) instead of a skeleton, and does one quiet
+// background revalidate instead of a burst of cold fetches. Only RPC payloads
+// persist — never signed URLs, which expire. Wiped on sign-out.
+const PERSIST_PREFIX = "rpccache:";
+let hydrated = false;
+
+function persistEntry(key: string, entry: Entry) {
+  void AsyncStorage.setItem(PERSIST_PREFIX + key, JSON.stringify(entry)).catch(() => {});
+}
+
+/**
+ * Load persisted entries into memory once, at startup, before the first screen
+ * mounts. Never clobbers a value already fetched fresh this session.
+ */
+export async function hydrateCache(): Promise<void> {
+  if (hydrated) return;
+  hydrated = true;
+  try {
+    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith(PERSIST_PREFIX));
+    if (keys.length === 0) return;
+    const raws = await Promise.all(keys.map((k) => AsyncStorage.getItem(k).catch(() => null)));
+    keys.forEach((pk, i) => {
+      const raw = raws[i];
+      if (!raw) return;
+      const key = pk.slice(PERSIST_PREFIX.length);
+      if (store.has(key)) return; // a live fetch already won this session
+      try {
+        store.set(key, JSON.parse(raw) as Entry);
+        emit(key);
+      } catch {
+        /* corrupt entry — skip it */
+      }
+    });
+  } catch {
+    /* storage unavailable — run memory-only */
+  }
+}
+
+/** Wipe cache (memory + disk) on sign-out so the next account starts clean. */
+export async function clearPersistedCache(): Promise<void> {
+  const keys = [...store.keys()];
+  store.clear();
+  inflight.clear();
+  errors.clear();
+  keys.forEach(emit);
+  try {
+    const pk = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith(PERSIST_PREFIX));
+    await Promise.all(pk.map((k) => AsyncStorage.removeItem(k).catch(() => {})));
+  } catch {
+    /* best-effort */
+  }
+}
+
 function peek<T>(key: string): { value: T; at: number } | undefined {
   return store.get(key) as { value: T; at: number } | undefined;
 }
@@ -37,6 +93,7 @@ function peek<T>(key: string): { value: T; at: number } | undefined {
 /** Drop a key so the next read refetches (e.g. after a submission lands). */
 export function invalidate(key: string) {
   store.delete(key);
+  void AsyncStorage.removeItem(PERSIST_PREFIX + key).catch(() => {});
   emit(key);
 }
 
@@ -61,7 +118,9 @@ export async function fetchKey<T>(key: string, fetcher: () => Promise<T>): Promi
   const p = (async () => {
     try {
       const value = await fetcher();
-      store.set(key, { value, at: Date.now() });
+      const entry = { value, at: Date.now() };
+      store.set(key, entry);
+      persistEntry(key, entry); // mirror to disk for the next cold start
       errors.delete(key); // recovered
       emit(key);
       return value;
