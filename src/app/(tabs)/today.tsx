@@ -103,6 +103,20 @@ export default function TodayScreen() {
   // skew / stale cache, hiding the Curate action after a valid submission.
   const votingOpen = Boolean(drop);
   const brandNew = (streak?.current_weeks ?? 0) === 0 && (streak?.days_this_week ?? 0) === 0;
+  // A quiet caption under the flame that teaches the rhythm, then gets out of the
+  // way once you know it (after the first week). current_weeks carries days-alive.
+  const streakDays = streak?.current_weeks ?? 0;
+  const streakCaption: string | null = brandNew
+    ? 'Your first shot lights the flame'
+    : !streak?.is_alive
+      ? 'Shoot today to light it again'
+      : streakDays <= 1
+        ? 'Flame lit. Shoot 4 days a week to keep it.'
+        : streakDays <= 7
+          ? (streak?.shields ?? 0) > 0
+            ? 'Shoot 4 days a week to keep it. A missed day is covered.'
+            : 'Shoot 4 days a week to keep it.'
+          : null;
   const quickDrawUntil = drop
     ? new Date(Date.parse(drop.drops_at) + quickDrawMinutes * 60_000)
     : undefined;
@@ -397,7 +411,7 @@ export default function TodayScreen() {
               alive={streak?.is_alive ?? false}
               shields={streak?.shields ?? 0}
             />
-            {brandNew && <Text style={styles.dayZero}>Day 0 · your first shot starts it</Text>}
+            {streakCaption && <Text style={styles.dayZero}>{streakCaption}</Text>}
           </View>
           <Mono size={typeScale.caption} color={colors.paper60}>
             {dateLine}
