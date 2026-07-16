@@ -5,20 +5,29 @@ import { Mono } from '@/components/atoms/Mono';
 import { colors, icons, typeScale } from '@/components/tokens';
 
 type StreakFlameProps = {
-  weeks: number;
-  daysThisWeek: number; // 0–7; the weekly goal is 4 of 7
+  /** Days the flame has been alive (0 = not lit). */
+  days: number;
   alive?: boolean;
   shields?: number; // a held shield rides one missed day; shown only when > 0
+  /** The real last-7-days pattern, oldest first, index 6 = today. */
+  last7?: boolean[];
+  /** Fallback when last7 isn't wired (dev showcase): a 0–7 count. */
+  daysThisWeek?: number;
 };
-
-const WEEK_GOAL_DOT = 3; // 4th dot = goal met
 
 /**
  * No guilt state: a dead streak is just an unfilled flame, never a broken one.
- * Streak is a safelight surface (spec: accent = actions, streak, live). A held
- * shield reads as protection (paper, calm), never as a warning.
+ * Streak is a safelight surface (spec: accent = actions, streak, live). The dots
+ * are the ACTUAL last seven days — a day you shot always lights its dot, today's
+ * is ringed — so the sliding window reads honestly instead of a decrementing
+ * count. A held shield reads as protection (paper, calm), never as a warning.
  */
-export function StreakFlame({ weeks, daysThisWeek, alive = true, shields = 0 }: StreakFlameProps) {
+export function StreakFlame({ days, alive = true, shields = 0, last7, daysThisWeek }: StreakFlameProps) {
+  // Full 7-day pattern when we have it; otherwise a count-based fallback (dev
+  // showcase, or the brief moment before the pattern loads) so 7 dots always show.
+  const pattern =
+    last7 && last7.length === 7 ? last7 : Array.from({ length: 7 }, (_, i) => i < (daysThisWeek ?? 0));
+
   return (
     <View style={styles.row}>
       <Flame
@@ -28,21 +37,13 @@ export function StreakFlame({ weeks, daysThisWeek, alive = true, shields = 0 }: 
         fill={alive ? colors.safelight : 'transparent'}
       />
       <Mono weight="semibold" size={typeScale.body} color={alive ? colors.paper : colors.paper60}>
-        {weeks}
+        {days}
       </Mono>
       <View style={styles.dots}>
-        {Array.from({ length: 7 }, (_, i) => {
-          const filled = i < daysThisWeek;
-          const isGoal = i === WEEK_GOAL_DOT;
+        {pattern.map((filled, i) => {
+          const isToday = i === pattern.length - 1;
           return (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                isGoal && styles.goalDot,
-                filled ? styles.dotFilled : styles.dotEmpty,
-              ]}
-            />
+            <View key={i} style={[styles.dot, filled ? styles.dotFilled : styles.dotEmpty, isToday && styles.today]} />
           );
         })}
       </View>
@@ -61,39 +62,12 @@ export function StreakFlame({ weeks, daysThisWeek, alive = true, shields = 0 }: 
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginLeft: 4,
-  },
-  shield: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginLeft: 4,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  goalDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  dotFilled: {
-    backgroundColor: colors.safelight,
-  },
-  dotEmpty: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.paper30,
-  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dots: { flexDirection: 'row', alignItems: 'center', gap: 5, marginLeft: 4 },
+  shield: { flexDirection: 'row', alignItems: 'center', gap: 2, marginLeft: 4 },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  dotFilled: { backgroundColor: colors.safelight },
+  dotEmpty: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.paper30 },
+  // Today's dot is ringed so the window's leading edge is always legible.
+  today: { width: 9, height: 9, borderRadius: 4.5, borderWidth: 1.5, borderColor: colors.paper60 },
 });

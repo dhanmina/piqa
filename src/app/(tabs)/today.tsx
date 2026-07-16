@@ -17,6 +17,7 @@ import { getPendingItemForDrop, retryBlocked, subscribeQueue, type QueueItem } f
 import { getConfig } from '@lib/config';
 import { markResultSeen, useSignedThumb } from '@lib/gallery';
 import { useHomeState } from '@lib/homeState';
+import { useLast7Pattern } from '@lib/streak';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
@@ -76,6 +77,7 @@ export default function TodayScreen() {
   const drop = data?.drop ?? null;
   const submission = data?.submission ?? null;
   const streak = data?.streak ?? null;
+  const last7 = useLast7Pattern();
   const potd = data?.yesterday_potd ?? null;
   const lastResult = data?.last_result ?? null;
   const pending: QueueItem | undefined = drop ? getPendingItemForDrop(drop.id) : undefined;
@@ -390,8 +392,8 @@ export default function TodayScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <StreakFlame
-              weeks={streak?.current_weeks ?? 0}
-              daysThisWeek={streak?.days_this_week ?? 0}
+              days={streak?.current_weeks ?? 0}
+              last7={last7}
               alive={streak?.is_alive ?? false}
               shields={streak?.shields ?? 0}
             />

@@ -153,9 +153,9 @@ export default function DarkroomKit() {
         </Section>
 
         <Section title="StreakFlame — no guilt state">
-          <StreakFlame weeks={6} daysThisWeek={4} alive />
-          <Caption>alive — goal met (4th dot is the goal)</Caption>
-          <StreakFlame weeks={0} daysThisWeek={0} alive={false} />
+          <StreakFlame days={12} last7={[true, true, false, true, true, false, true]} alive shields={1} />
+          <Caption>alive · days count · real last-7 dots, today ringed</Caption>
+          <StreakFlame days={0} last7={[false, false, false, false, false, false, false]} alive={false} />
           <Caption>lapsed — just an unfilled flame, never broken</Caption>
         </Section>
 
