@@ -16,6 +16,8 @@ type MatchupPairProps = {
   /** 1-based position within the set, e.g. 7 of 10. */
   index: number;
   total: number;
+  /** The theme being judged — shown so the pick is about fit, not just looks. */
+  theme?: string | null;
   onPick?: (winner: 'top' | 'bottom') => void;
   onSkip?: () => void;
   /** Report the offending photo. A tap on top of the photo, never a pick. */
@@ -37,7 +39,7 @@ const EDGE = 20; // generous corner clearance so no chip kisses a rounded corner
  * report lives at each photo's outer-right corner. Everything shares one chip
  * language and keeps EDGE clearance from the screen edges.
  */
-export function MatchupPair({ topUri, bottomUri, index, total, onPick, onSkip, onReport, onClose }: MatchupPairProps) {
+export function MatchupPair({ topUri, bottomUri, index, total, theme, onPick, onSkip, onReport, onClose }: MatchupPairProps) {
   const insets = useSafeAreaInsets();
 
   const topSel = useSharedValue(0);
@@ -125,6 +127,16 @@ export function MatchupPair({ topUri, bottomUri, index, total, onPick, onSkip, o
         <View style={[styles.barSide, styles.barRight]}>{reportChip('top')}</View>
       </View>
 
+      {/* The brief, centered under the top bar: curation stays blind to the
+          shooter, never to the theme — so every pick judges fit, not just looks. */}
+      {theme ? (
+        <View pointerEvents="none" style={[styles.themeWrap, { top: insets.top + 52 }]}>
+          <Text style={styles.themeChip} numberOfLines={2}>
+            {theme}
+          </Text>
+        </View>
+      ) : null}
+
       {/* Report(bottom) at the bottom photo's outer corner. */}
       <View pointerEvents="box-none" style={[styles.bottomRight, { bottom: insets.bottom + 16 }]}>
         {reportChip('bottom')}
@@ -184,6 +196,19 @@ const styles = StyleSheet.create({
   segPending: { backgroundColor: colors.paper40 },
   // One chip language for the corner controls.
   chip: { padding: 8, borderRadius: radius.pill, backgroundColor: overlay.chip },
+  themeWrap: { position: 'absolute', left: EDGE, right: EDGE, alignItems: 'center' },
+  themeChip: {
+    fontFamily: fonts.sansMedium,
+    fontSize: typeScale.caption,
+    color: colors.paper,
+    textAlign: 'center',
+    maxWidth: '90%',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+    backgroundColor: overlay.chip,
+    overflow: 'hidden',
+  },
   bottomRight: { position: 'absolute', right: EDGE, flexDirection: 'row', justifyContent: 'flex-end' },
   skipRow: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   skipChip: {
