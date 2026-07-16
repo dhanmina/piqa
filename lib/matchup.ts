@@ -7,6 +7,8 @@ import { supabase } from "./supabase";
 export type MatchupPhoto = { id: string; thumb_path: string | null };
 export type MatchupSet = {
   dropId: string | null;
+  /** The theme being judged, so curation can frame the pick around fit. */
+  prompt: string | null;
   remaining: number;
   capped: boolean;
   /** Signed, ready-to-render pairs. */
@@ -15,6 +17,7 @@ export type MatchupSet = {
 
 type RawMatchup = {
   drop_id: string | null;
+  prompt: string | null;
   remaining: number;
   capped: boolean;
   pairs: { a: MatchupPhoto; b: MatchupPhoto }[];
@@ -47,7 +50,7 @@ export async function fetchMatchupSet(): Promise<MatchupSet> {
   const all = pairs.flatMap((p) => [p.aUri, p.bUri]).filter((u): u is string => !!u);
   if (all.length > 0) void Image.prefetch(all);
 
-  return { dropId: raw.drop_id, remaining: raw.remaining, capped: raw.capped, pairs };
+  return { dropId: raw.drop_id, prompt: raw.prompt ?? null, remaining: raw.remaining, capped: raw.capped, pairs };
 }
 
 export type VoteResult = { ok: boolean; reason?: string; remaining?: number };

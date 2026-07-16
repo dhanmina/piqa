@@ -201,6 +201,7 @@ export default function CurateScreen() {
           bottomUri={pair.bUri ?? ''}
           index={idx + 1}
           total={set!.pairs.length}
+          theme={set!.prompt}
           onPick={onPick}
           onSkip={onSkip}
           onReport={onReport}
