@@ -1,5 +1,5 @@
 /**
- * Archive — the private journal (spec §11c). Filter chips (All · Daily · Starred),
+ * Archive — the private journal (spec §11c). Filter chips (All · Daily · Practice · Starred),
  * month-grouped grid newest-first, entries badged (bracket-mini / crown / star).
  * Tap a shot → action sheet: star (5/mo, anti-ransom messaging lives here) and
  * delete. Never empty as absence: the zero state is an invitation to shoot.
@@ -24,7 +24,7 @@ import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, frame, icons, motion, photo, radius, space, typeScale } from '@/components/tokens';
 
-type Filter = 'all' | 'daily' | 'starred';
+type Filter = 'all' | 'daily' | 'practice' | 'starred';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 // Cap the fullscreen photo's height so the action bar always clears it, then let
@@ -94,7 +94,13 @@ export default function ArchiveScreen() {
   const viewerFull = useSignedThumb(selected?.starred ? selected.imagePath : null);
 
   const filtered = items.filter((it) =>
-    filter === 'all' ? true : filter === 'daily' ? it.type === 'daily' : it.starred,
+    filter === 'all'
+      ? true
+      : filter === 'daily'
+        ? it.type === 'daily'
+        : filter === 'practice'
+          ? it.type === 'free'
+          : it.starred,
   );
 
   // Group the filtered items into month sections, newest first.
@@ -200,6 +206,7 @@ export default function ArchiveScreen() {
           </View>
           <View style={styles.chips}>
             <View style={styles.skelChip} />
+            <View style={styles.skelChip} />
             <View style={styles.skelChipWide} />
             <View style={styles.skelChip} />
           </View>
@@ -246,14 +253,21 @@ export default function ArchiveScreen() {
 
         <View style={styles.chips}>
           <Chip label="All" selected={filter === 'all'} onPress={() => setFilter('all')} />
-          <Chip label="Daily Shots" selected={filter === 'daily'} onPress={() => setFilter('daily')} />
+          <Chip label="Daily" selected={filter === 'daily'} onPress={() => setFilter('daily')} />
+          <Chip label="Practice" selected={filter === 'practice'} onPress={() => setFilter('practice')} />
           <Chip label="Starred" selected={filter === 'starred'} onPress={() => setFilter('starred')} />
         </View>
 
         {filtered.length === 0 ? (
           <View style={styles.emptyFilter}>
             <Text style={styles.emptyFilterLine}>
-              {filter === 'starred' ? 'No starred shots yet. Star one to keep it full resolution.' : 'Nothing here yet.'}
+              {filter === 'starred'
+                ? 'No starred shots yet. Star one to keep it full resolution.'
+                : filter === 'practice'
+                  ? 'No practice shots yet. Take one anytime to warm up.'
+                  : filter === 'daily'
+                    ? 'No daily shots yet. Your daily photos land here.'
+                    : 'Nothing here yet.'}
             </Text>
           </View>
         ) : (
@@ -447,7 +461,7 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   unit: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper60 },
   sinceLine: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
-  chips: { flexDirection: 'row', gap: 8 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   section: { gap: 10 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
