@@ -197,7 +197,7 @@ export default function CameraScreen() {
             {live && drop ? (
               <>
                 <Mono size={typeScale.caption} weight="medium" color={colors.safelight}>
-                  TODAY’S BRIEF
+                  TODAY’S THEME
                 </Mono>
                 <Text style={styles.briefPrompt} numberOfLines={3}>
                   {drop.prompt}
