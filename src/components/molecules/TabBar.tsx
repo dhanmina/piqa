@@ -109,7 +109,14 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
     <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
       {renderTab('today')}
       {renderTab('gallery')}
-      <Shutter state={shutterState} onPress={() => router.push('/camera')} />
+      <Shutter
+        state={shutterState}
+        onPress={() =>
+          // Daily's in → any further shot is practice; be explicit so a still-
+          // pending upload can never be mistaken for a second daily submission.
+          router.push(shutterState === 'done' ? { pathname: '/camera', params: { practice: '1' } } : '/camera')
+        }
+      />
       {renderTab('archive')}
       {renderTab('profile')}
     </View>
