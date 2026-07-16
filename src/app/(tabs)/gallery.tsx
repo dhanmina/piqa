@@ -12,8 +12,8 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
-import { Calendar, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { ArrowLeft, Calendar, ChevronRight, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -39,8 +39,12 @@ import { GalleryGrid, GalleryGridSkeleton, type GalleryPhoto } from '@/component
 import { Sheet } from '@/components/molecules/Sheet';
 import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
 
-const shortDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
+// Row eyebrow drops the month — the section header carries it, so rows read "SUN 13".
+const issueDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).toUpperCase();
+
+const monthLabel = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
 
 const longDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -138,6 +142,21 @@ export default function GalleryScreen() {
       alive = false;
     };
   }, [data, selectedDropId]);
+
+  // Group back-issues into month sections so a long archive stays legible and
+  // you can orient by month instead of scrolling one flat list (kept in the
+  // payload's order, newest first).
+  const pastGroups = useMemo(() => {
+    type PastEntry = { drop_id: string; drop_date: string; prompt: string | null };
+    const groups: { key: string; label: string; items: PastEntry[] }[] = [];
+    for (const g of data?.past ?? []) {
+      const label = monthLabel(g.drop_date);
+      const last = groups[groups.length - 1];
+      if (last && last.label === label) last.items.push(g);
+      else groups.push({ key: label, label, items: [g] });
+    }
+    return groups;
+  }, [data?.past]);
 
   // Open the shot in-place (fullscreen modal on this tab) rather than routing to
   // /photo/[id] — the gallery zooms into the print, like the archive viewer.
@@ -386,24 +405,48 @@ export default function GalleryScreen() {
       )}
 
       <Sheet visible={showPast} onClose={() => setShowPast(false)} title="Past galleries">
+        {/* Viewing a back-issue only lists issues older than it, so pin a way home
+            here — otherwise the only route to latest is closing the sheet. */}
+        {viewingPast && (
+          <Pressable
+            accessibilityRole="button"
+            style={styles.pastLatestRow}
+            onPress={() => {
+              setSelectedDropId(null);
+              setShowPast(false);
+            }}
+          >
+            <ArrowLeft size={16} strokeWidth={icons.strokeWidth} color={colors.safelight} />
+            <Text style={styles.pastLatestText}>Back to the latest gallery</Text>
+          </Pressable>
+        )}
+        <Text style={styles.pastIntro}>Tap a gallery to open it again.</Text>
         <ScrollView style={styles.pastScroll}>
-          {(data.past ?? []).map((g) => (
-            <Pressable
-              key={g.drop_id}
-              accessibilityRole="button"
-              style={styles.pastRow}
-              onPress={() => {
-                setSelectedDropId(g.drop_id);
-                setShowPast(false);
-              }}
-            >
-              <Mono size={typeScale.caption} color={colors.safelight}>
-                {shortDate(g.drop_date)}
-              </Mono>
-              <Text style={styles.pastPrompt} numberOfLines={1}>
-                {g.prompt ?? '—'}
-              </Text>
-            </Pressable>
+          {pastGroups.map((grp) => (
+            <View key={grp.key}>
+              <Text style={styles.pastMonth}>{grp.label}</Text>
+              {grp.items.map((g) => (
+                <Pressable
+                  key={g.drop_id}
+                  accessibilityRole="button"
+                  style={styles.pastRow}
+                  onPress={() => {
+                    setSelectedDropId(g.drop_id);
+                    setShowPast(false);
+                  }}
+                >
+                  <View style={styles.pastRowText}>
+                    <Mono size={typeScale.caption} color={colors.paper60} style={styles.pastEyebrow}>
+                      {issueDate(g.drop_date)}
+                    </Mono>
+                    <Text style={styles.pastTitle} numberOfLines={2}>
+                      {g.prompt ?? 'Untitled gallery'}
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} strokeWidth={icons.strokeWidth} color={colors.paper40} />
+                </Pressable>
+              ))}
+            </View>
           ))}
         </ScrollView>
       </Sheet>
@@ -461,16 +504,29 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center' },
   endCard: { gap: 14 },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginTop: 8 },
+  pastLatestRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 },
+  pastLatestText: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.safelight },
+  pastIntro: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60, marginBottom: 4 },
   pastScroll: { maxHeight: 360 },
+  pastMonth: {
+    fontFamily: fonts.monoMedium,
+    fontSize: typeScale.caption,
+    letterSpacing: 1.5,
+    color: colors.paper60,
+    paddingTop: 18,
+    paddingBottom: 6,
+  },
   pastRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.ink2,
   },
-  pastPrompt: { flex: 1, fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper },
+  pastRowText: { flex: 1, gap: 4 },
+  pastEyebrow: { letterSpacing: 1 },
+  pastTitle: { fontFamily: displayFamily, fontSize: typeScale.body, lineHeight: typeScale.body * 1.15, color: colors.paper },
   teaser: { alignItems: 'center', gap: 6, paddingTop: 8 },
   teaserSoft: { fontFamily: displayFamily, fontSize: typeScale.sub, color: colors.paper60 },
 });
