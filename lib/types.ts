@@ -712,6 +712,7 @@ export type Database = {
         Args: { p_photos: Json; p_viewer: string }
         Returns: Json
       }
+      email_exists: { Args: { p_email: string }; Returns: boolean }
       get_following_gallery: { Args: never; Returns: Json }
       get_gallery: { Args: { p_drop?: string }; Returns: Json }
       get_home_state: { Args: never; Returns: Json }
