@@ -2,10 +2,11 @@ import * as Font from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { initCaptureQueue } from '@lib/captureQueue';
 import { FrameCatalogProvider } from '@lib/frames';
+import { prefetchEssentials } from '@lib/prefetch';
 import { registerForPush } from '@lib/push';
 import { SessionProvider, useSession } from '@lib/session';
 import { useAppFonts } from '@/components/fonts';
@@ -20,6 +21,19 @@ function RootNavigator() {
   // fully without it, so a failure never blocks anything.
   useEffect(() => {
     if (session) void registerForPush();
+  }, [session]);
+
+  // Warm the first screens once per login (keyed on user id, so token refreshes
+  // don't re-fetch). Runs after the cache has hydrated, so it only fills gaps.
+  const prefetchedFor = useRef<string | null>(null);
+  useEffect(() => {
+    const uid = session?.user.id ?? null;
+    if (uid && uid !== prefetchedFor.current) {
+      prefetchedFor.current = uid;
+      void prefetchEssentials();
+    } else if (!uid) {
+      prefetchedFor.current = null;
+    }
   }, [session]);
 
   if (loading) return null; // splash stays up until the stored session is read

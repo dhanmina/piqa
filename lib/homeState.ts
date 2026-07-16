@@ -87,7 +87,7 @@ export const HOME_KEY = "home_state";
 // (close/reveal), never within a minute. So focus revisits can serve cache.
 const HOME_TTL_MS = 60_000;
 
-async function fetchHomeState(): Promise<HomeState> {
+export async function fetchHomeState(): Promise<HomeState> {
   const { data, error } = await supabase.rpc("get_home_state");
   if (error) throw new Error(error.message);
   return data as unknown as HomeState;

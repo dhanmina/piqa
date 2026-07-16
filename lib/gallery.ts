@@ -83,7 +83,7 @@ export type GalleryFeed = {
   nextDropAt: string | null;
 };
 
-async function loadGallery(dropId: string | null): Promise<GalleryFeed> {
+export async function loadGallery(dropId: string | null): Promise<GalleryFeed> {
   // null (latest) → omit the arg so the RPC's `default null` applies.
   const { data: res, error } = await supabase.rpc("get_gallery", { p_drop: dropId ?? undefined });
   if (error) throw error;
