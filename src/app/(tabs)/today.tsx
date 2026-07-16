@@ -1,6 +1,6 @@
 /**
  * Today — a state machine, no sub-tabs (spec §11c). Three shapes:
- *   (a) no live drop  → WAITING: countdown to next drop + yesterday's winner +
+ *   (a) no live drop  → WAITING: countdown to next drop + yesterday's Photo of the Day +
  *                        one "while you wait" action (curate or practice shot)
  *   (b) live, unsubmitted → ShotCard
  *   (c) submitted     → bracket-framed shot + queue status line
@@ -362,11 +362,11 @@ export default function TodayScreen() {
           {potd && (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="View yesterday's winning gallery"
+              accessibilityLabel="View yesterday's gallery"
               onPress={() => router.push('/(tabs)/gallery')}
             >
               <Mono size={typeScale.caption} color={colors.paper60}>
-                YESTERDAY’S WINNER
+                YESTERDAY’S PHOTO OF THE DAY
               </Mono>
               <View style={styles.potdSpacer} />
               {/* The winner wears their own frame and their own crown — the tile
