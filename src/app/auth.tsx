@@ -56,7 +56,7 @@ export default function AuthScreen() {
         ? 'Enter your code'
         : 'Welcome back';
   const sub = isSignup
-    ? 'One brief a day. Your best shot.'
+    ? 'One theme a day. Your best shot.'
     : isForgot
       ? "Enter your email and we'll send a reset code."
       : isReset
