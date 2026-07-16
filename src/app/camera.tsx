@@ -26,7 +26,7 @@ import { Brackets } from '@/components/molecules/Brackets';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, motion, overlay, photo, radius, typeScale } from '@/components/tokens';
+import { colors, fonts, motion, photo, typeScale } from '@/components/tokens';
 
 type Captured = {
   uri: string;
@@ -83,28 +83,20 @@ export default function CameraScreen() {
     try {
       const shot = await cameraRef.current?.takePictureAsync({ quality: 0.9 });
       if (shot) {
-        // Crop to the 3:4 print aspect so the stored shot is exactly what the
-        // viewfinder framed — no hidden pixels outside the frame (WYSIWYG).
-        const target = photo.aspect; // width / height (0.75)
-        let cw = shot.width;
-        let ch = shot.height;
-        let ox = 0;
-        let oy = 0;
-        if (shot.width / shot.height > target) {
-          cw = Math.round(shot.height * target);
-          ox = Math.round((shot.width - cw) / 2);
-        } else {
-          ch = Math.round(shot.width / target);
-          oy = Math.round((shot.height - ch) / 2);
+        let { uri, width, height } = shot;
+        // Emulator only: expo-camera can't reach a real camera on an emulator, so
+        // takePicture returns a hardcoded fake — a view-sized black bitmap (< 2000px)
+        // with a yellow dd.MM.yy timestamp burned into the bottom. Crop that strip
+        // off so the dev preview is clean. Real captures are ~3000–4000px and are
+        // never touched (the upload queue bakes the canonical 4:5 crop later).
+        if (width < 2000) {
+          const cropped = await manipulateAsync(uri, [{ crop: { originX: 0, originY: 0, width, height: Math.round(height * 0.85) } }], { compress: 0.9 });
+          uri = cropped.uri;
+          width = cropped.width;
+          height = cropped.height;
         }
-        const cropped = await manipulateAsync(shot.uri, [{ crop: { originX: ox, originY: oy, width: cw, height: ch } }], { compress: 0.9 });
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setCaptured({
-          uri: cropped.uri,
-          width: cropped.width,
-          height: cropped.height,
-          capturedAt: new Date().toISOString(),
-        });
+        setCaptured({ uri, width, height, capturedAt: new Date().toISOString() });
       }
     } finally {
       setBusy(false);
@@ -199,16 +191,27 @@ export default function CameraScreen() {
             every time you open the cam. The 3:4 shape + brackets are the signature;
             the print (rail · day · frame) belongs on the RESULT, shown at review. */}
         <View style={styles.finderArea}>
-          {live && drop && (
-            <View style={styles.promptStrip}>
-              <Mono size={10} color={colors.paper60}>
-                TODAY’S SHOT
-              </Mono>
-              <Text style={styles.promptText} numberOfLines={2}>
-                {drop.prompt}
-              </Text>
-            </View>
-          )}
+          {/* The brief leads: the prompt is the assignment for a daily shot; a
+              clear label for practice, so the cam always says what mode it's in. */}
+          <View style={styles.brief}>
+            {live && drop ? (
+              <>
+                <Mono size={typeScale.caption} weight="medium" color={colors.safelight}>
+                  TODAY’S PROMPT
+                </Mono>
+                <Text style={styles.briefPrompt} numberOfLines={3}>
+                  {drop.prompt}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Mono size={typeScale.caption} weight="medium" color={colors.paper60}>
+                  PRACTICE
+                </Mono>
+                <Text style={styles.briefSub}>Warm up. This one just goes to your archive.</Text>
+              </>
+            )}
+          </View>
           <Brackets color={colors.paper} style={styles.finder}>
             <View style={styles.camWindow}>
               <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} flash={flash} />
@@ -226,6 +229,10 @@ export default function CameraScreen() {
           >
             <View style={styles.shutterInner} />
           </Pressable>
+          {/* Know the stakes before you press it. */}
+          <Text style={styles.shutterCaption}>
+            {live && drop ? 'Counts as today’s shot' : 'Saves to your archive'}
+          </Text>
         </View>
       </SafeAreaView>
     </View>
@@ -272,25 +279,35 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ink2,
     overflow: 'hidden',
   },
-  promptStrip: {
+  // Editorial brief above the viewfinder — no chip, just an eyebrow + the prompt.
+  brief: {
     alignSelf: 'center',
     alignItems: 'center',
-    gap: 2,
-    backgroundColor: overlay.badge,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: radius.card,
-    maxWidth: '85%',
+    gap: 6,
+    maxWidth: '88%',
   },
-  promptText: {
+  briefPrompt: {
     fontFamily: displayFamily,
-    fontSize: typeScale.body,
+    fontSize: typeScale.title,
+    lineHeight: typeScale.title * 1.15,
     color: colors.paper,
+    textAlign: 'center',
+  },
+  briefSub: {
+    fontFamily: fonts.sans,
+    fontSize: typeScale.sub,
+    color: colors.paper60,
     textAlign: 'center',
   },
   bottomRow: {
     alignItems: 'center',
-    paddingBottom: 28,
+    gap: 12,
+    paddingBottom: 24,
+  },
+  shutterCaption: {
+    fontFamily: fonts.sans,
+    fontSize: typeScale.caption,
+    color: colors.paper60,
   },
   shutterRing: {
     width: 76,
