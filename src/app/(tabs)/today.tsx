@@ -27,6 +27,7 @@ import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
+import { Sheet } from '@/components/molecules/Sheet';
 import { ShotCard } from '@/components/molecules/ShotCard';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, frame, icons, overlay, radius, space, typeScale } from '@/components/tokens';
@@ -44,6 +45,7 @@ export default function TodayScreen() {
   const router = useRouter();
   const { data, loading, error, refresh } = useHomeState();
   const [toast, setToast] = useState<string | null>(null);
+  const [showStreakInfo, setShowStreakInfo] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [, setQueueTick] = useState(0);
   const [quickDrawMinutes, setQuickDrawMinutes] = useState(30);
@@ -412,12 +414,20 @@ export default function TodayScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <StreakFlame
-              days={streakDays}
-              last7={last7}
-              alive={flameAlive}
-              shields={streak?.shields ?? 0}
-            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="How your streak works"
+              hitSlop={8}
+              onPress={() => setShowStreakInfo(true)}
+              style={({ pressed }) => pressed && { opacity: 0.6 }}
+            >
+              <StreakFlame
+                days={streakDays}
+                last7={last7}
+                alive={flameAlive}
+                shields={streak?.shields ?? 0}
+              />
+            </Pressable>
             <Mono size={typeScale.caption} color={colors.paper60} numberOfLines={1}>
               {dateLine}
             </Mono>
@@ -438,6 +448,21 @@ export default function TodayScreen() {
         )}
       </ScrollView>
       <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} />
+      <Sheet visible={showStreakInfo} onClose={() => setShowStreakInfo(false)} title="Your streak">
+        <View style={styles.streakInfo}>
+          <Text style={styles.streakInfoLine}>
+            Your flame stays lit as long as you never miss two days in a row. Shoot at least every other day and it keeps
+            burning.
+          </Text>
+          <Text style={styles.streakInfoLine}>
+            The seven dots are your last week, oldest to today (the ringed one). A filled dot is a day you shot; the number
+            is how many days it has been lit.
+          </Text>
+          <Text style={styles.streakInfoLine}>
+            A shield covers one slip, so a single missed pair of days won&apos;t put it out.
+          </Text>
+        </View>
+      </Sheet>
     </SafeAreaView>
   );
 }
@@ -469,6 +494,13 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.ink,
+  },
+  streakInfo: { gap: 14 },
+  streakInfoLine: {
+    fontFamily: fonts.sans,
+    fontSize: typeScale.sub,
+    lineHeight: typeScale.sub * 1.5,
+    color: colors.paper60,
   },
   content: {
     padding: space.gutter,
