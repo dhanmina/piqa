@@ -7,10 +7,12 @@
 import { CameraView, useCameraPermissions, type CameraType, type FlashMode } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
+import { manipulateAsync } from 'expo-image-manipulator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera as CameraIcon, SwitchCamera, X, Zap, ZapOff } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { enqueueCapture } from '@lib/captureQueue';
@@ -22,6 +24,7 @@ import { Toggle } from '@/components/atoms/Toggle';
 import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
 import { EmptyState } from '@/components/molecules/EmptyState';
+import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, motion, overlay, photo, radius, typeScale } from '@/components/tokens';
 
@@ -78,13 +81,28 @@ export default function CameraScreen() {
     if (busy || captured) return;
     setBusy(true);
     try {
-      const photo = await cameraRef.current?.takePictureAsync({ quality: 0.9 });
-      if (photo) {
+      const shot = await cameraRef.current?.takePictureAsync({ quality: 0.9 });
+      if (shot) {
+        // Crop to the 3:4 print aspect so the stored shot is exactly what the
+        // viewfinder framed — no hidden pixels outside the frame (WYSIWYG).
+        const target = photo.aspect; // width / height (0.75)
+        let cw = shot.width;
+        let ch = shot.height;
+        let ox = 0;
+        let oy = 0;
+        if (shot.width / shot.height > target) {
+          cw = Math.round(shot.height * target);
+          ox = Math.round((shot.width - cw) / 2);
+        } else {
+          ch = Math.round(shot.width / target);
+          oy = Math.round((shot.height - ch) / 2);
+        }
+        const cropped = await manipulateAsync(shot.uri, [{ crop: { originX: ox, originY: oy, width: cw, height: ch } }], { compress: 0.9 });
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setCaptured({
-          uri: photo.uri,
-          width: photo.width,
-          height: photo.height,
+          uri: cropped.uri,
+          width: cropped.width,
+          height: cropped.height,
           capturedAt: new Date().toISOString(),
         });
       }
@@ -120,13 +138,17 @@ export default function CameraScreen() {
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.previewBody}>
-          <Brackets animated color={colors.paper} style={styles.previewBrackets}>
-            <Image
-              source={{ uri: captured.uri }}
-              style={styles.previewImage}
-              contentFit="cover"
-            />
-          </Brackets>
+          {/* Review it as it will land: a daily shot becomes today's print (real
+              day counter); a practice/archive shot stays plain in brackets. */}
+          {submitAsDaily && live && drop ? (
+            <Animated.View entering={FadeIn.duration(180)} style={styles.previewPrint}>
+              <FramedPhoto photoUri={captured.uri} dayNumber={drop.day_number} frameId="default" status={null} />
+            </Animated.View>
+          ) : (
+            <Brackets animated color={colors.paper} style={styles.previewBrackets}>
+              <Image source={{ uri: captured.uri }} style={styles.previewImage} contentFit="cover" />
+            </Brackets>
+          )}
         </View>
         <View style={styles.previewFooter}>
           {live && drop && (
@@ -151,7 +173,6 @@ export default function CameraScreen() {
 
   return (
     <View style={styles.root}>
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} flash={flash} />
       <SafeAreaView style={styles.chrome} pointerEvents="box-none">
         <View style={styles.topRow}>
           <IconButton icon={X} variant="chrome" accessibilityLabel="Close camera" onPress={() => router.back()} />
@@ -174,16 +195,26 @@ export default function CameraScreen() {
           </View>
         </View>
 
-        {live && drop && (
-          <View style={styles.promptStrip}>
-            <Mono size={10} color={colors.paper60}>
-              TODAY’S SHOT
-            </Mono>
-            <Text style={styles.promptText} numberOfLines={2}>
-              {drop.prompt}
-            </Text>
-          </View>
-        )}
+        {/* Preview-first: one large 3:4 viewfinder in the piqa brackets, the same
+            every time you open the cam. The 3:4 shape + brackets are the signature;
+            the print (rail · day · frame) belongs on the RESULT, shown at review. */}
+        <View style={styles.finderArea}>
+          {live && drop && (
+            <View style={styles.promptStrip}>
+              <Mono size={10} color={colors.paper60}>
+                TODAY’S SHOT
+              </Mono>
+              <Text style={styles.promptText} numberOfLines={2}>
+                {drop.prompt}
+              </Text>
+            </View>
+          )}
+          <Brackets color={colors.paper} style={styles.finder}>
+            <View style={styles.camWindow}>
+              <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} flash={flash} />
+            </View>
+          </Brackets>
+        </View>
 
         <View style={styles.bottomRow}>
           <Pressable
@@ -225,6 +256,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
+  // Viewfinder: a daily shot composes inside the print (FramedPhoto); a practice
+  // shot in plain brackets — each matches what it becomes. Dark surround around.
+  finderArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    paddingHorizontal: 12,
+    gap: 12,
+  },
+  finder: { alignSelf: 'stretch' },
+  camWindow: {
+    width: '100%',
+    aspectRatio: photo.aspect,
+    backgroundColor: colors.ink2,
+    overflow: 'hidden',
+  },
   promptStrip: {
     alignSelf: 'center',
     alignItems: 'center',
@@ -265,9 +312,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
-  previewBrackets: {
-    alignSelf: 'stretch',
+  previewPrint: {
+    width: '100%',
   },
+  previewBrackets: { alignSelf: 'stretch' },
   previewImage: {
     width: '100%',
     aspectRatio: photo.aspect,
