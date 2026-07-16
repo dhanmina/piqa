@@ -62,7 +62,7 @@ export function Shutter({ state, onPress }: ShutterProps) {
           isLive
             ? "Shoot today's photo"
             : state === 'done'
-              ? "Open camera for a practice shot. Today's shot is already in."
+              ? "Open camera for a free shot. Today's shot is already in."
               : 'Open camera'
         }
         onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}

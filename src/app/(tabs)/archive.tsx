@@ -45,7 +45,7 @@ const capturedStamp = (iso: string) =>
     .toUpperCase();
 
 const metaLine = (it: ArchiveItem) => {
-  const kind = it.type === 'daily' ? 'Daily Shot' : 'Practice shot';
+  const kind = it.type === 'daily' ? 'Daily Shot' : 'Free shot';
   const placement = it.isPotd ? 'Photo of the Day' : it.inGallery ? 'In gallery' : null;
   return placement ? `${kind} · ${placement}` : kind;
 };
@@ -230,7 +230,7 @@ export default function ArchiveScreen() {
           <EmptyState
             icon={BookImage}
             line="Your journal starts with one shot"
-            ctaLabel="Take a practice shot"
+            ctaLabel="Take a free shot"
             onCta={() => router.push('/camera?practice=1')}
           />
         </View>
@@ -254,7 +254,7 @@ export default function ArchiveScreen() {
         <View style={styles.chips}>
           <Chip label="All" selected={filter === 'all'} onPress={() => setFilter('all')} />
           <Chip label="Daily" selected={filter === 'daily'} onPress={() => setFilter('daily')} />
-          <Chip label="Practice" selected={filter === 'practice'} onPress={() => setFilter('practice')} />
+          <Chip label="Free" selected={filter === 'practice'} onPress={() => setFilter('practice')} />
           <Chip label="Starred" selected={filter === 'starred'} onPress={() => setFilter('starred')} />
         </View>
 
@@ -264,7 +264,7 @@ export default function ArchiveScreen() {
               {filter === 'starred'
                 ? 'No starred shots yet. Star one to keep it full resolution.'
                 : filter === 'practice'
-                  ? 'No practice shots yet. Take one anytime to warm up.'
+                  ? 'No free shots yet. Shoot anything, anytime.'
                   : filter === 'daily'
                     ? 'No daily shots yet. Your daily photos land here.'
                     : 'Nothing here yet.'}

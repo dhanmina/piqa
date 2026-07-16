@@ -216,9 +216,9 @@ export default function CameraScreen() {
             ) : (
               <>
                 <Mono size={typeScale.caption} weight="medium" color={colors.paper60}>
-                  PRACTICE
+                  FREE SHOT
                 </Mono>
-                <Text style={styles.briefSub}>Warm up. This one just goes to your archive.</Text>
+                <Text style={styles.briefSub}>Shoot anything, no pressure. Goes straight to your private archive.</Text>
               </>
             )}
           </View>

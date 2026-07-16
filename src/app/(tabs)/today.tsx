@@ -162,7 +162,7 @@ export default function TodayScreen() {
         />
       ) : (
         <Button
-          label="Take a practice shot"
+          label="Take a free shot"
           variant="ghost"
           fullWidth
           onPress={() => router.push('/camera?practice=1')}
