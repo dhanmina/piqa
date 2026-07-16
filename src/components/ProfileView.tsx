@@ -134,8 +134,9 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onBack, 
               {(data?.streakWeeks ?? 0) > 0 && (
                 <View style={styles.flame}>
                   <Flame size={13} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
+                  {/* streakWeeks now carries days-alive (see 20260716000005). */}
                   <Mono size={typeScale.caption} color={colors.safelight}>
-                    {data!.streakWeeks}w
+                    {data!.streakWeeks}d
                   </Mono>
                 </View>
               )}
