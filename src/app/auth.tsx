@@ -11,7 +11,7 @@ import { displayFamily } from '@/components/fonts';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
 
-type Mode = 'signin' | 'signup';
+type Mode = 'signin' | 'signup' | 'forgot' | 'reset';
 
 // Turn raw Supabase auth strings into something a person can act on.
 function friendlyError(raw: string): string {
@@ -19,6 +19,7 @@ function friendlyError(raw: string): string {
   if (m.includes('invalid login')) return "That email or password doesn't match.";
   if (m.includes('already registered') || m.includes('already been registered')) return 'That email already has an account. Try signing in.';
   if (m.includes('username')) return 'That username is taken. Try another.';
+  if (m.includes('token') || m.includes('otp') || m.includes('expired')) return 'That code is wrong or expired. Request a new one.';
   if (m.includes('valid email') || m.includes('email address')) return "That email doesn't look right. Give it another look.";
   if (m.includes('network') || m.includes('fetch')) return 'Connection hiccup. Check your network and retry.';
   return raw;
@@ -29,13 +30,44 @@ export default function AuthScreen() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const isSignup = mode === 'signup';
-  const canSubmit =
-    email.trim().length > 0 && password.length >= 6 && (!isSignup || username.trim().length >= 3);
+  const isSignin = mode === 'signin';
+  const isForgot = mode === 'forgot';
+  const isReset = mode === 'reset';
+
+  // Clear transient fields on a mode change; keep email so it carries through.
+  const go = (next: Mode) => {
+    setMode(next);
+    setPassword('');
+    setCode('');
+    setShowPw(false);
+  };
+
+  const title = isSignup
+    ? 'Create your account'
+    : isForgot
+      ? 'Reset your password'
+      : isReset
+        ? 'Enter your code'
+        : 'Welcome back';
+  const sub = isSignup
+    ? 'One prompt a day. Your best shot.'
+    : isForgot
+      ? "Enter your email and we'll send a reset code."
+      : isReset
+        ? `We emailed a code to ${email.trim() || 'your inbox'}. Enter it and pick a new password.`
+        : 'Sign in to pick up your streak.';
+  const buttonLabel = isSignup ? 'Create account' : isForgot ? 'Send reset code' : isReset ? 'Reset password' : 'Sign in';
+  const canSubmit = isForgot
+    ? email.trim().length > 0
+    : isReset
+      ? code.trim().length >= 6 && password.length >= 6
+      : email.trim().length > 0 && password.length >= 6 && (!isSignup || username.trim().length >= 3);
 
   const submit = async () => {
     setBusy(true);
@@ -49,16 +81,34 @@ export default function AuthScreen() {
           password,
           options: { data: { username: name } },
         });
-        if (error) {
-          setToast(friendlyError(error.message));
-          return;
-        }
+        if (error) return setToast(friendlyError(error.message));
         if (data.session) {
-          // Capture device timezone; region stays 'BETA' while beta_mode=true.
           const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'Asia/Manila';
           await supabase.from('profiles').update({ timezone }).eq('id', data.session.user.id);
         }
-        // Session change flips the root layout guard → tabs.
+      } else if (isForgot) {
+        const em = email.trim();
+        // Product choice: tell the user up front if there's no account (see the
+        // email_exists migration for the enumeration tradeoff).
+        const { data: exists, error: exErr } = await supabase.rpc('email_exists', { p_email: em });
+        if (exErr) return setToast(friendlyError(exErr.message));
+        if (!exists) return setToast('No account found for that email.');
+        // Sends the recovery email. The template must include {{ .Token }} so the
+        // code below can be entered; the same address is verified in the next step.
+        const { error } = await supabase.auth.resetPasswordForEmail(em);
+        if (error) return setToast(friendlyError(error.message));
+        setToast('Reset code sent. Check your email.');
+        setMode('reset');
+        setPassword('');
+        setCode('');
+      } else if (isReset) {
+        // The recovery code opens a short-lived session; then set the new password.
+        const { error: vErr } = await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'recovery' });
+        if (vErr) return setToast(friendlyError(vErr.message));
+        const { error: uErr } = await supabase.auth.updateUser({ password });
+        if (uErr) return setToast(friendlyError(uErr.message));
+        setToast('Password updated. You’re in.');
+        // Session is now live → the root guard flips to the tabs.
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) setToast(friendlyError(error.message));
@@ -67,6 +117,49 @@ export default function AuthScreen() {
       setBusy(false);
     }
   };
+
+  const pwToggle = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={showPw ? 'Hide password' : 'Show password'}
+      hitSlop={8}
+      onPress={() => setShowPw((v) => !v)}
+    >
+      {showPw ? (
+        <EyeOff size={18} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+      ) : (
+        <Eye size={18} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+      )}
+    </Pressable>
+  );
+
+  const switchLine = isReset ? (
+    // Recovery path: a typo or unregistered email lands here with no code coming,
+    // so make it easy to correct the address (which also resends) or bail out.
+    <View style={styles.resetSwitch}>
+      <Pressable accessibilityRole="button" hitSlop={10} onPress={() => go('forgot')}>
+        <Text style={styles.switchLine}>
+          Didn’t get a code? <Text style={styles.switchAction}>Change your email</Text>
+        </Text>
+      </Pressable>
+      <Pressable accessibilityRole="button" hitSlop={10} onPress={() => go('signin')}>
+        <Text style={styles.switchLineMuted}>Back to sign in</Text>
+      </Pressable>
+    </View>
+  ) : isForgot ? (
+    <Pressable accessibilityRole="button" hitSlop={10} onPress={() => go('signin')}>
+      <Text style={styles.switchLine}>
+        Remembered it? <Text style={styles.switchAction}>Sign in</Text>
+      </Text>
+    </Pressable>
+  ) : (
+    <Pressable accessibilityRole="button" hitSlop={10} onPress={() => go(isSignup ? 'signin' : 'signup')}>
+      <Text style={styles.switchLine}>
+        {isSignup ? 'Already shooting? ' : 'New here? '}
+        <Text style={styles.switchAction}>{isSignup ? 'Sign in' : 'Create an account'}</Text>
+      </Text>
+    </Pressable>
+  );
 
   return (
     <SafeAreaView style={styles.root}>
@@ -80,10 +173,8 @@ export default function AuthScreen() {
 
           <View style={styles.form}>
             <View style={styles.formHead}>
-              <Text style={styles.formTitle}>{isSignup ? 'Create your account' : 'Welcome back'}</Text>
-              <Text style={styles.formSub}>
-                {isSignup ? 'One prompt a day. Your best shot.' : 'Sign in to pick up your streak.'}
-              </Text>
+              <Text style={styles.formTitle}>{title}</Text>
+              <Text style={styles.formSub}>{sub}</Text>
             </View>
 
             {isSignup && (
@@ -97,60 +188,56 @@ export default function AuthScreen() {
                 hint="This is public. People can find and follow you by it."
               />
             )}
-            <Field
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              placeholder="you@example.com"
-            />
-            <Field
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPw}
-              autoCapitalize="none"
-              autoComplete={isSignup ? 'new-password' : 'current-password'}
-              placeholder="Your password"
-              hint={isSignup ? 'At least 6 characters.' : undefined}
-              rightSlot={
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={showPw ? 'Hide password' : 'Show password'}
-                  hitSlop={8}
-                  onPress={() => setShowPw((v) => !v)}
-                >
-                  {showPw ? (
-                    <EyeOff size={18} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-                  ) : (
-                    <Eye size={18} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-                  )}
-                </Pressable>
-              }
-            />
+
+            {!isReset && (
+              <Field
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                placeholder="you@example.com"
+              />
+            )}
+
+            {isReset && (
+              <Field
+                label="Reset code"
+                value={code}
+                onChangeText={setCode}
+                mono
+                keyboardType="number-pad"
+                autoComplete="one-time-code"
+                placeholder="6-digit code"
+              />
+            )}
+
+            {!isForgot && (
+              <Field
+                label={isReset ? 'New password' : 'Password'}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPw}
+                autoCapitalize="none"
+                autoComplete={isSignin ? 'current-password' : 'new-password'}
+                placeholder="Your password"
+                hint={isSignup || isReset ? 'At least 6 characters.' : undefined}
+                rightSlot={pwToggle}
+              />
+            )}
+
+            {isSignin && (
+              <Pressable accessibilityRole="button" hitSlop={8} style={styles.forgotWrap} onPress={() => go('forgot')}>
+                <Text style={styles.forgot}>Forgot password?</Text>
+              </Pressable>
+            )}
 
             <View style={styles.submitRow}>
-              <Button
-                label={isSignup ? 'Create account' : 'Sign in'}
-                onPress={() => void submit()}
-                loading={busy}
-                disabled={!canSubmit}
-                fullWidth
-              />
+              <Button label={buttonLabel} onPress={() => void submit()} loading={busy} disabled={!canSubmit} fullWidth />
             </View>
 
-            <Pressable
-              accessibilityRole="button"
-              hitSlop={10}
-              onPress={() => setMode(isSignup ? 'signin' : 'signup')}
-            >
-              <Text style={styles.switchLine}>
-                {isSignup ? 'Already shooting? ' : 'New here? '}
-                <Text style={styles.switchAction}>{isSignup ? 'Sign in' : 'Create an account'}</Text>
-              </Text>
-            </Pressable>
+            {switchLine}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -196,6 +283,8 @@ const styles = StyleSheet.create({
     fontSize: typeScale.sub,
     color: colors.paper60,
   },
+  forgotWrap: { alignSelf: 'flex-end', marginTop: -4 },
+  forgot: { fontFamily: fonts.sansMedium, fontSize: typeScale.caption, color: colors.paper60 },
   submitRow: { alignItems: 'center', marginTop: 8 },
   switchLine: {
     fontFamily: fonts.sans,
@@ -205,4 +294,12 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   switchAction: { fontFamily: fonts.sansMedium, color: colors.safelight },
+  resetSwitch: { alignItems: 'center', gap: 2 },
+  switchLineMuted: {
+    fontFamily: fonts.sans,
+    fontSize: typeScale.caption,
+    color: colors.paper40,
+    textAlign: 'center',
+    padding: 6,
+  },
 });
