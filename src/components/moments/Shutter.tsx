@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { Aperture, Check } from 'lucide-react-native';
+import { Aperture } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -23,16 +23,21 @@ type ShutterProps = {
 
 /**
  * The logo's dot made tappable — moment #3 of the four allowed animations.
- *  live:    safelight fill + pulsing paper ring → shoot now
- *  done:    rests in ink2 with a check → calm
- *  default: safelight, no ring → free shooting, camera never closes
+ *
+ * The shutter is an ACTION, never a status: it always shows a camera, and its
+ * only variable is urgency. Brightness means "a daily is waiting for you".
+ *  live: safelight fill + pulsing ring, ink aperture → shoot your daily now.
+ *  done / default: calm ink2 camera, no ring → daily's in (or no drop is live),
+ *    but the camera never closes, so it still opens a practice shot. No check —
+ *    "today's shot is in" is status, and it lives on Today, not on a nav button.
  */
 export function Shutter({ state, onPress }: ShutterProps) {
   const reducedMotion = useReducedMotion();
   const pulse = useSharedValue(0);
+  const isLive = state === 'live';
 
   useEffect(() => {
-    if (state === 'live' && !reducedMotion) {
+    if (isLive && !reducedMotion) {
       pulse.value = withRepeat(
         withSequence(withTiming(1, { duration: 900 }), withTiming(0, { duration: 900 })),
         -1,
@@ -41,7 +46,7 @@ export function Shutter({ state, onPress }: ShutterProps) {
       cancelAnimation(pulse);
       pulse.value = 0;
     }
-  }, [state, reducedMotion, pulse]);
+  }, [isLive, reducedMotion, pulse]);
 
   const ringStyle = useAnimatedStyle(() => ({
     opacity: 0.35 + pulse.value * 0.65,
@@ -50,23 +55,25 @@ export function Shutter({ state, onPress }: ShutterProps) {
 
   return (
     <View style={styles.slot}>
-      {state === 'live' && <Animated.View style={[styles.ring, ringStyle]} />}
+      {isLive && <Animated.View style={[styles.ring, ringStyle]} />}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Open camera"
+        accessibilityLabel={
+          isLive
+            ? "Shoot today's photo"
+            : state === 'done'
+              ? "Open camera for a practice shot. Today's shot is already in."
+              : 'Open camera'
+        }
         onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
         onPress={onPress}
         style={({ pressed }) => [
           styles.circle,
-          state === 'done' ? styles.circleDone : styles.circleDefault,
+          isLive ? styles.circleLive : styles.circleCalm,
           pressed && { transform: [{ scale: motion.pressScale }] },
         ]}
       >
-        {state === 'done' ? (
-          <Check size={26} strokeWidth={icons.strokeWidth} color={colors.paper} />
-        ) : (
-          <Aperture size={28} strokeWidth={icons.strokeWidth} color={colors.ink} />
-        )}
+        <Aperture size={28} strokeWidth={icons.strokeWidth} color={isLive ? colors.ink : colors.paper} />
       </Pressable>
     </View>
   );
@@ -98,10 +105,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  circleDefault: {
+  // Loud: a daily is waiting.
+  circleLive: {
     backgroundColor: colors.safelight,
   },
-  circleDone: {
+  // Calm: daily handled or no live drop — still a camera, just quiet.
+  circleCalm: {
     backgroundColor: colors.ink2,
+    borderWidth: 1.5,
+    borderColor: colors.paper30,
   },
 });
