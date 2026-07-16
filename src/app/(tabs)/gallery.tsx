@@ -59,6 +59,10 @@ export default function GalleryScreen() {
   const [showPast, setShowPast] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [viewer, setViewer] = useState<GalleryDetailPhoto | null>(null);
+  // Latch: once World has shown past galleries, keep the calendar icon through
+  // later loads so it doesn't blink out while `data` is briefly null (refresh,
+  // switching issues). A cold first load correctly still has no icon.
+  const [everHadPast, setEverHadPast] = useState(false);
 
   const { data, loading, error, refresh } = useGallery(selectedDropId);
   const {
@@ -158,6 +162,10 @@ export default function GalleryScreen() {
     return groups;
   }, [data?.past]);
 
+  useEffect(() => {
+    if ((data?.past?.length ?? 0) > 0) setEverHadPast(true);
+  }, [data?.past]);
+
   // Open the shot in-place (fullscreen modal on this tab) rather than routing to
   // /photo/[id] — the gallery zooms into the print, like the archive viewer.
   const openPhoto = (p: GalleryPhoto) => {
@@ -200,7 +208,7 @@ export default function GalleryScreen() {
     </Modal>
   );
 
-  const hasPast = tab === 'world' && (data?.past?.length ?? 0) > 0;
+  const hasPast = tab === 'world' && ((data?.past?.length ?? 0) > 0 || everHadPast);
   const segmented = (
     <View style={styles.topBar}>
       <View style={styles.segments}>
