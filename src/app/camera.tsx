@@ -127,12 +127,26 @@ export default function CameraScreen() {
   };
 
   if (captured) {
+    const asDaily = Boolean(submitAsDaily && live && drop);
+    const primaryLabel = asDaily ? 'Use this shot' : 'Save to archive';
+    // The last beat before a daily shot locks in — one calm line on what the
+    // primary will do, so the commit (one a day, no edits after) is never a surprise.
+    const consequence = asDaily
+      ? 'One shot a day. This locks it in.'
+      : live
+        ? 'This won’t count for today. It goes to your archive.'
+        : 'Goes to your private archive. Only you see it.';
     return (
       <SafeAreaView style={styles.root}>
+        <View style={styles.previewTop}>
+          {/* Bail out entirely — the shot is local-only until "Use", so leaving
+              just discards it. Retake, by contrast, only re-opens the finder. */}
+          <IconButton icon={X} variant="chrome" accessibilityLabel="Discard and close" onPress={() => router.back()} />
+        </View>
         <View style={styles.previewBody}>
           {/* Review it as it will land: a daily shot becomes today's print (real
               day counter); a practice/archive shot stays plain in brackets. */}
-          {submitAsDaily && live && drop ? (
+          {asDaily && drop ? (
             <Animated.View entering={FadeIn.duration(180)} style={styles.previewPrint}>
               <FramedPhoto photoUri={captured.uri} dayNumber={drop.day_number} frameId="default" status={null} />
             </Animated.View>
@@ -143,19 +157,15 @@ export default function CameraScreen() {
           )}
         </View>
         <View style={styles.previewFooter}>
-          {live && drop && (
-            <Toggle
-              label="Submit as Today’s Shot"
-              value={submitAsDaily}
-              onChange={setSubmitDaily}
-            />
-          )}
-          {!live && (
-            <Text style={styles.archiveNote}>Goes to your private archive</Text>
-          )}
+          <View style={styles.previewInfo}>
+            {live && drop && (
+              <Toggle label="Submit as Today’s Shot" value={submitAsDaily} onChange={setSubmitDaily} />
+            )}
+            <Text style={styles.consequence}>{consequence}</Text>
+          </View>
           <View style={styles.previewActions}>
-            <Button label="Retake" variant="ghost" onPress={() => setCaptured(null)} />
-            <Button label="Use" onPress={() => void use()} loading={busy} />
+            <Button label={primaryLabel} onPress={() => void use()} loading={busy} fullWidth />
+            <Button label="Retake" variant="text" onPress={() => setCaptured(null)} />
           </View>
         </View>
         <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} bottom={40} />
@@ -324,6 +334,11 @@ const styles = StyleSheet.create({
     borderRadius: 29,
     backgroundColor: colors.safelight,
   },
+  previewTop: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
   previewBody: {
     flex: 1,
     justifyContent: 'center',
@@ -339,17 +354,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ink2,
   },
   previewFooter: {
-    padding: 20,
-    gap: 16,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+    gap: 18,
   },
-  archiveNote: {
+  previewInfo: {
+    gap: 8,
+  },
+  consequence: {
     fontFamily: fonts.sans,
     fontSize: typeScale.caption,
+    lineHeight: typeScale.caption * 1.45,
     color: colors.paper60,
   },
   previewActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 14,
+    gap: 4,
   },
 });
