@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
@@ -62,6 +63,9 @@ type FramedPhotoProps = {
    */
   width?: number;
   style?: StyleProp<ViewStyle>;
+  /** Live content for the photo window instead of an image — e.g. the camera
+   *  viewfinder, so you compose your shot inside the print it becomes. */
+  children?: ReactNode;
 };
 
 /**
@@ -121,6 +125,7 @@ export function FramedPhoto({
   status = null,
   width,
   style,
+  children,
 }: FramedPhotoProps) {
   const def = useFrameDef(frameId);
 
@@ -130,7 +135,9 @@ export function FramedPhoto({
 
   return (
     <View style={[styles.print, width !== undefined && { width }, style]}>
-      {photoUri || placeholderUri ? (
+      {children ? (
+        <View style={[styles.window, styles.windowClip]}>{children}</View>
+      ) : photoUri || placeholderUri ? (
         <Image
           // Progressive, no blink: the cached thumb sits in `placeholder` and holds
           // the frame; `source` (full-res) is the ONLY thing that loads, crossfading
@@ -239,4 +246,5 @@ const styles = StyleSheet.create({
   skeleton: {
     backgroundColor: colors.ink2, // flat, no shimmer (spec §11d)
   },
+  windowClip: { overflow: 'hidden' }, // keep live content (camera) inside the window
 });
