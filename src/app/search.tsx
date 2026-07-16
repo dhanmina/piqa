@@ -1,19 +1,24 @@
 import { useRouter } from 'expo-router';
-import { Search as SearchIcon, X } from 'lucide-react-native';
+import { ChevronLeft, Search as SearchIcon, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { plural } from '@lib/format';
 import { follow, unfollow } from '@lib/profile';
 import { searchUsers, type SearchUser } from '@lib/search';
+import { useSession } from '@lib/session';
 import { Avatar } from '@/components/atoms/Avatar';
+import { Button } from '@/components/atoms/Button';
+import { IconButton } from '@/components/atoms/IconButton';
+import { Mono } from '@/components/atoms/Mono';
+import { EmptyState } from '@/components/molecules/EmptyState';
 import { displayFamily } from '@/components/fonts';
 import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
 
 const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
-function UserRow({ user, onPress }: { user: SearchUser; onPress: () => void }) {
+function UserRow({ user, isSelf, onPress }: { user: SearchUser; isSelf: boolean; onPress: () => void }) {
   const [isFollowing, setIsFollowing] = useState(user.is_following);
   const [followers, setFollowers] = useState(user.followers || 0);
   const [busy, setBusy] = useState(false);
@@ -44,23 +49,41 @@ function UserRow({ user, onPress }: { user: SearchUser; onPress: () => void }) {
           {plural(user.hearts || 0, 'heart')}
         </Text>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={isFollowing ? 'Unfollow' : 'Follow'}
-        disabled={busy}
-        onPress={onToggle}
-        style={[styles.followBtn, isFollowing && styles.followingBtn]}
-      >
-        <Text style={[styles.followBtnText, isFollowing && styles.followingBtnText]}>
-          {isFollowing ? 'Following' : 'Follow'}
-        </Text>
-      </Pressable>
+      {isSelf ? (
+        <Mono size={typeScale.caption} weight="medium" color={colors.paper60}>
+          YOU
+        </Mono>
+      ) : (
+        <Button
+          label={isFollowing ? 'Following' : 'Follow'}
+          variant={isFollowing ? 'ghost' : 'primary'}
+          compact
+          loading={busy}
+          onPress={() => void onToggle()}
+        />
+      )}
     </Pressable>
+  );
+}
+
+// Same silhouette as UserRow (avatar + two lines) in the app's ink2 skeleton
+// idiom, so the wait matches the gallery/profile loaders, not an OS spinner.
+function RowSkeleton() {
+  return (
+    <View style={styles.userRow}>
+      <View style={styles.skelAvatar} />
+      <View style={styles.skelInfo}>
+        <View style={[styles.skelBar, styles.skelBarName]} />
+        <View style={[styles.skelBar, styles.skelBarSub]} />
+      </View>
+    </View>
   );
 }
 
 export default function SearchScreen() {
   const router = useRouter();
+  const { session } = useSession();
+  const myId = session?.user.id;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -89,12 +112,13 @@ export default function SearchScreen() {
   }, [query]);
 
   const renderItem = ({ item }: { item: SearchUser }) => (
-    <UserRow user={item} onPress={() => router.push({ pathname: '/u/[id]', params: { id: item.id } })} />
+    <UserRow user={item} isSelf={item.id === myId} onPress={() => router.push({ pathname: '/u/[id]', params: { id: item.id } })} />
   );
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <View style={styles.header}>
+        <IconButton icon={ChevronLeft} accessibilityLabel="Back" onPress={() => router.back()} />
         <View style={styles.searchBar}>
           <SearchIcon size={20} color={colors.paper60} strokeWidth={icons.strokeWidth} />
           <TextInput
@@ -116,14 +140,17 @@ export default function SearchScreen() {
             </Pressable>
           )}
         </View>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.cancelBtn}>
-          <Text style={styles.cancelText}>Cancel</Text>
-        </Pressable>
       </View>
 
-      {loading && results.length === 0 ? (
+      {query.trim().length < 2 ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.paper60} />
+          <EmptyState icon={SearchIcon} line="Search shooters by username" />
+        </View>
+      ) : loading && results.length === 0 ? (
+        <View style={styles.list}>
+          {[0, 1, 2, 3].map((i) => (
+            <RowSkeleton key={i} />
+          ))}
         </View>
       ) : (
         <FlatList
@@ -132,12 +159,13 @@ export default function SearchScreen() {
           renderItem={renderItem}
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           ListEmptyComponent={
-            query.trim().length >= 2 && !loading ? (
+            loading ? null : (
               <View style={styles.empty}>
-                <Text style={styles.emptyText}>No shooters found</Text>
+                <Text style={styles.emptyText}>No shooters match “{query.trim()}”</Text>
               </View>
-            ) : null
+            )
           }
         />
       )}
@@ -153,7 +181,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.gutter,
     paddingTop: 8,
     paddingBottom: 12,
-    gap: 16,
+    gap: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.ink2,
   },
@@ -175,12 +203,6 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   clearBtn: { padding: 4 },
-  cancelBtn: { minHeight: space.target, justifyContent: 'center' },
-  cancelText: {
-    fontFamily: fonts.sansMedium,
-    fontSize: typeScale.body,
-    color: colors.paper,
-  },
   list: { padding: space.gutter, paddingBottom: 48 },
   userRow: {
     flexDirection: 'row',
@@ -203,28 +225,11 @@ const styles = StyleSheet.create({
     fontSize: typeScale.caption,
     color: colors.paper60,
   },
-  followBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: radius.pill,
-    backgroundColor: colors.safelight,
-    borderWidth: 1,
-    borderColor: colors.safelight,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  followingBtn: {
-    backgroundColor: 'transparent',
-    borderColor: colors.paper30,
-  },
-  followBtnText: {
-    fontFamily: fonts.sansMedium,
-    fontSize: typeScale.caption,
-    color: colors.ink,
-  },
-  followingBtnText: {
-    color: colors.paper,
-  },
+  skelAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.ink2 },
+  skelInfo: { flex: 1, gap: 8 },
+  skelBar: { height: 12, borderRadius: 4, backgroundColor: colors.ink2 },
+  skelBarName: { width: 120 },
+  skelBarSub: { width: 180, height: 10 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   empty: { paddingTop: 48, alignItems: 'center' },
   emptyText: { fontFamily: fonts.sans, fontSize: typeScale.body, color: colors.paper60 },

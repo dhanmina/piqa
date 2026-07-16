@@ -14,6 +14,8 @@ type ButtonProps = {
   loading?: boolean;
   /** Block button: stretches to fill its container. Use for the primary CTA. */
   fullWidth?: boolean;
+  /** Compact pill for inline use (list rows, e.g. Follow) — shorter, smaller label. */
+  compact?: boolean;
 };
 
 /**
@@ -28,6 +30,7 @@ export function Button({
   disabled = false,
   loading = false,
   fullWidth = false,
+  compact = false,
 }: ButtonProps) {
   const [lockedWidth, setLockedWidth] = useState<number | undefined>(undefined);
   const [dotCount, setDotCount] = useState(3);
@@ -65,6 +68,7 @@ export function Button({
         fullWidth && styles.fullWidth,
         variantStyles[variant],
         disabled && disabledStyles[variant],
+        compact && styles.compact,
         lockedWidth !== undefined && { width: lockedWidth },
         pressed && !inert && { transform: [{ scale: motion.pressScale }] },
       ]}
@@ -73,13 +77,13 @@ export function Button({
         <View style={styles.loadingRow}>
           {/* Always 3 mono dot glyphs — hidden ones go transparent, so the
               text run is constant-width even if onLayout never fired. */}
-          <Text style={[styles.label, labelStyles[variant], styles.monoDots]}>
+          <Text style={[styles.label, labelStyles[variant], compact && styles.labelCompact, styles.monoDots]}>
             {'.'.repeat(dotCount)}
             <Text style={styles.dotHidden}>{'.'.repeat(3 - dotCount)}</Text>
           </Text>
         </View>
       ) : (
-        <Text style={[styles.label, labelStyles[variant], disabled && styles.labelDisabled]} numberOfLines={1}>
+        <Text style={[styles.label, labelStyles[variant], compact && styles.labelCompact, disabled && styles.labelDisabled]} numberOfLines={1}>
           {label}
         </Text>
       )}
@@ -101,9 +105,17 @@ const styles = StyleSheet.create({
   fullWidth: {
     alignSelf: 'stretch',
   },
+  compact: {
+    height: 36,
+    minHeight: 36,
+    paddingHorizontal: 16,
+  },
   label: {
     fontFamily: fonts.sansMedium,
     fontSize: typeScale.body,
+  },
+  labelCompact: {
+    fontSize: typeScale.sub,
   },
   labelDisabled: {
     color: colors.paper30,
