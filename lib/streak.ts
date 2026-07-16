@@ -1,4 +1,7 @@
-import { useCached } from "./cache";
+import { useEffect } from "react";
+
+import { fetchKey, invalidate, useCached } from "./cache";
+import { subscribeQueue } from "./captureQueue";
 import { useSession } from "./session";
 import { supabase } from "./supabase";
 
@@ -41,10 +44,19 @@ async function fetchLast7(userId: string): Promise<boolean[]> {
 export function useLast7Pattern(): boolean[] {
   const { session } = useSession();
   const uid = session?.user.id ?? null;
-  const { data } = useCached<boolean[]>(
-    uid ? `streak7:${uid}` : "streak7:none",
-    () => (uid ? fetchLast7(uid) : Promise.resolve([])),
-    60_000,
-  );
+  const key = uid ? `streak7:${uid}` : "streak7:none";
+  const { data } = useCached<boolean[]>(key, () => (uid ? fetchLast7(uid) : Promise.resolve([])), 60_000);
+
+  // Fill today's dot the instant a shot lands, like the home state does.
+  useEffect(() => {
+    const unsubscribe = subscribeQueue((event) => {
+      if (event.type === "done" || event.type === "duplicate") {
+        invalidate(key);
+        if (uid) void fetchKey(key, () => fetchLast7(uid));
+      }
+    });
+    return unsubscribe;
+  }, [key, uid]);
+
   return data ?? [];
 }

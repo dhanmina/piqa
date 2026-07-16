@@ -102,13 +102,25 @@ export default function TodayScreen() {
   // (Date.now() vs voting_closes_at) only ever produced false negatives on clock
   // skew / stale cache, hiding the Curate action after a valid submission.
   const votingOpen = Boolean(drop);
-  const brandNew = (streak?.current_weeks ?? 0) === 0 && (streak?.days_this_week ?? 0) === 0;
+  // The streaks table only updates at day-close, but a shot lights its dot live —
+  // so a just-shot day would otherwise show filled dots beside a 0/unlit flame.
+  // Reconcile: shooting today lights the flame (the dead→alive transition is
+  // unconditional server-side, so "shot today but server dead" just means the
+  // close hasn't run), and derive days-alive from the live window until it does.
+  const shotToday = last7[6] === true;
+  const serverAlive = streak?.is_alive ?? false;
+  const flameAlive = serverAlive || shotToday;
+  let streakDays = streak?.current_weeks ?? 0;
+  if (!serverAlive && shotToday && last7.length === 7) {
+    const first = last7.findIndex(Boolean); // earliest shot day in the 7-day window
+    streakDays = first >= 0 ? 7 - first : 1; // calendar days since it lit
+  }
+  const brandNew = !flameAlive && !last7.some(Boolean);
   // A quiet caption under the flame that teaches the rhythm, then gets out of the
-  // way once you know it (after the first week). current_weeks carries days-alive.
-  const streakDays = streak?.current_weeks ?? 0;
+  // way once you know it (after the first week).
   const streakCaption: string | null = brandNew
     ? 'Your first shot lights the flame'
-    : !streak?.is_alive
+    : !flameAlive
       ? 'Shoot today to light it again'
       : streakDays <= 1
         ? 'Flame lit. Shoot 4 days a week to keep it.'
@@ -406,9 +418,9 @@ export default function TodayScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <StreakFlame
-              days={streak?.current_weeks ?? 0}
+              days={streakDays}
               last7={last7}
-              alive={streak?.is_alive ?? false}
+              alive={flameAlive}
               shields={streak?.shields ?? 0}
             />
             {streakCaption && <Text style={styles.dayZero}>{streakCaption}</Text>}
