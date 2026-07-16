@@ -116,19 +116,16 @@ export default function TodayScreen() {
     streakDays = first >= 0 ? 7 - first : 1; // calendar days since it lit
   }
   const brandNew = !flameAlive && !last7.some(Boolean);
-  // A quiet caption under the flame that teaches the rhythm, then gets out of the
-  // way once you know it (after the first week).
+  // A quiet one-liner under the flame that teaches the 4-of-7 rhythm, then gets
+  // out of the way after the first week. Short by design — the shield icon in the
+  // flame already says "a miss is covered", so the caption doesn't repeat it.
   const streakCaption: string | null = brandNew
-    ? 'Your first shot lights the flame'
+    ? 'Your first shot lights it'
     : !flameAlive
-      ? 'Shoot today to light it again'
-      : streakDays <= 1
-        ? 'Flame lit. Shoot 4 days a week to keep it.'
-        : streakDays <= 7
-          ? (streak?.shields ?? 0) > 0
-            ? 'Shoot 4 days a week to keep it. A missed day is covered.'
-            : 'Shoot 4 days a week to keep it.'
-          : null;
+      ? 'Shoot today to relight it'
+      : streakDays <= 7
+        ? 'Shoot at least every other day'
+        : null;
   const quickDrawUntil = drop
     ? new Date(Date.parse(drop.drops_at) + quickDrawMinutes * 60_000)
     : undefined;
@@ -139,11 +136,9 @@ export default function TodayScreen() {
     setRefreshing(false);
   };
 
-  const dateLine = new Date().toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: '2-digit',
-  });
+  // Compact, single-line date (matches the gallery's mono date). The streak flame
+  // is wide and can't shrink, so a long "Wed, Jul 16" would overflow and clip.
+  const dateLine = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
 
   // The "while you wait" action, shared by WAITING and DONE so they can't drift:
   // curate when a drop is votable, otherwise a practice shot. (These live here
@@ -416,18 +411,18 @@ export default function TodayScreen() {
         }
       >
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
+          <View style={styles.headerRow}>
             <StreakFlame
               days={streakDays}
               last7={last7}
               alive={flameAlive}
               shields={streak?.shields ?? 0}
             />
-            {streakCaption && <Text style={styles.dayZero}>{streakCaption}</Text>}
+            <Mono size={typeScale.caption} color={colors.paper60} numberOfLines={1}>
+              {dateLine}
+            </Mono>
           </View>
-          <Mono size={typeScale.caption} color={colors.paper60}>
-            {dateLine}
-          </Mono>
+          {streakCaption && <Text style={styles.dayZero}>{streakCaption}</Text>}
         </View>
         {body}
         {__DEV__ && (
@@ -481,13 +476,14 @@ const styles = StyleSheet.create({
     flexGrow: 1, // fill the viewport so states can center their hero + drop the action into the thumb zone
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    minHeight: 32,
+    gap: 6, // column: the flame/date row, then the caption on its own line below
   },
-  headerLeft: {
-    gap: 6,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    minHeight: 32,
   },
   dayZero: {
     fontFamily: fonts.sans,
