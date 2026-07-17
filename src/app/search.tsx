@@ -135,7 +135,7 @@ export default function SearchScreen() {
             returnKeyType="search"
           />
           {query.length > 0 && (
-            <Pressable onPress={() => setQuery('')} hitSlop={10} style={styles.clearBtn}>
+            <Pressable onPress={() => setQuery('')} hitSlop={12} style={styles.clearBtn}>
               <X size={16} color={colors.paper60} strokeWidth={icons.strokeWidth} />
             </Pressable>
           )}
