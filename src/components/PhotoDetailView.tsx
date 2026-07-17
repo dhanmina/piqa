@@ -13,7 +13,7 @@
  */
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { MoreHorizontal, X } from 'lucide-react-native';
+import { MoreHorizontal, Share, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { asFrameId, asStatus } from '@lib/frames';
 import { useSignedThumb } from '@lib/gallery';
+import { shareCardImage } from '@lib/share';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
 import { Avatar } from '@/components/atoms/Avatar';
@@ -41,9 +42,10 @@ import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { ReportSheet } from '@/components/molecules/ReportSheet';
+import { ShareCard } from '@/components/molecules/ShareCard';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fade, fonts, frame, space, typeScale } from '@/components/tokens';
+import { colors, fade, fonts, frame, icons, space, typeScale } from '@/components/tokens';
 
 // The heart that blooms at a double-tap and flies into the heart control.
 const FLY_HEART = 64;
@@ -62,6 +64,8 @@ export type PhotoDetailData = {
   day?: number;
   status?: string | null;
   frame?: string | null;
+  /** The day's theme/brief — passed through to the share card when the host has it. */
+  theme?: string | null;
   /** An already-cached thumb (e.g. the gallery grid's) shown instantly under the
    *  full-res image, so opening a shot never waits on a reload. */
   placeholderUri?: string | null;
@@ -87,6 +91,7 @@ export function PhotoDetailView({
   day = 0,
   status: statusRaw,
   frame: frameRaw,
+  theme,
   placeholderUri,
   onClose,
   onOpenProfile,
@@ -116,12 +121,29 @@ export function PhotoDetailView({
   const [reactors, setReactors] = useState<Reactor[]>([]);
   const [showReactors, setShowReactors] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // Off-screen card, snapshotted on Share — no preview sheet (the OS share sheet
+  // already previews the image; a second preview was a redundant extra tap).
+  const shareCardRef = useRef<View>(null);
   const isOwn = Boolean(myId && userId && myId === userId);
 
   const openProfile = (uid: string) => {
     if (onOpenProfile) onOpenProfile(uid);
     else router.push({ pathname: '/u/[id]', params: { id: uid } });
+  };
+
+  const onShare = async () => {
+    if (sharing || !shareCardRef.current) return;
+    setSharing(true);
+    try {
+      const result = await shareCardImage(shareCardRef.current);
+      if (result === 'unavailable') setToast('Sharing isn’t available on this device.');
+    } catch {
+      setToast('Couldn’t create the image. Try again.');
+    } finally {
+      setSharing(false);
+    }
   };
 
   const onReported = () => {
@@ -296,6 +318,24 @@ export function PhotoDetailView({
       />
     </View>
   );
+  // Engagement lives together (heart + share), right of the shooter — one place to
+  // act on the photo. Share is a bare glyph over the fade, matching the heart's
+  // on-photo treatment rather than a top scrim chip.
+  const actionsBlock = (
+    <View style={styles.actions}>
+      {heartControl}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Share photo"
+        hitSlop={12}
+        disabled={sharing}
+        onPress={() => void onShare()}
+        style={sharing ? styles.sharing : undefined}
+      >
+        <Share size={24} strokeWidth={icons.strokeWidth} color={colors.paper} />
+      </Pressable>
+    </View>
+  );
 
   return (
     <GestureHandlerRootView style={styles.ghRoot}>
@@ -328,7 +368,7 @@ export function PhotoDetailView({
               <LinearGradient pointerEvents="none" colors={fade} locations={[0, 1]} style={styles.fade} />
               <View pointerEvents="box-none" style={styles.overlay}>
                 {identityBlock}
-                {heartControl}
+                {actionsBlock}
               </View>
             </>
           )}
@@ -342,7 +382,7 @@ export function PhotoDetailView({
           pointerEvents="box-none"
         >
           {identityBlock}
-          {heartControl}
+          {actionsBlock}
         </View>
       )}
 
@@ -378,6 +418,21 @@ export function PhotoDetailView({
           </ScrollView>
         )}
       </Sheet>
+
+      {/* Off-screen composer: mounted + laid out (so view-shot can snapshot it),
+          but far off-screen and never shown. The photo is already warm from the
+          viewer above, so the capture includes it. */}
+      <View style={styles.shareStage} pointerEvents="none">
+        <ShareCard
+          ref={shareCardRef}
+          photoUri={uri}
+          dayNumber={day}
+          frameId={frameId}
+          status={status}
+          shooter={shooter || 'shooter'}
+          theme={theme}
+        />
+      </View>
 
       <ReportSheet visible={showReport} submissionId={id ?? null} onClose={() => setShowReport(false)} onReported={onReported} />
 
@@ -435,6 +490,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  // Heart + share sit together, right of the shooter, on the name/eyebrow baseline.
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  sharing: { opacity: 0.4 },
+  // Kept in the tree so the snapshot has a laid-out card, but never on screen.
+  shareStage: { position: 'absolute', left: -9999, top: 0 },
   // Name + status read as one unit — tight pairing, with the air below (overlay
   // paddingBottom) separating them from the rail.
   identity: { flex: 1, gap: 3 },
