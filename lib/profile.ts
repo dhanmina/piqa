@@ -147,6 +147,23 @@ export async function unfollow(target: string): Promise<boolean> {
   return !error;
 }
 
+export type FollowedUser = { id: string; username: string; avatar_url: string | null };
+
+/**
+ * The accounts the current user follows — for the profile's Following list. Two
+ * steps (follow rows → profiles) mirror the reactor fetch and dodge any FK-name
+ * guessing. NO counts anywhere (spec §9): this is a navigable list, not a tally.
+ */
+export async function fetchFollowing(): Promise<FollowedUser[]> {
+  const me = await myId();
+  if (!me) return [];
+  const { data: rows } = await supabase.from("follows").select("followee_id").eq("follower_id", me);
+  const ids = (rows ?? []).map((r) => r.followee_id);
+  if (ids.length === 0) return [];
+  const { data: profs } = await supabase.from("profiles").select("id, username, avatar_url").in("id", ids);
+  return (profs ?? []) as FollowedUser[];
+}
+
 /** Permanent account deletion (spec §12) — purges storage + cascades all rows. */
 export async function deleteAccount(): Promise<boolean> {
   const { data, error } = await supabase.rpc("delete_account");

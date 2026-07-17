@@ -2,6 +2,7 @@
  * Own profile — thin wrapper over the shared ProfileView. The gear opens a
  * settings sheet (spec §11c): sign out + account deletion with a confirm step.
  */
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -16,6 +17,7 @@ import { Sheet } from '@/components/molecules/Sheet';
 import { colors, fonts, space, typeScale } from '@/components/tokens';
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { data, loading, error, refresh } = useProfile(null);
   const [showSettings, setShowSettings] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -63,6 +65,7 @@ export default function ProfileScreen() {
         error={error}
         onRetry={() => void refresh()}
         onSettings={() => setShowSettings(true)}
+        onOpenFollowing={() => router.push('/following')}
       />
 
       <Sheet visible={showSettings} onClose={closeSettings} title={confirmDelete ? 'Delete account?' : 'Settings'}>

@@ -6,7 +6,7 @@
  * are never shown, to anyone (spec §9).
  */
 import { Image } from 'expo-image';
-import { ChevronLeft, CloudOff, Crown, Flame, MoreHorizontal, Settings, Trophy } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, CloudOff, Crown, Flame, MoreHorizontal, Settings, Trophy, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +30,8 @@ type Props = {
   data: ProfileData | null;
   loading: boolean;
   onFollowToggle?: () => void;
+  /** Self only — open the list of accounts you follow. */
+  onOpenFollowing?: () => void;
   onSignOut?: () => void;
   onBack?: () => void;
   onMore?: () => void;
@@ -39,7 +41,7 @@ type Props = {
   onRetry?: () => void;
 };
 
-export function ProfileView({ data, loading, onFollowToggle, onSignOut, onBack, onMore, onSettings, followBusy, error, onRetry }: Props) {
+export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, onSignOut, onBack, onMore, onSettings, followBusy, error, onRetry }: Props) {
   void onSignOut; // sign out now lives in the settings sheet (owned by the screen)
   const prog = levelProgress(data?.xp ?? 0);
   const ring = ringForLevel(prog.level);
@@ -169,6 +171,16 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onBack, 
               {prog.into}/{prog.toNext} XP
             </Mono>
           </View>
+        )}
+
+        {/* Following — a quiet, count-free entry to the list of who you follow (self
+            only; spec §9 forbids the number, so there isn't one). */}
+        {data?.isSelf && onOpenFollowing && (
+          <Pressable accessibilityRole="button" style={styles.followingRow} onPress={onOpenFollowing}>
+            <Users size={18} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+            <Text style={styles.followingLabel}>Following</Text>
+            <ChevronRight size={18} strokeWidth={icons.strokeWidth} color={colors.paper40} />
+          </Pressable>
         )}
 
         {!data?.isSelf && onFollowToggle && (
@@ -314,6 +326,17 @@ const styles = StyleSheet.create({
   xpWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   xpTrack: { flex: 1, height: 3, borderRadius: 2, backgroundColor: colors.ink2, overflow: 'hidden' },
   xpFill: { height: 3, borderRadius: 2, backgroundColor: colors.safelight },
+  // Quiet menu-style row: icon · label (fills) · chevron, hairline-separated so it
+  // reads as an entry, not a headline metric.
+  followingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.paper30,
+  },
+  followingLabel: { flex: 1, fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper },
   // Segment (Wins/Starred) — mirrors the gallery's segmented control.
   segment: { flexDirection: 'row', gap: 22, marginTop: 4 },
   segItem: { alignItems: 'center', gap: 5 },
