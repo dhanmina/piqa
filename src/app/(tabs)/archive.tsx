@@ -60,6 +60,10 @@ export default function ArchiveScreen() {
   // Optimistic star state per item, so the tile fills instantly instead of
   // waiting on the server round-trip + refresh. Cleared once real data lands.
   const [optimisticStars, setOptimisticStars] = useState<Record<string, boolean>>({});
+  // Optimistically-removed shots — hidden the instant delete is tapped, so the
+  // grid never shows a "deleting" wait. Cleared once real data catches up (or on
+  // a failed delete, when the shot comes back).
+  const [optimisticDeleted, setOptimisticDeleted] = useState<Record<string, boolean>>({});
   const starKey = (it: ArchiveItem) => `${it.type}:${it.id}`;
   const isStarred = (it: ArchiveItem) => optimisticStars[starKey(it)] ?? it.starred;
 
@@ -68,7 +72,7 @@ export default function ArchiveScreen() {
   const starScale = useSharedValue(1);
   const starAnim = useAnimatedStyle(() => ({ transform: [{ scale: starScale.value }] }));
 
-  const items = data?.items ?? [];
+  const items = (data?.items ?? []).filter((it) => !optimisticDeleted[starKey(it)]);
   const equippedFrame = data?.equippedFrame ?? 'default';
 
   // Starred shots are the ones kept at full resolution — so warm ONLY their full-res
@@ -162,17 +166,30 @@ export default function ArchiveScreen() {
     void onToggleStar(selected, true);
   };
 
-  const onDelete = async (item: ArchiveItem) => {
-    setBusy(true);
-    const ok = await deleteFreeShot(item);
-    setBusy(false);
+  const dropDeleted = (key: string) =>
+    setOptimisticDeleted((m) => {
+      const copy = { ...m };
+      delete copy[key];
+      return copy;
+    });
+
+  const onDelete = (item: ArchiveItem) => {
+    const key = starKey(item);
+    // Optimistic: the shot disappears and the viewer closes now; the actual
+    // storage + row delete runs in the background. The vanish IS the confirmation
+    // (no success toast). Only a failure surfaces — the shot returns with a reason.
+    setOptimisticDeleted((m) => ({ ...m, [key]: true }));
     setSelected(null);
-    if (ok) {
-      await refresh();
-      setToast('Shot deleted');
-    } else {
-      setToast('Could not delete the shot');
-    }
+    void (async () => {
+      const ok = await deleteFreeShot(item);
+      if (ok) {
+        await refresh(); // real data now excludes it; drop the override
+        dropDeleted(key);
+      } else {
+        dropDeleted(key); // bring it back
+        setToast('Could not delete the shot');
+      }
+    })();
   };
 
   // Fetch failed with nothing to show → a recoverable error, not an endless skeleton.
@@ -415,9 +432,8 @@ export default function ArchiveScreen() {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="Delete shot"
-                      disabled={busy}
                       style={styles.viewerAction}
-                      onPress={() => void onDelete(selected)}
+                      onPress={() => onDelete(selected)}
                     >
                       <Trash2 size={20} strokeWidth={icons.strokeWidth} color={colors.paper60} />
                     </Pressable>
