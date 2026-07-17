@@ -74,6 +74,7 @@ export default function SettingsScreen() {
   const { session } = useSession();
   const { data, refresh } = useProfile(null);
   const [showFrames, setShowFrames] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [equipping, setEquipping] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -146,7 +147,7 @@ export default function SettingsScreen() {
         <Section title="ACCOUNT">
           <Row label="Email" value={session?.user.email ?? '—'} />
           <View style={styles.divider} />
-          <Row label="Sign out" onPress={() => void supabase.auth.signOut()} />
+          <Row label="Sign out" onPress={() => setConfirmSignOut(true)} />
         </Section>
 
         <Section title="ABOUT">
@@ -174,6 +175,13 @@ export default function SettingsScreen() {
           onEquip={(id) => void onEquip(id)}
           onClaim={(id) => void onClaim(id)}
         />
+      </Sheet>
+
+      <Sheet visible={confirmSignOut} onClose={() => setConfirmSignOut(false)} title="Sign out?">
+        <Text style={styles.warn}>You can sign back in anytime.</Text>
+        <Button label="Sign out" variant="primary" fullWidth onPress={() => void supabase.auth.signOut()} />
+        <Button label="Cancel" variant="ghost" fullWidth onPress={() => setConfirmSignOut(false)} />
+        <View style={styles.pad} />
       </Sheet>
 
       <Sheet visible={confirmDelete} onClose={() => setConfirmDelete(false)} title="Delete account?">
