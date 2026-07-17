@@ -237,7 +237,7 @@ export default function TodayScreen() {
               {(queued || blocked) && (
                 <View style={styles.queuedBadge}>
                   <RefreshCw size={11} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-                  <Mono size={10} color={colors.paper60}>
+                  <Mono size={typeScale.tabLabel} color={colors.paper60}>
                     queued
                   </Mono>
                 </View>
@@ -417,7 +417,7 @@ export default function TodayScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="How your streak works"
-              hitSlop={8}
+              hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
               onPress={() => setShowStreakInfo(true)}
               style={({ pressed }) => pressed && { opacity: 0.6 }}
             >

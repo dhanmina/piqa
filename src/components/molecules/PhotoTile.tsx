@@ -58,7 +58,7 @@ export function PhotoTile({ uri, hearts, badge, aspectRatio = photo.aspect, styl
             {badge === 'queued' && (
               <View style={styles.queuedRow}>
                 <RefreshCw size={11} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-                <Mono size={10} color={colors.paper60}>
+                <Mono size={typeScale.tabLabel} color={colors.paper60}>
                   queued
                 </Mono>
               </View>

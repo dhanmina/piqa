@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, control, iconStroke, overlay } from '@/components/tokens';
+import { colors, control, iconStroke, overlay, space } from '@/components/tokens';
 
 type IconButtonVariant = 'chrome' | 'plain';
 
@@ -13,7 +13,9 @@ type IconButtonProps = {
   /**
    * chrome = a circular ink-scrim chip for controls floating over a photo
    * (full-paper glyph for contrast). plain = a bare glyph for headers on ink
-   * (paper60 secondary chrome). Both hit a 48dp target via hitSlop.
+   * (paper60 secondary chrome). Both clear the 48dp minimum target: chrome via
+   * its 40dp chip + hitSlop, plain via a 48dp min-size box (a bare 22dp glyph
+   * + hitSlop was only 42dp).
    */
   variant?: IconButtonVariant;
   /** Optional fill for the glyph (e.g. a filled crown). */
@@ -58,6 +60,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   plain: {
+    minWidth: space.target,
+    minHeight: space.target,
     alignItems: 'center',
     justifyContent: 'center',
   },

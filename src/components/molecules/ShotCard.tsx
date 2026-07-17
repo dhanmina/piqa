@@ -65,13 +65,13 @@ export function ShotCard({
           {showQuickDraw && (
             <View style={styles.quick}>
               <Zap size={12} strokeWidth={icons.strokeWidth} color={colors.safelight} />
-              <Mono size={11} weight="medium" color={colors.safelight}>
+              <Mono size={typeScale.tabLabel} weight="medium" color={colors.safelight}>
                 QUICK DRAW
               </Mono>
-              <Mono size={11} color={colors.safelight}>
+              <Mono size={typeScale.tabLabel} color={colors.safelight}>
                 ·
               </Mono>
-              <Countdown until={quickDrawUntil!} size={11} color={colors.safelight} onDone={() => setQuickDrawOver(true)} />
+              <Countdown until={quickDrawUntil!} size={typeScale.tabLabel} color={colors.safelight} onDone={() => setQuickDrawOver(true)} />
             </View>
           )}
 

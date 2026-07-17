@@ -363,7 +363,11 @@ export default function GalleryScreen() {
               {longDate(data.drop.drop_date).toUpperCase()}
             </Mono>
             {viewingPast && (
-              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setSelectedDropId(null)}>
+              <Pressable
+                accessibilityRole="button"
+                hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+                onPress={() => setSelectedDropId(null)}
+              >
                 <Mono size={typeScale.caption} color={colors.safelight}>
                   ← Latest
                 </Mono>
