@@ -112,25 +112,30 @@ export default function GalleryScreen() {
   const [ready, setReady] = useState(false);
   const [celebrate, setCelebrate] = useState(false); // your shot placed → win moment
 
+  // Settle the reveal ONCE PER DROP, not per data object. Keying on `data` re-ran
+  // this on every background refetch (60s TTL), and `setReady(false)` flashed the
+  // skeleton on every tab switch. The reveal is a property of the drop, so keying
+  // on its id means a refetch of the same day's gallery keeps `ready` true.
+  const dropId = data?.drop?.id ?? null;
+  const isSeed = data?.isSeed ?? false;
   useEffect(() => {
     let alive = true;
     setReady(false);
-    const d = data?.drop;
-    if (!d) {
+    if (!dropId) {
       if (data) setReady(true);
       return;
     }
     // Only the latest, real (non-seed) gallery gets the one-time reveal.
-    if (selectedDropId !== null || data.isSeed) {
+    if (selectedDropId !== null || isSeed) {
       setReveal(false);
       setReady(true);
       return;
     }
-    void isRevealSeen(d.id).then((seen) => {
+    void isRevealSeen(dropId).then((seen) => {
       if (!alive) return;
       setReveal(!seen);
       if (!seen) {
-        void markRevealSeen(d.id);
+        void markRevealSeen(dropId);
         // Win moment (spec §11d moment 2): if my shot placed, a success haptic
         // + a text celebration. Real Lottie confetti is a post-beta upgrade
         // (needs lottie-react-native); the spec sanctions the text version for beta.
@@ -145,7 +150,10 @@ export default function GalleryScreen() {
     return () => {
       alive = false;
     };
-  }, [data, selectedDropId]);
+    // data/myId are read inside, but we only re-decide when the DROP changes — a
+    // refetch of the same gallery must not reset `ready`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dropId, isSeed, selectedDropId]);
 
   // Group back-issues into month sections so a long archive stays legible and
   // you can orient by month instead of scrolling one flat list (kept in the

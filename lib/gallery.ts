@@ -12,7 +12,7 @@ import { supabase } from "./supabase";
 export { useSignedThumb };
 
 // A specific past gallery is immutable; the latest one changes at the 9am reveal.
-const LATEST_TTL_MS = 60_000;
+const LATEST_TTL_MS = 5 * 60_000; // a day's gallery is ~static; hearts update optimistically
 const PAST_TTL_MS = 10 * 60_000;
 
 // ---------------------------------------------------------------------------
@@ -132,7 +132,7 @@ async function loadFollowingGallery(): Promise<GalleryDetailPhoto[]> {
 
 /** Gallery placements from the people I follow (the Following sub-tab). */
 export function useFollowingGallery() {
-  const { data, loading, error, refresh } = useCached<GalleryDetailPhoto[]>("gallery:following", loadFollowingGallery, 60_000);
+  const { data, loading, error, refresh } = useCached<GalleryDetailPhoto[]>("gallery:following", loadFollowingGallery, 5 * 60_000);
   return { photos: data ?? [], loading, error, refresh };
 }
 
