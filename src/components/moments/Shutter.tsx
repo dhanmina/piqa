@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors, icons, motion, space } from '@/components/tokens';
+import { colors, iconStroke, motion, space } from '@/components/tokens';
 
 export type ShutterState = 'live' | 'done' | 'default';
 
@@ -73,7 +73,7 @@ export function Shutter({ state, onPress }: ShutterProps) {
           pressed && { transform: [{ scale: motion.pressScale }] },
         ]}
       >
-        <Aperture size={28} strokeWidth={icons.strokeWidth} color={isLive ? colors.ink : colors.paper} />
+        <Aperture size={28} strokeWidth={iconStroke(28)} color={isLive ? colors.ink : colors.paper} />
       </Pressable>
     </View>
   );

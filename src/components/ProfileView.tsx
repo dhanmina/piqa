@@ -24,7 +24,7 @@ import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { StarredLightbox } from '@/components/molecules/StarredLightbox';
-import { colors, fonts, frame, icons, space, typeScale } from '@/components/tokens';
+import { colors, fonts, frame, iconStroke, icons, space, typeScale } from '@/components/tokens';
 
 type Props = {
   data: ProfileData | null;
@@ -219,7 +219,7 @@ export function ProfileView({ data, loading, onFollowToggle, onSignOut, onBack, 
           </View>
         ) : (data?.wins.length ?? 0) === 0 ? (
           <View style={styles.winsEmpty}>
-            <Trophy size={28} strokeWidth={icons.strokeWidth} color={colors.paper40} />
+            <Trophy size={28} strokeWidth={iconStroke(28)} color={colors.paper40} />
             <Text style={styles.winsLine}>{data?.isSelf ? 'Your best shots live here' : 'No gallery shots yet'}</Text>
             <Text style={styles.winsSub}>
               {data?.isSelf
