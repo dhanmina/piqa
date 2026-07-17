@@ -14,6 +14,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, w
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { deleteFreeShot, toggleStar, useArchive, type ArchiveItem } from '@lib/archive';
+import { isOffline } from '@lib/net';
 import { imageCacheKey, signThumbs, useSignedThumb } from '@lib/cache';
 import { Chip } from '@/components/atoms/Chip';
 import { IconButton } from '@/components/atoms/IconButton';
@@ -136,7 +137,10 @@ export default function ArchiveScreen() {
         delete copy[key];
         return copy;
       });
-      setToast(res.reason === 'cap' ? `That's all ${res.cap ?? data?.starsCap} stars this month` : 'Could not update the star');
+      // Offline isn't an error — it's a state. A real failure (the star cap) still
+      // gets a plain toast; no signal just says you're offline.
+      if (res.reason === 'cap') setToast(`That's all ${res.cap ?? data?.starsCap} stars this month`);
+      else setToast((await isOffline()) ? 'You’re offline' : 'Could not update the star');
       return;
     }
     if (announce && next) setToast('Starred · kept at full resolution');
@@ -187,7 +191,7 @@ export default function ArchiveScreen() {
         dropDeleted(key);
       } else {
         dropDeleted(key); // bring it back
-        setToast('Could not delete the shot');
+        setToast((await isOffline()) ? 'You’re offline' : 'Could not delete the shot');
       }
     })();
   };
