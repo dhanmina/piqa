@@ -27,7 +27,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Piqa needs the camera \u2014 every photo is shot in-app, today."
+          "cameraPermission": "Piqa needs the camera — every photo is shot in-app, today."
         }
       ],
       [
@@ -38,7 +38,8 @@
           "imageWidth": 160
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,
