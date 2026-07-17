@@ -1,3 +1,4 @@
+import { ARCHIVE_KEY, fetchArchive } from "./archive";
 import { fetchKey } from "./cache";
 import { loadGallery } from "./gallery";
 import { HOME_KEY, fetchHomeState } from "./homeState";
@@ -14,5 +15,6 @@ export async function prefetchEssentials(): Promise<void> {
     fetchKey(HOME_KEY, fetchHomeState),
     fetchKey("gallery:latest", () => loadGallery(null)),
     fetchKey(profileKey(null), () => fetchProfile(null)),
+    fetchKey(ARCHIVE_KEY, fetchArchive),
   ]);
 }
