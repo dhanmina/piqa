@@ -63,65 +63,109 @@ type RawProfile = {
   is_following: boolean;
 };
 
+export const profileKey = (targetId: string | null) =>
+  `profile:${targetId ?? "self"}`;
+
+/**
+ * Standalone so it can be prefetched at login (prefetchEssentials) as well as read
+ * live by the hook — that's what lets the Profile tab render from cache instead of
+ * cold-loading the first time it's opened.
+ */
+export async function fetchProfile(
+  targetId: string | null,
+): Promise<ProfileData | null> {
+  const { data: res, error: rpcError } = await supabase.rpc("get_profile", {
+    p_user: targetId ?? undefined,
+  });
+  if (rpcError) throw rpcError;
+
+  const p = res as unknown as RawProfile;
+  if (!p || p.found === false) return null;
+
+  const winPaths = (p.wins ?? [])
+    .map((w) => w.thumb_path)
+    .filter((x): x is string => !!x);
+
+  let starRows: {
+    id: string;
+    thumb_path: string | null;
+    image_path: string | null;
+    starred_at: string | null;
+  }[] = [];
+  if (p.is_self) {
+    const [{ data: sf }, { data: sd }] = await Promise.all([
+      supabase
+        .from("free_shots")
+        .select("id, thumb_path, image_path, starred_at")
+        .eq("user_id", p.id)
+        .eq("starred", true)
+        .order("starred_at", { ascending: false })
+        .limit(12),
+      supabase
+        .from("submissions")
+        .select("id, thumb_path, image_path, starred_at")
+        .eq("user_id", p.id)
+        .eq("starred", true)
+        .order("starred_at", { ascending: false })
+        .limit(12),
+    ]);
+    starRows = [...(sf ?? []), ...(sd ?? [])]
+      .sort(
+        (a, b) =>
+          Date.parse(b.starred_at ?? "") - Date.parse(a.starred_at ?? ""),
+      )
+      .slice(0, 12);
+  }
+
+  const starThumbPaths = starRows
+    .map((r) => r.thumb_path)
+    .filter((x): x is string => !!x);
+  const starImagePaths = starRows
+    .map((r) => r.image_path)
+    .filter((x): x is string => !!x);
+  const signed = await signThumbs([
+    ...winPaths,
+    ...starThumbPaths,
+    ...starImagePaths,
+  ]);
+
+  return {
+    id: p.id,
+    username: p.username,
+    avatarUrl: p.avatar_url,
+    xp: p.xp,
+    galleries: p.galleries,
+    streakWeeks: p.streak_weeks,
+    hearts: p.hearts,
+    crowns: p.crowns,
+    wins: (p.wins ?? []).map((w) => ({
+      id: w.id,
+      thumbPath: w.thumb_path,
+      imagePath: w.image_path ?? null,
+      uri: w.thumb_path ? (signed.get(w.thumb_path) ?? null) : null,
+      isPotd: w.is_potd,
+      dropDate: w.drop_date,
+      dayNumber: w.day_number,
+      status: asStatus(w.status),
+    })),
+    starred: starRows.map((r) => ({
+      key: r.id,
+      uri: r.thumb_path ? (signed.get(r.thumb_path) ?? null) : null,
+      fullUri: r.image_path ? (signed.get(r.image_path) ?? null) : null,
+    })),
+    equippedFrame: asFrameId(p.equipped_frame),
+    ownedFrames: (p.owned_frames ?? []).map(asFrameId),
+    isSelf: p.is_self,
+    isFollowing: p.is_following,
+  };
+}
+
 export function useProfile(targetId: string | null) {
-  const key = `profile:${targetId ?? "self"}`;
-  
-  const fetcher = useCallback(async (): Promise<ProfileData | null> => {
-    const { data: res, error: rpcError } = await supabase.rpc("get_profile", { p_user: targetId ?? undefined });
-    if (rpcError) throw rpcError;
-    
-    const p = res as unknown as RawProfile;
-    if (!p || p.found === false) return null;
-
-    const winPaths = (p.wins ?? []).map((w) => w.thumb_path).filter((x): x is string => !!x);
-
-    let starRows: { id: string; thumb_path: string | null; image_path: string | null; starred_at: string | null }[] = [];
-    if (p.is_self) {
-      const [{ data: sf }, { data: sd }] = await Promise.all([
-        supabase.from("free_shots").select("id, thumb_path, image_path, starred_at").eq("user_id", p.id).eq("starred", true).order("starred_at", { ascending: false }).limit(12),
-        supabase.from("submissions").select("id, thumb_path, image_path, starred_at").eq("user_id", p.id).eq("starred", true).order("starred_at", { ascending: false }).limit(12),
-      ]);
-      starRows = [...(sf ?? []), ...(sd ?? [])]
-        .sort((a, b) => Date.parse(b.starred_at ?? "") - Date.parse(a.starred_at ?? ""))
-        .slice(0, 12);
-    }
-
-    const starThumbPaths = starRows.map((r) => r.thumb_path).filter((x): x is string => !!x);
-    const starImagePaths = starRows.map((r) => r.image_path).filter((x): x is string => !!x);
-    const signed = await signThumbs([...winPaths, ...starThumbPaths, ...starImagePaths]);
-
-    return {
-      id: p.id,
-      username: p.username,
-      avatarUrl: p.avatar_url,
-      xp: p.xp,
-      galleries: p.galleries,
-      streakWeeks: p.streak_weeks,
-      hearts: p.hearts,
-      crowns: p.crowns,
-      wins: (p.wins ?? []).map((w) => ({
-        id: w.id,
-        thumbPath: w.thumb_path,
-        imagePath: w.image_path ?? null,
-        uri: w.thumb_path ? (signed.get(w.thumb_path) ?? null) : null,
-        isPotd: w.is_potd,
-        dropDate: w.drop_date,
-        dayNumber: w.day_number,
-        status: asStatus(w.status),
-      })),
-      starred: starRows.map((r) => ({
-        key: r.id,
-        uri: r.thumb_path ? (signed.get(r.thumb_path) ?? null) : null,
-        fullUri: r.image_path ? (signed.get(r.image_path) ?? null) : null,
-      })),
-      equippedFrame: asFrameId(p.equipped_frame),
-      ownedFrames: (p.owned_frames ?? []).map(asFrameId),
-      isSelf: p.is_self,
-      isFollowing: p.is_following,
-    };
-  }, [targetId]);
-
-  const { data, loading, error, refresh } = useCached<ProfileData | null>(key, fetcher, 60_000);
+  const { data, loading, error, refresh } = useCached<ProfileData | null>(
+    profileKey(targetId),
+    useCallback(() => fetchProfile(targetId), [targetId]),
+    5 * 60_000,
+  );
   return { data, loading, error, refresh };
 }
 
@@ -134,7 +178,9 @@ async function myId(): Promise<string | null> {
 export async function follow(target: string): Promise<boolean> {
   const me = await myId();
   if (!me) return false;
-  const { error } = await supabase.from("follows").insert({ follower_id: me, followee_id: target });
+  const { error } = await supabase
+    .from("follows")
+    .insert({ follower_id: me, followee_id: target });
   if (!error) invalidate("gallery:following"); // Following tab must reflect the new follow at once
   return !error;
 }
@@ -142,12 +188,20 @@ export async function follow(target: string): Promise<boolean> {
 export async function unfollow(target: string): Promise<boolean> {
   const me = await myId();
   if (!me) return false;
-  const { error } = await supabase.from("follows").delete().eq("follower_id", me).eq("followee_id", target);
+  const { error } = await supabase
+    .from("follows")
+    .delete()
+    .eq("follower_id", me)
+    .eq("followee_id", target);
   if (!error) invalidate("gallery:following");
   return !error;
 }
 
-export type FollowedUser = { id: string; username: string; avatar_url: string | null };
+export type FollowedUser = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
 
 /**
  * The accounts the current user follows — for the profile's Following list. Two
@@ -157,10 +211,16 @@ export type FollowedUser = { id: string; username: string; avatar_url: string | 
 export async function fetchFollowing(): Promise<FollowedUser[]> {
   const me = await myId();
   if (!me) return [];
-  const { data: rows } = await supabase.from("follows").select("followee_id").eq("follower_id", me);
+  const { data: rows } = await supabase
+    .from("follows")
+    .select("followee_id")
+    .eq("follower_id", me);
   const ids = (rows ?? []).map((r) => r.followee_id);
   if (ids.length === 0) return [];
-  const { data: profs } = await supabase.from("profiles").select("id, username, avatar_url").in("id", ids);
+  const { data: profs } = await supabase
+    .from("profiles")
+    .select("id, username, avatar_url")
+    .in("id", ids);
   return (profs ?? []) as FollowedUser[];
 }
 
