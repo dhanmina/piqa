@@ -26,6 +26,15 @@ const store = new Map<string, Entry>();
 const inflight = new Map<string, Promise<unknown>>();
 const errors = new Map<string, boolean>(); // last fetch for a key failed
 const subscribers = new Map<string, Set<() => void>>();
+// Bumped every time a key is invalidated. A fetch captures the generation at its
+// start and only commits its result if the generation still matches — so a fetch
+// that was already in flight when a write invalidated the key (its data is now
+// stale) is discarded instead of being deduped onto or clobbering the fresh read.
+const generation = new Map<string, number>();
+
+function bumpGeneration(key: string) {
+  generation.set(key, (generation.get(key) ?? 0) + 1);
+}
 
 function emit(key: string) {
   subscribers.get(key)?.forEach((fn) => fn());
@@ -74,6 +83,9 @@ export async function hydrateCache(): Promise<void> {
 /** Wipe cache (memory + disk) on sign-out so the next account starts clean. */
 export async function clearPersistedCache(): Promise<void> {
   const keys = [...store.keys()];
+  // Bump every in-flight key's generation so a fetch from the old session can't
+  // land after sign-out and repopulate the cache with the previous user's data.
+  for (const key of new Set([...store.keys(), ...inflight.keys()])) bumpGeneration(key);
   store.clear();
   inflight.clear();
   errors.clear();
@@ -93,6 +105,13 @@ function peek<T>(key: string): { value: T; at: number } | undefined {
 /** Drop a key so the next read refetches (e.g. after a submission lands). */
 export function invalidate(key: string) {
   store.delete(key);
+  // Any fetch already in flight was issued before this write, so its result is
+  // stale. Drop the dedupe handle so the next fetchKey issues a genuinely fresh
+  // request, and bump the generation so the stale one is discarded when it lands
+  // rather than clobbering the fresh data. Without this a submission's refetch
+  // deduped onto the pre-submission fetch and Today needed a manual pull-to-refresh.
+  inflight.delete(key);
+  bumpGeneration(key);
   void AsyncStorage.removeItem(PERSIST_PREFIX + key).catch(() => {});
   emit(key);
 }
@@ -114,22 +133,32 @@ export async function fetchKey<T>(key: string, fetcher: () => Promise<T>): Promi
   const existing = inflight.get(key);
   if (existing) return existing as Promise<T>;
 
+  const gen = generation.get(key) ?? 0;
   if (__DEV__) console.log(`[cache] RPC fetch → ${key}`);
-  const p = (async () => {
+  let p!: Promise<T>;
+  p = (async () => {
     try {
       const value = await fetcher();
-      const entry = { value, at: Date.now() };
-      store.set(key, entry);
-      persistEntry(key, entry); // mirror to disk for the next cold start
-      errors.delete(key); // recovered
-      emit(key);
+      // Discard if an invalidate raced in while we were fetching: a newer write
+      // superseded this read, so committing it would clobber the fresh data.
+      if ((generation.get(key) ?? 0) === gen) {
+        const entry = { value, at: Date.now() };
+        store.set(key, entry);
+        persistEntry(key, entry); // mirror to disk for the next cold start
+        errors.delete(key); // recovered
+        emit(key);
+      }
       return value;
     } catch (err) {
-      errors.set(key, true); // surface an error state instead of loading forever
-      emit(key);
+      if ((generation.get(key) ?? 0) === gen) {
+        errors.set(key, true); // surface an error state instead of loading forever
+        emit(key);
+      }
       throw err;
     } finally {
-      inflight.delete(key);
+      // Only clear our own handle — an invalidate may have already replaced it
+      // with a fresher fetch we must not evict.
+      if (inflight.get(key) === p) inflight.delete(key);
     }
   })();
 
