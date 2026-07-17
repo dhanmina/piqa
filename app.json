@@ -39,7 +39,13 @@
         }
       ],
       "expo-notifications",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Piqa needs your photos only to set your profile picture."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

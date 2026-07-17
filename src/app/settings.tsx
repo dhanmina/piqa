@@ -115,7 +115,7 @@ export default function SettingsScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <Section title="PROFILE">
-          <Row label="Edit profile" chevron onPress={soon} />
+          <Row label="Edit profile" chevron onPress={() => router.push('/edit-profile')} />
           <View style={styles.divider} />
           <Row label="Frame" chevron onPress={() => setShowFrames(true)} />
         </Section>

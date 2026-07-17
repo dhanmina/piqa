@@ -1,3 +1,5 @@
+import { File } from "expo-file-system";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { useCallback } from "react";
 
 import { invalidate, signThumbs, useCached } from "./cache";
@@ -229,4 +231,57 @@ export async function deleteAccount(): Promise<boolean> {
   const { data, error } = await supabase.rpc("delete_account");
   if (error) return false;
   return (data as unknown as { ok: boolean }).ok;
+}
+
+/**
+ * Set the account's avatar from a locally-picked image. Downscales to a square-ish
+ * 512 JPEG, uploads to the public avatars bucket at the RLS-required flat path
+ * `{uid}.jpg` (the storage.filename policy rejects a subfolder), then points
+ * profiles.avatar_url at the public URL. The path is fixed per user (upsert), so
+ * the URL never changes — we append a version query so expo-image fetches the new
+ * bytes instead of the cached face. Returns the new URL, or null on failure.
+ */
+export async function updateAvatar(localUri: string): Promise<string | null> {
+  const uid = await myId();
+  if (!uid) return null;
+
+  const context = ImageManipulator.manipulate(localUri);
+  context.resize({ width: 512 }); // the picker already crops square; keep aspect, don't distort
+  const rendered = await context.renderAsync();
+  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
+  const bytes = await new File(saved.uri).bytes();
+
+  const path = `${uid}.jpg`;
+  const { error: upErr } = await supabase.storage
+    .from("avatars")
+    .upload(path, bytes.buffer as ArrayBuffer, { contentType: "image/jpeg", upsert: true });
+  if (upErr) return null;
+
+  const publicUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+  const url = `${publicUrl}?v=${Date.now()}`;
+  const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", uid);
+  if (dbErr) return null;
+
+  invalidate(profileKey(null));
+  return url;
+}
+
+/**
+ * Rename the account. Username is stored lowercased (matching sign-up), and the DB
+ * still holds the unique + length constraints, so this is safe even against a race
+ * past the live availability check. Returns a friendly error on collision.
+ */
+export async function updateUsername(name: string): Promise<{ ok: boolean; error?: string }> {
+  const uid = await myId();
+  if (!uid) return { ok: false, error: "You're signed out." };
+  const clean = name.trim().toLowerCase();
+  if (clean.length < 3 || clean.length > 24) return { ok: false, error: "Use 3 to 24 characters." };
+
+  const { error } = await supabase.from("profiles").update({ username: clean }).eq("id", uid);
+  if (error) {
+    const taken = error.message.toLowerCase().includes("unique") || error.code === "23505";
+    return { ok: false, error: taken ? "That username is taken." : "Couldn't update your username." };
+  }
+  invalidate(profileKey(null));
+  return { ok: true };
 }

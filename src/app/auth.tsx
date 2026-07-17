@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getRememberedEmail, getRememberMe, setRememberedEmail, setRememberMe } from '@lib/authPrefs';
 import { supabase } from '@lib/supabase';
+import { useUsernameStatus, usernameStatusMessage } from '@lib/username';
 import { Brandmark } from '@/components/atoms/Brandmark';
 import { Button } from '@/components/atoms/Button';
 import { Field } from '@/components/atoms/Field';
@@ -72,6 +73,10 @@ export default function AuthScreen() {
   const isForgot = mode === 'forgot';
   const isReset = mode === 'reset';
 
+  // Live availability under the username field (sign-up only).
+  const uStatus = useUsernameStatus(username, isSignup);
+  const uMessage = usernameStatusMessage(uStatus);
+
   // Clear transient fields on a mode change; keep email so it carries through.
   const go = (next: Mode) => {
     setMode(next);
@@ -112,7 +117,9 @@ export default function AuthScreen() {
     ? email.trim().length > 0
     : isReset
       ? code.trim().length >= 6 && password.length >= 6
-      : email.trim().length > 0 && password.length >= 6 && (!isSignup || username.trim().length >= 3);
+      : email.trim().length > 0 &&
+        password.length >= 6 &&
+        (!isSignup || (username.trim().length >= 3 && uStatus !== 'taken' && uStatus !== 'checking'));
 
   const submit = async () => {
     setBusy(true);
@@ -232,18 +239,23 @@ export default function AuthScreen() {
             </View>
 
             {isSignup && (
-              <Field
-                label="Username"
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="e.g. goldenhour"
-                hint="This is public. People can find and follow you by it."
-                returnKeyType="next"
-                blurOnSubmit={false}
-                onSubmitEditing={() => emailRef.current?.focus()}
-              />
+              <View style={styles.usernameBlock}>
+                <Field
+                  label="Username"
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="e.g. goldenhour"
+                  hint={username.trim().length === 0 ? 'This is public. People can find and follow you by it.' : undefined}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => emailRef.current?.focus()}
+                />
+                {uMessage && (
+                  <Text style={[styles.uStatus, uMessage.error && styles.uStatusError]}>{uMessage.text}</Text>
+                )}
+              </View>
             )}
 
             {!isReset && (
@@ -347,6 +359,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   form: { gap: 16 },
+  usernameBlock: { gap: 6 },
+  uStatus: {
+    fontFamily: fonts.sans,
+    fontSize: typeScale.caption,
+    color: colors.paper60,
+  },
+  uStatusError: { color: colors.safelight },
   formHead: { gap: 4, marginBottom: 2 },
   formTitle: {
     fontFamily: fonts.sansSemiBold,
