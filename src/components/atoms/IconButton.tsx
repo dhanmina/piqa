@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, control, icons, overlay } from '@/components/tokens';
+import { colors, control, iconStroke, overlay } from '@/components/tokens';
 
 type IconButtonVariant = 'chrome' | 'plain';
 
@@ -43,7 +43,7 @@ export function IconButton({
       onPress={onPress}
       style={[variant === 'chrome' ? styles.chrome : styles.plain, style]}
     >
-      <Icon size={control.icon} strokeWidth={icons.strokeWidth} color={glyph} fill={fill ?? 'transparent'} />
+      <Icon size={control.icon} strokeWidth={iconStroke(control.icon)} color={glyph} fill={fill ?? 'transparent'} />
     </Pressable>
   );
 }
