@@ -31,7 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { asFrameId, asStatus } from '@lib/frames';
 import { useSignedThumb } from '@lib/gallery';
-import { shareCardImage } from '@lib/share';
+import { shareCard } from '@lib/share';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
 import { Avatar } from '@/components/atoms/Avatar';
@@ -137,7 +137,7 @@ export function PhotoDetailView({
     if (sharing || !shareCardRef.current) return;
     setSharing(true);
     try {
-      const result = await shareCardImage(shareCardRef.current);
+      const result = await shareCard(shareCardRef.current);
       if (result === 'unavailable') setToast('Sharing isn’t available on this device.');
     } catch {
       setToast('Couldn’t create the image. Try again.');

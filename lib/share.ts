@@ -3,19 +3,28 @@ import type { View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 
 /**
- * Snapshot a composed ShareCard view to a PNG and hand it to the OS share sheet.
- * The card is captured at the view's on-screen size × the device pixel ratio, so a
- * 360pt card is ~720–1080px — sharp enough for Stories and messages. Returns
- * "unavailable" when the platform has no share sheet (rare); throws on a real
- * capture/encode failure so the caller can surface a retry.
+ * The public link to a photo — mirrors the in-app /photo/[id] route.
+ *
+ * NOT included in shares yet, on purpose: there's no web landing at piqa.app and
+ * no universal-link config, so the URL wouldn't resolve — a dead link is worse
+ * than none. Wire it into shareCard (RN Share `message` on iOS; Android via the
+ * OG/universal-link path) once piqa.app serves /photo/[id] with an OG preview and
+ * the app declares associatedDomains / assetlinks.
  */
-export async function shareCardImage(node: View): Promise<"shared" | "unavailable"> {
+export function photoShareUrl(id: string): string {
+  return `https://piqa.app/photo/${id}`;
+}
+
+/**
+ * Snapshot a composed ShareCard view to a PNG and hand it to the OS share sheet.
+ * Image-only for now — the card is self-branded (its rail says PIQA), so it needs
+ * no link, and there's no web target to link to yet. Captured at the view's size ×
+ * the device pixel ratio (a 360pt card is ~720–1080px). Returns "unavailable" when
+ * the platform has no share sheet; throws on a real capture failure.
+ */
+export async function shareCard(node: View): Promise<"shared" | "unavailable"> {
   const uri = await captureRef(node, { format: "png", quality: 1, result: "tmpfile" });
   if (!(await Sharing.isAvailableAsync())) return "unavailable";
-  await Sharing.shareAsync(uri, {
-    mimeType: "image/png",
-    UTI: "public.png",
-    dialogTitle: "Share your shot",
-  });
+  await Sharing.shareAsync(uri, { mimeType: "image/png", UTI: "public.png", dialogTitle: "Share your shot" });
   return "shared";
 }
