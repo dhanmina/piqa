@@ -6,11 +6,12 @@
  * old flat sheet. The frame picker stays a focused sheet launched from here.
  */
 import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { claimEventFrame, equipFrame, type FrameId } from '@lib/frames';
@@ -81,6 +82,23 @@ export default function SettingsScreen() {
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const soon = () => setToast('Coming soon');
 
+  // Reflect the real OS notification permission, re-read on focus so it updates
+  // after the user flips it in system settings and returns. (Delivery itself lights
+  // up once push tokens register — see lib/push.ts — but the permission and this
+  // control are real today, so the row is never a "coming soon" stub.)
+  const [notifOn, setNotifOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      void Notifications.getPermissionsAsync().then((p) => {
+        if (alive) setNotifOn(p.granted);
+      });
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+
   // Equipping flips one column; the shared profile cache refresh re-skins the crest
   // and every framed surface.
   const onEquip = async (id: FrameId) => {
@@ -117,7 +135,12 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title="NOTIFICATIONS">
-          <Row label="Push notifications" soon onPress={soon} />
+          <Row
+            label="Push notifications"
+            value={notifOn === null ? undefined : notifOn ? 'On' : 'Off'}
+            chevron
+            onPress={() => void Linking.openSettings()}
+          />
         </Section>
 
         <Section title="ACCOUNT">
