@@ -50,6 +50,9 @@ function RootNavigator() {
     >
       <Stack.Protected guard={session === null}>
         <Stack.Screen name="auth" />
+        {/* First-launch intro, shown before auth. Fades in (its 4 steps own the
+            horizontal slide internally); the gesture is off so there's no back. */}
+        <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
       </Stack.Protected>
       <Stack.Protected guard={session !== null}>
         <Stack.Screen name="(tabs)" />
@@ -62,6 +65,7 @@ function RootNavigator() {
         <Stack.Screen name="u/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="following" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="edit-profile" options={{ animation: 'slide_from_right' }} />
         {__DEV__ && <Stack.Screen name="dev/time-machine" />}
         {__DEV__ && <Stack.Screen name="dev/kit" />}
       </Stack.Protected>
