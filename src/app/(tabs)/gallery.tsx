@@ -333,6 +333,12 @@ export default function GalleryScreen() {
   }
 
   const viewingPast = selectedDropId !== null;
+  // The crowd only crowns a Photo of the Day above the vote floor (close_day →
+  // potd_requires_votes). On a thin day nobody is crowned, so there is NO hero —
+  // faking one would counterfeit the app's one scarce honor. Instead the page
+  // leads with a quiet editorial note where the crown would sit, and the grid
+  // stays equal-weight (every shot already made the gallery).
+  const hasPotd = data.photos.some((p) => p.isPotd);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -372,6 +378,17 @@ export default function GalleryScreen() {
           {data.isSeed && <Text style={styles.rollingIn}>The first galleries are rolling in.</Text>}
           <View style={styles.headerRule} />
         </View>
+
+        {!hasPotd && (
+          <View style={styles.noCrown}>
+            <Mono size={typeScale.caption} color={colors.paper60} style={styles.noCrownEyebrow}>
+              NO CROWN TODAY
+            </Mono>
+            <Text style={styles.noCrownBody}>
+              Not enough votes to crown a Photo of the Day. Here’s the whole gallery.
+            </Text>
+          </View>
+        )}
 
         <GalleryGrid
           key={`${data.drop.id}:${reveal}`}
@@ -510,6 +527,27 @@ const styles = StyleSheet.create({
   rollingIn: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
   headerRule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginTop: 6 },
   center: { flex: 1, justifyContent: 'center' },
+  // Editorial note that stands in for the hero on a no-crown day. Centered and
+  // hairline-bracketed so the empty front page reads as deliberate whitespace,
+  // not a failed load. Never gold — the crown treatment is reserved for a real
+  // Photo of the Day.
+  noCrown: {
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 18,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.paper30,
+  },
+  noCrownEyebrow: { letterSpacing: 1.5 },
+  noCrownBody: {
+    fontFamily: displayFamily,
+    fontSize: typeScale.sub,
+    lineHeight: typeScale.sub * 1.3,
+    color: colors.paper60,
+    textAlign: 'center',
+    maxWidth: 280,
+  },
   endCard: { gap: 14 },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginTop: 8 },
   pastLatestRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 },
