@@ -19,6 +19,7 @@ import { Mono } from '@/components/atoms/Mono';
 import { StreakFlame } from '@/components/atoms/StreakFlame';
 import { Toggle } from '@/components/atoms/Toggle';
 import { displayFamily } from '@/components/fonts';
+import { Shutter } from '@/components/moments/Shutter';
 import { Brackets } from '@/components/molecules/Brackets';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
@@ -205,6 +206,18 @@ export default function DarkroomKit() {
           <Caption>gold ONLY on PotD — never on voting pairs</Caption>
         </Section>
 
+        <Section title="ShutterMark — the brandmark, made tappable">
+          <View style={styles.shutterRow}>
+            {(['default', 'live', 'done'] as const).map((s) => (
+              <View key={s} style={styles.shutterCell}>
+                <Shutter state={s} onPress={() => {}} />
+                <Caption>{s}</Caption>
+              </View>
+            ))}
+          </View>
+          <Caption>tap for the capture snap · live pulses on its own</Caption>
+        </Section>
+
         <Section title="PhotoTile — 0 radius, skeleton has no shimmer">
           <View style={styles.row}>
             <PhotoTile uri={img('piqa1')} hearts={31} style={styles.tile} />
@@ -335,6 +348,8 @@ const styles = StyleSheet.create({
     gap: 12,
     flexWrap: 'wrap',
   },
+  shutterRow: { flexDirection: 'row', gap: 28, justifyContent: 'center', paddingTop: 36 },
+  shutterCell: { alignItems: 'center', gap: 8 },
   swatchRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
