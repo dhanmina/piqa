@@ -7,7 +7,7 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { Camera, ChevronLeft } from 'lucide-react-native';
+import { Camera } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,9 +16,8 @@ import { updateAvatar, updateUsername, useProfile } from '@lib/profile';
 import { useUsernameStatus, usernameStatusMessage } from '@lib/username';
 import { Button } from '@/components/atoms/Button';
 import { Field } from '@/components/atoms/Field';
-import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
-import { displayFamily } from '@/components/fonts';
+import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, space, typeScale } from '@/components/tokens';
 
@@ -95,10 +94,7 @@ export default function EditProfileScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <View style={styles.header}>
-        <IconButton icon={ChevronLeft} accessibilityLabel="Back" onPress={() => router.back()} />
-        <Text style={styles.title}>Edit profile</Text>
-      </View>
+      <ScreenHeader onBack={() => router.back()} title="Edit profile" />
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.avatarBlock}>
@@ -144,8 +140,6 @@ export default function EditProfileScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: space.gutter - 4, paddingTop: 4 },
-  title: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper },
   content: { padding: space.gutter, paddingBottom: 48, gap: 32 },
   avatarBlock: { alignItems: 'center', gap: 12, paddingTop: 8 },
   avatar: {

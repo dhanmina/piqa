@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Search as SearchIcon, X } from 'lucide-react-native';
+import { Search as SearchIcon, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,9 +10,9 @@ import { searchUsers, type SearchUser } from '@lib/search';
 import { useSession } from '@lib/session';
 import { Avatar } from '@/components/atoms/Avatar';
 import { Button } from '@/components/atoms/Button';
-import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
+import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { displayFamily } from '@/components/fonts';
 import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
 
@@ -117,8 +117,7 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <IconButton icon={ChevronLeft} accessibilityLabel="Back" onPress={() => router.back()} />
+      <ScreenHeader onBack={() => router.back()} bordered>
         <View style={styles.searchBar}>
           <SearchIcon size={20} color={colors.paper60} strokeWidth={icons.strokeWidth} />
           <TextInput
@@ -140,7 +139,7 @@ export default function SearchScreen() {
             </Pressable>
           )}
         </View>
-      </View>
+      </ScreenHeader>
 
       {query.trim().length < 2 ? (
         <View style={styles.center}>
@@ -175,16 +174,6 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: space.gutter,
-    paddingTop: 8,
-    paddingBottom: 12,
-    gap: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.ink2,
-  },
   searchBar: {
     flex: 1,
     flexDirection: 'row',

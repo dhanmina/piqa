@@ -6,7 +6,7 @@
  * are never shown, to anyone (spec §9).
  */
 import { Image } from 'expo-image';
-import { ChevronLeft, ChevronRight, CloudOff, Crown, Flame, MoreHorizontal, Settings, Trophy, Users } from 'lucide-react-native';
+import { ChevronRight, CloudOff, Crown, Flame, MoreHorizontal, Settings, Trophy, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +23,7 @@ import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
+import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { StarredLightbox } from '@/components/molecules/StarredLightbox';
 import { colors, fonts, frame, iconStroke, icons, space, typeScale } from '@/components/tokens';
 
@@ -100,11 +101,15 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       {(onBack || onMore || onSettings) && (
-        <View style={styles.backHeader}>
-          {onBack ? <IconButton icon={ChevronLeft} accessibilityLabel="Back" onPress={onBack} /> : <View />}
-          {onMore && <IconButton icon={MoreHorizontal} accessibilityLabel="More" onPress={onMore} />}
-          {onSettings && <IconButton icon={Settings} accessibilityLabel="Settings" onPress={onSettings} />}
-        </View>
+        <ScreenHeader
+          onBack={onBack}
+          right={
+            <>
+              {onMore && <IconButton icon={MoreHorizontal} accessibilityLabel="More" onPress={onMore} />}
+              {onSettings && <IconButton icon={Settings} accessibilityLabel="Settings" onPress={onSettings} />}
+            </>
+          }
+        />
       )}
       {error && !data && (
         <View style={styles.errorWrap}>
@@ -310,7 +315,6 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  backHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 },
   content: { padding: space.gutter, gap: space.gutter },
   // Crest: avatar left, identity block right.
   crest: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingTop: 4 },
