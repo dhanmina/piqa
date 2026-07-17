@@ -1,5 +1,4 @@
 import * as Haptics from 'expo-haptics';
-import { Aperture } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -12,7 +11,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors, iconStroke, motion, space } from '@/components/tokens';
+import { ShutterMark } from '@/components/atoms/ShutterMark';
+import { colors, motion, space } from '@/components/tokens';
 
 export type ShutterState = 'live' | 'done' | 'default';
 
@@ -34,6 +34,7 @@ type ShutterProps = {
 export function Shutter({ state, onPress }: ShutterProps) {
   const reducedMotion = useReducedMotion();
   const pulse = useSharedValue(0);
+  const snap = useSharedValue(0); // capture-snap: frame contracts on press
   const isLive = state === 'live';
 
   useEffect(() => {
@@ -65,7 +66,11 @@ export function Shutter({ state, onPress }: ShutterProps) {
               ? "Open camera for a free shot. Today's shot is already in."
               : 'Open camera'
         }
-        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+        onPressIn={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          if (!reducedMotion)
+            snap.value = withSequence(withTiming(1, { duration: 90 }), withTiming(0, { duration: 200 }));
+        }}
         onPress={onPress}
         style={({ pressed }) => [
           styles.circle,
@@ -73,7 +78,7 @@ export function Shutter({ state, onPress }: ShutterProps) {
           pressed && { transform: [{ scale: motion.pressScale }] },
         ]}
       >
-        <Aperture size={28} strokeWidth={iconStroke(28)} color={isLive ? colors.ink : colors.paper} />
+        <ShutterMark state={state} size={28} snap={snap} />
       </Pressable>
     </View>
   );
