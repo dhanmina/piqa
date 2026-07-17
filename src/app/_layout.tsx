@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react';
 import { initCaptureQueue } from '@lib/captureQueue';
 import { FrameCatalogProvider } from '@lib/frames';
 import { prefetchEssentials } from '@lib/prefetch';
-import { registerForPush } from '@lib/push';
+import { registerForPush, useNotificationRouting } from '@lib/push';
 import { SessionProvider, useSession } from '@lib/session';
 import { useAppFonts } from '@/components/fonts';
 import { colors, fonts } from '@/components/tokens';
@@ -22,6 +22,9 @@ function RootNavigator() {
   useEffect(() => {
     if (session) void registerForPush();
   }, [session]);
+
+  // Deep-link a tapped notification to the right screen.
+  useNotificationRouting();
 
   // Warm the first screens once per login (keyed on user id, so token refreshes
   // don't re-fetch). Runs after the cache has hydrated, so it only fills gaps.
