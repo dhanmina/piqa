@@ -122,9 +122,22 @@ export const motion = {
 
 /** Lucide settings — one family, warm stroke. */
 export const icons = {
-  strokeWidth: 2.25,
+  // lucide is drawn on a 24px grid FOR stroke 2 — that's its designed, crispest
+  // weight. Anything heavier over-thickens the glyph and closes up its inner space.
+  strokeWidth: 2,
   emptyStateSize: 32,
 } as const;
+
+/**
+ * Optical stroke for a given icon size. lucide's stroke scales with the glyph, so
+ * a fixed weight renders ~3px on a 32px icon (chunky) yet thin on a 12px one. This
+ * holds the ON-SCREEN stroke at the designed weight for display icons (size ≥ 24)
+ * so large glyphs stay refined, and keeps the base weight for small UI icons.
+ */
+export function iconStroke(size: number): number {
+  if (size <= 24) return icons.strokeWidth;
+  return Math.max(1.5, +(icons.strokeWidth * (24 / size)).toFixed(2));
+}
 
 /** Viewfinder bracket geometry (the signature motif). */
 export const brackets = {

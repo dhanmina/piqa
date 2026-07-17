@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/atoms/Button';
-import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
+import { colors, fonts, iconStroke, icons, space, typeScale } from '@/components/tokens';
 
 type EmptyStateProps = {
   icon: LucideIcon;
@@ -15,7 +15,7 @@ type EmptyStateProps = {
 export function EmptyState({ icon: Icon, line, ctaLabel, onCta }: EmptyStateProps) {
   return (
     <View style={styles.container}>
-      <Icon size={icons.emptyStateSize} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+      <Icon size={icons.emptyStateSize} strokeWidth={iconStroke(icons.emptyStateSize)} color={colors.paper60} />
       <Text style={styles.line}>{line}</Text>
       {ctaLabel && <Button label={ctaLabel} variant="ghost" onPress={onCta} />}
     </View>
