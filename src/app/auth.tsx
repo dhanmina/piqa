@@ -1,12 +1,14 @@
 import { Eye, EyeOff } from 'lucide-react-native';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { getRememberedEmail, getRememberMe, setRememberedEmail, setRememberMe } from '@lib/authPrefs';
 import { supabase } from '@lib/supabase';
 import { Brandmark } from '@/components/atoms/Brandmark';
 import { Button } from '@/components/atoms/Button';
 import { Field } from '@/components/atoms/Field';
+import { Toggle } from '@/components/atoms/Toggle';
 import { displayFamily } from '@/components/fonts';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
@@ -32,8 +34,38 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const [remember, setRemember] = useState(true); // stay signed in across restarts; opt out on a shared device
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Refs let the keyboard's "next" jump email → password without leaving it.
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  // The remembered email is a sign-in convenience. Track whether the user has
+  // actually typed in the field so we never force the auto-fill into sign-up.
+  const rememberedEmail = useRef('');
+  const [emailEdited, setEmailEdited] = useState(false);
+
+  // Restore the saved "remember me" choice (and, if on, the email) so the toggle
+  // reflects what the user last chose instead of resetting to on every visit.
+  useEffect(() => {
+    void (async () => {
+      const [saved, savedEmail] = await Promise.all([getRememberMe(), getRememberedEmail()]);
+      setRemember(saved);
+      if (saved && savedEmail) {
+        rememberedEmail.current = savedEmail;
+        setEmail(savedEmail); // prefill sign-in only (the screen opens in sign-in)
+      }
+    })();
+  }, []);
+
+  // Persist the choice the moment it's toggled — not only on submit — so it sticks
+  // even if the user flips it and leaves. Clearing it also drops the saved email.
+  const onRememberChange = (next: boolean) => {
+    setRemember(next);
+    void setRememberMe(next);
+    if (!next) void setRememberedEmail(null);
+  };
 
   const isSignup = mode === 'signup';
   const isSignin = mode === 'signin';
@@ -46,6 +78,19 @@ export default function AuthScreen() {
     setPassword('');
     setCode('');
     setShowPw(false);
+    // If the email is still the untouched remembered value, don't drag it into
+    // sign-up (you'd be creating a DIFFERENT account) — start that flow blank, and
+    // restore the convenience fill on the way back to sign-in. A typed email always
+    // carries, as before.
+    if (!emailEdited) {
+      if (next === 'signup') setEmail('');
+      else if (next === 'signin') setEmail(rememberedEmail.current);
+    }
+  };
+
+  const onEmailChange = (text: string) => {
+    setEmail(text);
+    setEmailEdited(true);
   };
 
   const title = isSignup
@@ -73,6 +118,7 @@ export default function AuthScreen() {
     setBusy(true);
     try {
       if (isSignup) {
+        await setRememberMe(true); // a fresh account stays signed in
         const name = username.trim().toLowerCase();
         // Email confirm is OFF: signUp returns a live session. The DB trigger
         // creates the profiles + streaks rows from the username metadata.
@@ -107,9 +153,12 @@ export default function AuthScreen() {
         if (vErr) return setToast(friendlyError(vErr.message));
         const { error: uErr } = await supabase.auth.updateUser({ password });
         if (uErr) return setToast(friendlyError(uErr.message));
+        await setRememberMe(true); // just recovered — don't sign them straight back out
         setToast('Password updated. You’re in.');
         // Session is now live → the root guard flips to the tabs.
       } else {
+        await setRememberMe(remember);
+        await setRememberedEmail(remember ? email : null);
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) setToast(friendlyError(error.message));
       }
@@ -118,17 +167,22 @@ export default function AuthScreen() {
     }
   };
 
+  // Submit from the keyboard's return key, but only when the form would accept it.
+  const trySubmit = () => {
+    if (canSubmit && !busy) void submit();
+  };
+
   const pwToggle = (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={showPw ? 'Hide password' : 'Show password'}
-      hitSlop={8}
+      hitSlop={14}
       onPress={() => setShowPw((v) => !v)}
     >
       {showPw ? (
-        <EyeOff size={18} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+        <EyeOff size={20} strokeWidth={icons.strokeWidth} color={colors.paper60} />
       ) : (
-        <Eye size={18} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+        <Eye size={20} strokeWidth={icons.strokeWidth} color={colors.paper60} />
       )}
     </Pressable>
   );
@@ -186,18 +240,27 @@ export default function AuthScreen() {
                 autoCorrect={false}
                 placeholder="e.g. goldenhour"
                 hint="This is public. People can find and follow you by it."
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => emailRef.current?.focus()}
               />
             )}
 
             {!isReset && (
               <Field
+                ref={emailRef}
                 label="Email"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={onEmailChange}
                 autoCapitalize="none"
+                autoCorrect={false}
                 autoComplete="email"
+                textContentType="emailAddress"
                 keyboardType="email-address"
                 placeholder="you@example.com"
+                returnKeyType={isForgot ? 'go' : 'next'}
+                blurOnSubmit={isForgot}
+                onSubmitEditing={isForgot ? trySubmit : () => passwordRef.current?.focus()}
               />
             )}
 
@@ -209,28 +272,40 @@ export default function AuthScreen() {
                 mono
                 keyboardType="number-pad"
                 autoComplete="one-time-code"
+                textContentType="oneTimeCode"
                 placeholder="6-digit code"
               />
             )}
 
             {!isForgot && (
               <Field
+                ref={passwordRef}
                 label={isReset ? 'New password' : 'Password'}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPw}
                 autoCapitalize="none"
                 autoComplete={isSignin ? 'current-password' : 'new-password'}
+                textContentType={isSignin ? 'password' : 'newPassword'}
                 placeholder="Your password"
                 hint={isSignup || isReset ? 'At least 6 characters.' : undefined}
                 rightSlot={pwToggle}
+                returnKeyType="go"
+                onSubmitEditing={trySubmit}
               />
             )}
 
             {isSignin && (
-              <Pressable accessibilityRole="button" hitSlop={8} style={styles.forgotWrap} onPress={() => go('forgot')}>
-                <Text style={styles.forgot}>Forgot password?</Text>
-              </Pressable>
+              <View style={styles.signinRow}>
+                <Toggle compact label="Remember me" value={remember} onChange={onRememberChange} />
+                <Pressable
+                  accessibilityRole="button"
+                  hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+                  onPress={() => go('forgot')}
+                >
+                  <Text style={styles.forgot}>Forgot password?</Text>
+                </Pressable>
+              </View>
             )}
 
             <View style={styles.submitRow}>
@@ -283,7 +358,12 @@ const styles = StyleSheet.create({
     fontSize: typeScale.sub,
     color: colors.paper60,
   },
-  forgotWrap: { alignSelf: 'flex-end', marginTop: -4 },
+  signinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: -4,
+  },
   forgot: { fontFamily: fonts.sansMedium, fontSize: typeScale.caption, color: colors.paper60 },
   submitRow: { alignItems: 'center', marginTop: 8 },
   switchLine: {
@@ -298,7 +378,7 @@ const styles = StyleSheet.create({
   switchLineMuted: {
     fontFamily: fonts.sans,
     fontSize: typeScale.caption,
-    color: colors.paper40,
+    color: colors.paper60,
     textAlign: 'center',
     padding: 6,
   },

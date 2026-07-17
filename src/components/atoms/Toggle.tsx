@@ -9,13 +9,19 @@ type ToggleProps = {
   value: boolean;
   onChange: (value: boolean) => void;
   disabled?: boolean;
+  /**
+   * Smaller well + caption label, for a secondary form row (e.g. "Remember me")
+   * where the default size reads oversized next to a caption-sized link. The
+   * default stays tuned for the prominent "Submit as Today's Shot" decision.
+   */
+  compact?: boolean;
 };
 
 /**
  * Labeled on/off row with a square check well ("submit as Today's Shot").
  * On = safelight well (it's an action-adjacent state), off = ink2 outline.
  */
-export function Toggle({ label, value, onChange, disabled = false }: ToggleProps) {
+export function Toggle({ label, value, onChange, disabled = false, compact = false }: ToggleProps) {
   return (
     <Pressable
       accessibilityRole="switch"
@@ -28,10 +34,12 @@ export function Toggle({ label, value, onChange, disabled = false }: ToggleProps
       }}
       style={({ pressed }) => [styles.row, pressed && !disabled && { transform: [{ scale: motion.pressScale }] }]}
     >
-      <View style={[styles.well, value ? styles.wellOn : styles.wellOff, disabled && styles.wellDisabled]}>
-        {value ? <Check size={14} strokeWidth={icons.strokeWidth} color={colors.ink} /> : null}
+      <View
+        style={[styles.well, compact && styles.wellCompact, value ? styles.wellOn : styles.wellOff, disabled && styles.wellDisabled]}
+      >
+        {value ? <Check size={compact ? 12 : 14} strokeWidth={icons.strokeWidth} color={colors.ink} /> : null}
       </View>
-      <Text style={[styles.label, disabled && styles.labelDisabled]}>{label}</Text>
+      <Text style={[styles.label, compact && styles.labelCompact, disabled && styles.labelDisabled]}>{label}</Text>
     </Pressable>
   );
 }
@@ -51,6 +59,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  wellCompact: {
+    width: 18,
+    height: 18,
+  },
   wellOn: {
     backgroundColor: colors.safelight,
   },
@@ -67,6 +79,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     fontSize: typeScale.sub,
     color: colors.paper,
+  },
+  labelCompact: {
+    fontSize: typeScale.caption,
   },
   labelDisabled: {
     color: colors.paper30,
