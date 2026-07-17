@@ -468,7 +468,7 @@ export default function GalleryScreen() {
                       {g.prompt ?? 'Untitled gallery'}
                     </Text>
                   </View>
-                  <ChevronRight size={18} strokeWidth={icons.strokeWidth} color={colors.paper40} />
+                  <ChevronRight size={18} strokeWidth={icons.strokeWidth} color={colors.paper60} />
                 </Pressable>
               ))}
             </View>

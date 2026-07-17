@@ -9,7 +9,7 @@ import { getPendingItemForDrop, subscribeQueue } from '@lib/captureQueue';
 import { isResultSeen, isRevealSeen } from '@lib/gallery';
 import { useHomeState } from '@lib/homeState';
 import { Shutter, type ShutterState } from '@/components/moments/Shutter';
-import { colors, fonts, icons, typeScale } from '@/components/tokens';
+import { colors, fonts, iconStroke, typeScale } from '@/components/tokens';
 
 const TAB_META: Record<string, { label: string; icon: LucideIcon }> = {
   today: { label: 'Today', icon: House },
@@ -76,7 +76,12 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
     const meta = TAB_META[name];
     const active = state.index === routeIndex;
     const Icon = meta.icon;
-    const color = active ? colors.safelight : colors.paper40;
+    // Inactive nav is paper60, not paper40: at 40% the glyph sat at 3.45:1 on ink
+    // — only just over the 3:1 non-text floor, no margin, and thin 2px strokes read
+    // fainter than the ratio implies. paper60 is 6.3:1 and matches the gallery
+    // sub-tabs (which already use it). Active still reads instantly — a different
+    // hue (safelight) with a bolder label.
+    const color = active ? colors.safelight : colors.paper60;
 
     return (
       <Pressable
@@ -87,7 +92,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         style={styles.tab}
       >
         <View>
-          <Icon size={24} strokeWidth={icons.strokeWidth} color={color} />
+          <Icon size={24} strokeWidth={iconStroke(24)} color={color} />
           {/* Never badge the tab you're already on — a dot means "unread", and you're
               reading it. This also keeps the nudge honest as each screen marks itself seen. */}
           {badges[name] && !active && <View style={styles.badge} />}
@@ -95,7 +100,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         <Text
           style={[
             styles.label,
-            { color: active ? colors.paper : colors.paper40 },
+            { color: active ? colors.paper : colors.paper60 },
             active && styles.labelActive,
           ]}
         >
