@@ -1,8 +1,20 @@
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
+import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import { Platform } from "react-native";
 
 import { supabase } from "./supabase";
+
+/**
+ * The payload every piqa push carries. `type` decides where a tap lands; the ids
+ * deep-link to a specific shot/person. Kept in sync with the server sender.
+ */
+export type PushData = {
+  type?: "drop" | "reveal" | "gallery" | "result" | "potd" | "follow" | "streak";
+  photoId?: string;
+  userId?: string;
+};
 
 /**
  * FCM drop / reveal push (spec §14). This is the on-device half: request
@@ -60,4 +72,44 @@ export async function registerForPush(): Promise<void> {
   } catch (e) {
     if (__DEV__) console.log("[push] registration skipped:", e);
   }
+}
+
+/**
+ * Route a tapped notification to the right screen — both when the app is already
+ * running (listener) and when a tap cold-starts it (getLastNotificationResponse).
+ * Mount once, high in the tree. A tap with no/unknown type is a no-op (the OS
+ * still foregrounds the app to Today).
+ */
+export function useNotificationRouting(): void {
+  const router = useRouter();
+  useEffect(() => {
+    const go = (raw: unknown) => {
+      const data = (raw ?? {}) as PushData;
+      switch (data.type) {
+        case "drop":
+        case "streak":
+        case "result":
+          router.push("/(tabs)/today");
+          break;
+        case "reveal":
+        case "gallery":
+          router.push("/(tabs)/gallery");
+          break;
+        case "potd":
+          if (data.photoId) router.push({ pathname: "/photo/[id]", params: { id: data.photoId } });
+          else router.push("/(tabs)/gallery");
+          break;
+        case "follow":
+          if (data.userId) router.push({ pathname: "/u/[id]", params: { id: data.userId } });
+          break;
+      }
+    };
+    // Cold start: the app was opened by tapping a notification.
+    void Notifications.getLastNotificationResponseAsync().then((r) => {
+      if (r) go(r.notification.request.content.data);
+    });
+    // Warm: tapped while the app is running or backgrounded.
+    const sub = Notifications.addNotificationResponseReceivedListener((r) => go(r.notification.request.content.data));
+    return () => sub.remove();
+  }, [router]);
 }
