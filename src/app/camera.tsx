@@ -53,6 +53,15 @@ export default function CameraScreen() {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
+  // The camera is a fullScreenModal. Close it by dismissing the modal — not
+  // router.back(), which walked history one entry at a time and needed two taps
+  // to actually leave. dismissAll is safe: the camera only ever opens from a tab,
+  // so it's the top (and only) modal.
+  const close = () => {
+    if (router.canDismiss()) router.dismissAll();
+    else router.back();
+  };
+
   const drop = data?.drop ?? null;
   const live = !practiceMode && Boolean(drop?.is_live) && !data?.submission;
   // Default ON during the live window, OFF otherwise → archive (free_shots).
@@ -64,7 +73,7 @@ export default function CameraScreen() {
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.root}>
-        <IconButton icon={X} variant="chrome" accessibilityLabel="Close camera" onPress={() => router.back()} />
+        <IconButton icon={X} variant="chrome" accessibilityLabel="Close camera" onPress={close} />
         <View style={styles.center}>
           <EmptyState
             icon={CameraIcon}
@@ -117,7 +126,7 @@ export default function CameraScreen() {
         dropsAt: submitAsDaily && live && drop ? drop.drops_at : null,
         capturedAt: captured.capturedAt,
       });
-      router.back();
+      close();
     } catch {
       // Local persistence failed (storage full etc.) — a real error, not connectivity.
       setToast('Could not save the shot. Check device storage');
@@ -141,7 +150,7 @@ export default function CameraScreen() {
         <View style={styles.previewTop}>
           {/* Bail out entirely — the shot is local-only until "Use", so leaving
               just discards it. Retake, by contrast, only re-opens the finder. */}
-          <IconButton icon={X} variant="chrome" accessibilityLabel="Discard and close" onPress={() => router.back()} />
+          <IconButton icon={X} variant="chrome" accessibilityLabel="Discard and close" onPress={close} />
         </View>
         <View style={styles.previewBody}>
           {/* Review it as it will land: a daily shot becomes today's print (real
@@ -177,7 +186,7 @@ export default function CameraScreen() {
     <View style={styles.root}>
       <SafeAreaView style={styles.chrome} pointerEvents="box-none">
         <View style={styles.topRow}>
-          <IconButton icon={X} variant="chrome" accessibilityLabel="Close camera" onPress={() => router.back()} />
+          <IconButton icon={X} variant="chrome" accessibilityLabel="Close camera" onPress={close} />
           <View style={styles.topActions}>
             <IconButton
               icon={flash === 'off' ? ZapOff : Zap}
