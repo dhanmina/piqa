@@ -4,18 +4,17 @@
  * dismissed sheet can't do. Same shape as /search. No counts (spec §9).
  */
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Users } from 'lucide-react-native';
+import { Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fetchFollowing, unfollow, type FollowedUser } from '@lib/profile';
 import { Button } from '@/components/atoms/Button';
-import { IconButton } from '@/components/atoms/IconButton';
-import { displayFamily } from '@/components/fonts';
 import { EmptyState } from '@/components/molecules/EmptyState';
+import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { UserRow } from '@/components/molecules/UserRow';
-import { colors, radius, space, typeScale } from '@/components/tokens';
+import { colors, radius, space } from '@/components/tokens';
 
 function RowSkeleton() {
   return (
@@ -47,10 +46,7 @@ export default function FollowingScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <View style={styles.header}>
-        <IconButton icon={ChevronLeft} accessibilityLabel="Back" onPress={() => router.back()} />
-        <Text style={styles.title}>Following</Text>
-      </View>
+      <ScreenHeader onBack={() => router.back()} title="Following" />
 
       {list === null ? (
         <View style={styles.list}>
@@ -83,8 +79,6 @@ export default function FollowingScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: space.gutter - 4, paddingTop: 4 },
-  title: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper },
   list: { paddingHorizontal: space.gutter, paddingTop: 8, gap: 4 },
   center: { flex: 1, justifyContent: 'center' },
   skelRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },

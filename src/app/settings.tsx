@@ -7,7 +7,7 @@
  */
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronRight } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -18,10 +18,9 @@ import { deleteAccount, useProfile } from '@lib/profile';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
 import { Button } from '@/components/atoms/Button';
-import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
-import { displayFamily } from '@/components/fonts';
 import { FramePicker } from '@/components/molecules/FramePicker';
+import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
@@ -108,10 +107,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <View style={styles.header}>
-        <IconButton icon={ChevronLeft} accessibilityLabel="Back" onPress={() => router.back()} />
-        <Text style={styles.title}>Settings</Text>
-      </View>
+      <ScreenHeader onBack={() => router.back()} title="Settings" />
 
       <ScrollView contentContainerStyle={styles.content}>
         <Section title="PROFILE">
@@ -175,8 +171,6 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: space.gutter - 4, paddingTop: 4 },
-  title: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper },
   content: { padding: space.gutter, paddingBottom: 48, gap: 26 },
   section: { gap: 8 },
   sectionTitle: { letterSpacing: 1.5, paddingHorizontal: 4 },
