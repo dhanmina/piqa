@@ -38,6 +38,9 @@ export type FrameDef = {
   /** Avatar-ring accent when this frame is equipped as the PROFILE frame. null → no
    *  frame ring (the level ring shows instead). */
   ringColor: string | null;
+  /** The avatar-frame SVG, admin-managed in the frames table and rendered via SvgXml.
+   *  null → a plain ring (ringColor / the level ring). See the profile_svg contract. */
+  profileSvg: string | null;
   unlockKind: string; // 'default' | 'potd' | 'event' | 'manual'
   unlockLabel: string | null;
   eventStart: string | null;
@@ -71,6 +74,7 @@ export const DEFAULT_FRAME_DEF: FrameDef = {
   suffixText: null,
   suffixColor: null,
   ringColor: null,
+  profileSvg: null,
   unlockKind: "default",
   unlockLabel: null,
   eventStart: null,
@@ -90,6 +94,7 @@ type FrameRow = {
   suffix_text?: string | null;
   suffix_color?: string | null;
   ring_color?: string | null;
+  profile_svg?: string | null;
   unlock_kind?: string | null;
   unlock_label?: string | null;
   event_start?: string | null;
@@ -114,6 +119,7 @@ function rowToDef(r: FrameRow): FrameDef {
     // Fall back to the frame's suffix accent so a frame rings correctly even before
     // ring_color is populated (crown → gold, valentines → red, default → null).
     ringColor: r.ring_color ?? r.suffix_color ?? null,
+    profileSvg: r.profile_svg ?? null,
     unlockKind: r.unlock_kind ?? 'manual',
     unlockLabel: r.unlock_label ?? null,
     eventStart: r.event_start ?? null,

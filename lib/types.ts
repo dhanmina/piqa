@@ -135,6 +135,7 @@ export type Database = {
           marker_shape: string | null
           marker_svg: string | null
           ring_color: string | null
+          profile_svg: string | null
           suffix_color: string | null
           suffix_text: string | null
           unlock_kind: string
@@ -151,6 +152,7 @@ export type Database = {
           marker_shape?: string | null
           marker_svg?: string | null
           ring_color?: string | null
+          profile_svg?: string | null
           suffix_color?: string | null
           suffix_text?: string | null
           unlock_kind?: string
@@ -167,6 +169,7 @@ export type Database = {
           marker_shape?: string | null
           marker_svg?: string | null
           ring_color?: string | null
+          profile_svg?: string | null
           suffix_color?: string | null
           suffix_text?: string | null
           unlock_kind?: string
