@@ -134,6 +134,7 @@ export type Database = {
           label: string
           marker_shape: string | null
           marker_svg: string | null
+          ring_color: string | null
           suffix_color: string | null
           suffix_text: string | null
           unlock_kind: string
@@ -149,6 +150,7 @@ export type Database = {
           label: string
           marker_shape?: string | null
           marker_svg?: string | null
+          ring_color?: string | null
           suffix_color?: string | null
           suffix_text?: string | null
           unlock_kind?: string
@@ -164,6 +166,7 @@ export type Database = {
           label?: string
           marker_shape?: string | null
           marker_svg?: string | null
+          ring_color?: string | null
           suffix_color?: string | null
           suffix_text?: string | null
           unlock_kind?: string
@@ -447,7 +450,9 @@ export type Database = {
         Row: {
           comeback_pending: boolean
           current_weeks: number
+          days_alive: number
           days_this_week: number
+          flame_started_on: string | null
           is_alive: boolean
           last_active: string | null
           shields: number
@@ -458,7 +463,9 @@ export type Database = {
         Insert: {
           comeback_pending?: boolean
           current_weeks?: number
+          days_alive?: number
           days_this_week?: number
+          flame_started_on?: string | null
           is_alive?: boolean
           last_active?: string | null
           shields?: number
@@ -469,7 +476,9 @@ export type Database = {
         Update: {
           comeback_pending?: boolean
           current_weeks?: number
+          days_alive?: number
           days_this_week?: number
+          flame_started_on?: string | null
           is_alive?: boolean
           last_active?: string | null
           shields?: number
@@ -704,6 +713,7 @@ export type Database = {
       }
       dev_status: { Args: never; Returns: Json }
       drop_prompt: { Args: { p_region?: string }; Returns: Json }
+      email_exists: { Args: { p_email: string }; Returns: boolean }
       evaluate_streak: {
         Args: { p_as_of: string; p_uid: string }
         Returns: undefined
@@ -712,8 +722,6 @@ export type Database = {
         Args: { p_photos: Json; p_viewer: string }
         Returns: Json
       }
-      email_exists: { Args: { p_email: string }; Returns: boolean }
-      username_available: { Args: { p_username: string }; Returns: boolean }
       get_following_gallery: { Args: never; Returns: Json }
       get_gallery: { Args: { p_drop?: string }; Returns: Json }
       get_home_state: { Args: never; Returns: Json }
@@ -721,6 +729,7 @@ export type Database = {
       get_matchup: { Args: never; Returns: Json }
       get_profile: { Args: { p_user?: string }; Returns: Json }
       is_live_drop_thumb: { Args: { object_name: string }; Returns: boolean }
+      photo_frame: { Args: { p_date: string }; Returns: string }
       photo_status: {
         Args: { p_is_potd: boolean; p_rank: number }
         Returns: string
@@ -732,7 +741,12 @@ export type Database = {
       search_users: { Args: { p_query: string }; Returns: Json }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      streak_window_start: {
+        Args: { p_as_of: string; p_uid: string }
+        Returns: string
+      }
       toggle_star: { Args: { p_id: string; p_type: string }; Returns: Json }
+      username_available: { Args: { p_username: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

@@ -42,6 +42,24 @@ export function ringForLevel(level: number): Ring {
   return earned;
 }
 
+/** Avatar-ring width for an equipped profile frame (a touch bolder than level rings). */
+const FRAME_RING_WIDTH = 3;
+
+/**
+ * The ring an avatar wears: the equipped profile frame's accent if it has one, else
+ * the level ring (the base). This is what makes an earned frame — the crown above all
+ * — a persistent profile flex, not just a photo skin. Typed structurally so it needn't
+ * import FrameDef.
+ */
+export function avatarRing(
+  frame: { ringColor: string | null },
+  level: number,
+): { color: string | null; width: number } {
+  if (frame.ringColor) return { color: frame.ringColor, width: FRAME_RING_WIDTH };
+  const r = ringForLevel(level);
+  return { color: r.color, width: r.width };
+}
+
 export type Title = { label: string; unlockLevel: number };
 
 // MVP: 3 earned titles over a base (spec §10: Lv5 / Lv15 / Lv30).

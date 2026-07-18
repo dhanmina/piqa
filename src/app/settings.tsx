@@ -14,10 +14,11 @@ import { useCallback, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { claimEventFrame, equipFrame, type FrameId } from '@lib/frames';
+import { equipFrame, type FrameId } from '@lib/frames';
 import { deleteAccount, useProfile } from '@lib/profile';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
+import { levelProgress } from '@lib/xp';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
 import { FramePicker } from '@/components/molecules/FramePicker';
@@ -108,12 +109,6 @@ export default function SettingsScreen() {
     setEquipping(false);
     if (ok) await refresh();
   };
-  const onClaim = async (id: FrameId) => {
-    setEquipping(true);
-    const ok = await claimEventFrame(id);
-    setEquipping(false);
-    if (ok) await refresh();
-  };
   const onDelete = async () => {
     setBusy(true);
     const ok = await deleteAccount();
@@ -132,7 +127,7 @@ export default function SettingsScreen() {
         <Section title="PROFILE">
           <Row label="Edit profile" chevron onPress={() => router.push('/edit-profile')} />
           <View style={styles.divider} />
-          <Row label="Frame" chevron onPress={() => setShowFrames(true)} />
+          <Row label="Profile frame" chevron onPress={() => setShowFrames(true)} />
         </Section>
 
         <Section title="NOTIFICATIONS">
@@ -165,15 +160,15 @@ export default function SettingsScreen() {
         </Section>
       </ScrollView>
 
-      <Sheet visible={showFrames} onClose={() => setShowFrames(false)} title="Frame">
+      <Sheet visible={showFrames} onClose={() => setShowFrames(false)} title="Profile frame">
         <FramePicker
           equipped={data?.equippedFrame ?? 'default'}
           owned={data?.ownedFrames ?? []}
-          previewUri={data?.wins[0]?.uri}
-          previewDay={data?.wins[0]?.dayNumber ?? 1}
+          avatarUri={data?.avatarUrl}
+          username={data?.username ?? ''}
+          level={levelProgress(data?.xp ?? 0).level}
           busy={equipping}
           onEquip={(id) => void onEquip(id)}
-          onClaim={(id) => void onClaim(id)}
         />
       </Sheet>
 

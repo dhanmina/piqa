@@ -17,6 +17,8 @@ export type ProfileWin = {
   /** Everything the wins wall needs to draw the print. */
   dayNumber: number;
   status: PhotoStatus;
+  /** The photo's contextual frame (its day's event, else default) — from decorate_photos. */
+  frameId: FrameId;
 };
 
 export type ProfileData = {
@@ -58,6 +60,7 @@ type RawProfile = {
     drop_date: string;
     day_number: number;
     status: string | null;
+    frame_id: string | null;
   }[];
   equipped_frame: string;
   owned_frames: string[];
@@ -149,6 +152,7 @@ export async function fetchProfile(
       dropDate: w.drop_date,
       dayNumber: w.day_number,
       status: asStatus(w.status),
+      frameId: asFrameId(w.frame_id),
     })),
     starred: starRows.map((r) => ({
       key: r.id,

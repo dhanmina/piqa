@@ -30,8 +30,9 @@ type RichPhotoRow = {
   is_potd: boolean;
   bt_score: number | null;
   captured_at: string | null;
-  /** Added by decorate_photos — the owner's CURRENT frame, not a frozen one. */
-  equipped_frame: string;
+  /** Added by decorate_photos — the photo's CONTEXTUAL frame (its day's event, else
+   *  default), not the owner's equipped frame. */
+  frame_id: string;
   status: string | null;
   day_number: number;
 };
@@ -61,7 +62,7 @@ function toGalleryPhoto(p: RichPhotoRow, signed: Map<string, string>): GalleryDe
     imagePath: p.image_path,
     thumbPath: p.thumb_path,
     capturedAt: p.captured_at,
-    frameId: asFrameId(p.equipped_frame),
+    frameId: asFrameId(p.frame_id),
     status: asStatus(p.status),
     dayNumber: p.day_number,
   };

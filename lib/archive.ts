@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { invalidate, signThumbs, useCached } from "./cache";
 import { getQueueItems, subscribeQueue, type QueueItem } from "./captureQueue";
 import { getConfig } from "./config";
-import { asFrameId, type FrameId, type PhotoStatus } from "./frames";
+import { type PhotoStatus } from "./frames";
 import { supabase } from "./supabase";
 
 export type ArchiveType = "free" | "daily";
@@ -20,6 +20,8 @@ export type ArchiveItem = {
   isPotd: boolean;
   /** The drop's global day counter. Only daily shots belong to a drop; free shots are null. */
   dayNumber: number | null;
+  /** The drop's calendar date — drives the photo's contextual frame. Null for free shots. */
+  dropDate: string | null;
   /** Competition result, server-owned. Free shots are always null. */
   status: PhotoStatus;
   /** Local capture still syncing — shown from the queue before its DB row exists. */
@@ -33,8 +35,6 @@ export type Archive = {
   starsCap: number;
   /** Earliest captured_at, for the "since {month}" header. */
   since: string | null;
-  /** The owner's equipped frame, applied to their framed (daily) shots. */
-  equippedFrame: FrameId;
 };
 
 /** Mirror of the server's photo_status(is_potd, gallery_rank). */
@@ -48,6 +48,12 @@ function deriveStatus(isPotd: boolean, rank: number | null): PhotoStatus {
 function dayOf(rel: { day_number: number } | { day_number: number }[] | null): number | null {
   if (!rel) return null;
   return Array.isArray(rel) ? (rel[0]?.day_number ?? null) : rel.day_number;
+}
+
+/** Same to-one embed, for the drop's calendar date (the photo's frame keys off it). */
+function dateOf(rel: { drop_date: string } | { drop_date: string }[] | null): string | null {
+  if (!rel) return null;
+  return Array.isArray(rel) ? (rel[0]?.drop_date ?? null) : rel.drop_date;
 }
 
 /**
@@ -74,6 +80,7 @@ function queuedToItem(q: QueueItem): ArchiveItem {
     inGallery: false,
     isPotd: false,
     dayNumber: null,
+    dropDate: null,
     status: null,
     queued: true,
   };
@@ -98,9 +105,9 @@ const ARCHIVE_TTL_MS = 5 * 60_000;
 export async function fetchArchive(): Promise<Archive> {
   const { data: auth } = await supabase.auth.getUser();
   const uid = auth.user?.id;
-  if (!uid) return { items: [], starsUsed: 0, starsCap: 5, since: null, equippedFrame: "default" };
+  if (!uid) return { items: [], starsUsed: 0, starsCap: 5, since: null };
 
-  const [{ data: free }, { data: daily }, { data: prof }, cap] = await Promise.all([
+  const [{ data: free }, { data: daily }, cap] = await Promise.all([
     supabase
       .from("free_shots")
       .select("id, image_path, thumb_path, captured_at, starred, starred_at")
@@ -109,12 +116,11 @@ export async function fetchArchive(): Promise<Archive> {
     supabase
       .from("submissions")
       .select(
-        "id, image_path, thumb_path, captured_at, starred, starred_at, in_gallery, is_potd, gallery_rank, prompt_drops(day_number)",
+        "id, image_path, thumb_path, captured_at, starred, starred_at, in_gallery, is_potd, gallery_rank, prompt_drops(day_number, drop_date)",
       )
       .eq("user_id", uid)
       .not("thumb_path", "is", null)
       .order("captured_at", { ascending: false }),
-    supabase.from("profiles").select("equipped_frame").eq("id", uid).maybeSingle(),
     getConfig("stars_per_month"),
   ]);
 
@@ -129,6 +135,7 @@ export async function fetchArchive(): Promise<Archive> {
     inGallery: false,
     isPotd: false,
     dayNumber: null as number | null,
+    dropDate: null as string | null,
     status: null as PhotoStatus,
   }));
   const rawDaily = (daily ?? []).map((r) => ({
@@ -142,6 +149,7 @@ export async function fetchArchive(): Promise<Archive> {
     inGallery: r.in_gallery,
     isPotd: r.is_potd,
     dayNumber: dayOf(r.prompt_drops),
+    dropDate: dateOf(r.prompt_drops),
     status: deriveStatus(r.is_potd, r.gallery_rank),
   }));
 
@@ -161,12 +169,13 @@ export async function fetchArchive(): Promise<Archive> {
     inGallery: m.inGallery,
     isPotd: m.isPotd,
     dayNumber: m.dayNumber,
+    dropDate: m.dropDate,
     status: m.status,
   }));
 
   const starsUsed = merged.filter((m) => m.starred && isThisMonth(m.starredAt)).length;
   const since = merged.length > 0 ? merged[merged.length - 1].capturedAt : null;
-  return { items, starsUsed, starsCap: cap, since, equippedFrame: asFrameId(prof?.equipped_frame) };
+  return { items, starsUsed, starsCap: cap, since };
 }
 
 export function useArchive() {

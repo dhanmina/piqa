@@ -14,6 +14,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, w
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { deleteFreeShot, toggleStar, useArchive, type ArchiveItem } from '@lib/archive';
+import { frameForDate, useFrameCatalog } from '@lib/frames';
 import { isOffline } from '@lib/net';
 import { imageCacheKey, signThumbs, useSignedThumb } from '@lib/cache';
 import { Chip } from '@/components/atoms/Chip';
@@ -74,7 +75,9 @@ export default function ArchiveScreen() {
   const starAnim = useAnimatedStyle(() => ({ transform: [{ scale: starScale.value }] }));
 
   const items = (data?.items ?? []).filter((it) => !optimisticDeleted[starKey(it)]);
-  const equippedFrame = data?.equippedFrame ?? 'default';
+  // Each daily print wears the frame of the day it was shot (event day → event frame),
+  // derived from its drop_date against the catalog — never the viewer's profile frame.
+  const catalog = useFrameCatalog();
 
   // Starred shots are the ones kept at full resolution — so warm ONLY their full-res
   // in the background. Opening a starred shot is then instant and sharp; unstarred
@@ -329,7 +332,7 @@ export default function ArchiveScreen() {
                         <FramedPhoto
                           photoUri={it.uri}
                           dayNumber={it.dayNumber ?? 1}
-                          frameId={equippedFrame}
+                          frameId={frameForDate(catalog, it.dropDate)}
                           status={it.status}
                         />
                       ) : (
@@ -390,7 +393,7 @@ export default function ArchiveScreen() {
                   photoUri={viewerFull}
                   placeholderUri={selected.uri}
                   dayNumber={selected.dayNumber ?? 1}
-                  frameId={equippedFrame}
+                  frameId={frameForDate(catalog, selected.dropDate)}
                   status={selected.status}
                   width={Math.min(SCREEN_W - GUTTER * 2, STAGE_MAX_H * frame.aspect)}
                 />
