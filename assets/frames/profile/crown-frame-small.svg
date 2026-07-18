@@ -1,0 +1,12 @@
+<svg viewBox="-6 -6 76 76" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bandS" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6D57A"/>
+      <stop offset="0.5" stop-color="#E3B341"/>
+      <stop offset="1" stop-color="#A87B1F"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="28" fill="none" stroke="url(#bandS)" stroke-width="3"/>
+  <circle cx="32" cy="4.5" r="3.4" fill="url(#bandS)"/>
+  <circle cx="32" cy="4.5" r="1.9" fill="#FF5A36"/>
+</svg>
