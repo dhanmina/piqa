@@ -2,10 +2,9 @@ import { Check, Lock } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { avatarRing } from '@lib/cosmetics';
 import { frameOwned, useFrameCatalog, type FrameId } from '@lib/frames';
-import { Avatar } from '@/components/atoms/Avatar';
 import { Mono } from '@/components/atoms/Mono';
+import { FramedAvatar } from '@/components/molecules/FramedAvatar';
 import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
 
 type FramePickerProps = {
@@ -60,13 +59,7 @@ export function FramePicker({ equipped, owned, avatarUri, username, level, onEqu
             onPress={onPress}
           >
             <View style={styles.preview}>
-              <Avatar
-                uri={avatarUri}
-                username={username}
-                size={44}
-                ringColor={avatarRing(f, level).color}
-                ringWidth={avatarRing(f, level).width}
-              />
+              <FramedAvatar uri={avatarUri} username={username} frameId={f.id} level={level} size={52} />
             </View>
 
             <View style={styles.meta}>

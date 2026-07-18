@@ -101,13 +101,17 @@ export default function SettingsScreen() {
     }, []),
   );
 
-  // Equipping flips one column; the shared profile cache refresh re-skins the crest
-  // and every framed surface.
+  // Equipping only changes the profile frame (the avatar ring). Move the checkmark
+  // optimistically so it's instant, then refresh the profile (stale-while-revalidate,
+  // so the list never flashes to a loading state). Revert the optimistic pick on failure.
+  const [pendingEquip, setPendingEquip] = useState<FrameId | null>(null);
   const onEquip = async (id: FrameId) => {
+    setPendingEquip(id);
     setEquipping(true);
     const ok = await equipFrame(id);
     setEquipping(false);
     if (ok) await refresh();
+    else setPendingEquip(null);
   };
   const onDelete = async () => {
     setBusy(true);
@@ -162,7 +166,7 @@ export default function SettingsScreen() {
 
       <Sheet visible={showFrames} onClose={() => setShowFrames(false)} title="Profile frame">
         <FramePicker
-          equipped={data?.equippedFrame ?? 'default'}
+          equipped={pendingEquip ?? data?.equippedFrame ?? 'default'}
           owned={data?.ownedFrames ?? []}
           avatarUri={data?.avatarUrl}
           username={data?.username ?? ''}

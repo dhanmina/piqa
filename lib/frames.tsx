@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-import { fetchKey, invalidate, invalidatePrefix } from "./cache";
-import { HOME_KEY } from "./homeState";
+import { fetchKey, invalidatePrefix } from "./cache";
 import { useSession } from "./session";
 import { supabase } from "./supabase";
 
@@ -218,13 +217,15 @@ export function frameClaimable(def: FrameDef, today: Date = new Date()): boolean
 }
 
 /**
- * Equip a frame. The client cannot cheat this: user_frames has no insert grant
- * (only close_day's trigger and claim_event_frame write it) and a trigger on
- * profiles rejects equipping a frame you have not unlocked.
+ * Equip a PROFILE frame. The client cannot cheat this: user_frames has no insert
+ * grant (only close_day's trigger and the event-frame trigger write it) and a trigger
+ * on profiles rejects equipping a frame you have not unlocked.
  *
- * Every framed surface reads the owner's frame live, so all we do locally is drop
- * the caches that carry it — no photo is re-fetched, re-uploaded, or re-rendered
- * from source.
+ * The equipped frame is now the avatar ring ONLY — it never touches photos (those wear
+ * their own day's frame). So this drops NO caches: the old gallery/home invalidation is
+ * pointless now, and deleting the profile cache made the picker flash to a loading state
+ * mid-equip. The caller refreshes the profile (stale-while-revalidate) to pick up the
+ * new ring with no flash.
  */
 export async function equipFrame(id: FrameId): Promise<boolean> {
   const { data } = await supabase.auth.getUser();
@@ -232,12 +233,7 @@ export async function equipFrame(id: FrameId): Promise<boolean> {
   if (!uid) return false;
 
   const { error } = await supabase.from("profiles").update({ equipped_frame: id }).eq("id", uid);
-  if (error) return false;
-
-  invalidatePrefix("gallery:"); // gallery:latest, gallery:following, gallery:<dropId>
-  invalidatePrefix("profile:"); // profile:self and any visited profile
-  invalidate(HOME_KEY);
-  return true;
+  return !error;
 }
 
 /**

@@ -1,0 +1,28 @@
+<svg viewBox="-8 -8 160 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="roseBand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F9D4C6"/>
+      <stop offset="0.35" stop-color="#E8997F"/>
+      <stop offset="0.62" stop-color="#A85B42"/>
+      <stop offset="0.85" stop-color="#D98866"/>
+      <stop offset="1" stop-color="#F2B49B"/>
+    </linearGradient>
+    <radialGradient id="stoneR" cx="0.32" cy="0.28" r="1">
+      <stop offset="0" stop-color="#FF9578"/>
+      <stop offset="0.45" stop-color="#FF5A36"/>
+      <stop offset="0.85" stop-color="#C93A1D"/>
+      <stop offset="1" stop-color="#8F2410"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="72" cy="72" r="62" fill="none" stroke="url(#roseBand)" stroke-width="6"/>
+  <circle cx="72" cy="72" r="65.4" fill="none" stroke="#6B3423" stroke-width="0.8" opacity="0.65"/>
+  <circle cx="72" cy="72" r="58.6" fill="none" stroke="#FBE1D6" stroke-width="0.8" opacity="0.55"/>
+  <circle cx="72" cy="72" r="62.7" fill="none" stroke="#6B3423" stroke-width="0.4" opacity="0.28"/>
+  <circle cx="72" cy="72" r="61.3" fill="none" stroke="#6B3423" stroke-width="0.4" opacity="0.28"/>
+
+<g transform="translate(72 9.5) scale(0.145) translate(-101 -101) rotate(-7 101 101)">
+<path d="M100 162 C74 138 44 116 42 84 C41 60 56 46 74 46 C85 46 94 52 99 62 C102 50 112 40 127 40 C148 40 162 56 160 80 C157 114 126 138 100 162 Z" fill="url(#stoneR)" stroke="url(#roseBand)" stroke-width="6" stroke-linejoin="round"/>
+<ellipse cx="76" cy="66" rx="11" ry="8" fill="#FFC9B8" opacity="0.7" transform="rotate(-22 76 66)"/>
+</g>
+</svg>
