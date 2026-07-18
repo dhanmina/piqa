@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getPendingItemForDrop, retryBlocked, subscribeQueue, type QueueItem } from '@lib/captureQueue';
 import { getConfig } from '@lib/config';
+import { useFrameForDate } from '@lib/frames';
 import { markResultSeen, useSignedThumb } from '@lib/gallery';
 import { useHomeState } from '@lib/homeState';
 import { useLast7Pattern } from '@lib/streak';
@@ -85,6 +86,10 @@ export default function TodayScreen() {
   const pending: QueueItem | undefined = drop ? getPendingItemForDrop(drop.id) : undefined;
   const signedSubThumb = useSignedThumb(!pending ? submission?.thumb_path : null);
   const signedPotdThumb = useSignedThumb(potd?.thumb_path);
+  // A photo wears the frame of the day it was shot (event day → event frame, else
+  // default) — never the viewer's equipped (profile) frame.
+  const dropFrame = useFrameForDate(drop?.drops_at);
+  const resultFrame = useFrameForDate(lastResult?.drop_date);
   const signedResultThumb = useSignedThumb(lastResult?.thumb_path);
 
   // Reading the result IS seeing it — clear Today's dot on focus, not on mount (the
@@ -230,7 +235,7 @@ export default function TodayScreen() {
               <FramedPhoto
                 photoUri={pending?.originalUri ?? signedSubThumb}
                 dayNumber={drop?.day_number ?? submission?.day_number ?? 0}
-                frameId={data?.equipped_frame ?? 'default'}
+                frameId={dropFrame}
                 status={submission?.status ?? null}
                 width={heroPrintW}
               />
@@ -340,7 +345,7 @@ export default function TodayScreen() {
               <FramedPhoto
                 photoUri={signedResultThumb}
                 dayNumber={lastResult.day_number}
-                frameId={data?.equipped_frame ?? 'default'}
+                frameId={resultFrame}
                 status={lastResult.status}
               />
               <View style={styles.resultCaption}>
@@ -380,10 +385,13 @@ export default function TodayScreen() {
               <View style={styles.potdSpacer} />
               {/* The winner wears their own frame and their own crown — the tile
                   needs no gold brackets and no second crown to say so. */}
+              {/* No drop_date reaches the client for the PotD tile, so it shows the base
+                  frame here; the crown lives in the status glyph, and the gallery renders
+                  its true day frame via decorate_photos. */}
               <FramedPhoto
                 photoUri={signedPotdThumb}
                 dayNumber={potd.day_number}
-                frameId={potd.equipped_frame}
+                frameId="default"
                 status={potd.status}
               />
               <View style={styles.potdCaption}>

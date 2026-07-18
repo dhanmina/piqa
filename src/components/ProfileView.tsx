@@ -12,7 +12,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { imageCacheKey, signThumbs } from '@lib/cache';
-import { ringForLevel, titleForLevel } from '@lib/cosmetics';
+import { avatarRing, titleForLevel } from '@lib/cosmetics';
+import { useFrameDef } from '@lib/frames';
 import { plural } from '@lib/format';
 import type { ProfileData, ProfileWin } from '@lib/profile';
 import { levelProgress } from '@lib/xp';
@@ -45,7 +46,9 @@ type Props = {
 export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, onSignOut, onBack, onMore, onSettings, followBusy, error, onRetry }: Props) {
   void onSignOut; // sign out now lives in the settings sheet (owned by the screen)
   const prog = levelProgress(data?.xp ?? 0);
-  const ring = ringForLevel(prog.level);
+  // The crest ring is the equipped PROFILE frame's accent (crown gold, etc.), falling
+  // back to the level ring when no frame is equipped.
+  const ring = avatarRing(useFrameDef(data?.equippedFrame ?? 'default'), prog.level);
   const title = titleForLevel(prog.level);
   const xpPct = prog.toNext > 0 ? Math.min(100, (prog.into / prog.toNext) * 100) : 0;
 
@@ -257,7 +260,7 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
                 <FramedPhoto
                   photoUri={w.uri}
                   dayNumber={w.dayNumber}
-                  frameId={data.equippedFrame}
+                  frameId={w.frameId}
                   status={w.status}
                 />
               </Pressable>
@@ -288,7 +291,7 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
             userId={data.id}
             day={viewer.dayNumber}
             status={viewer.status}
-            frame={data.equippedFrame}
+            frame={viewer.frameId}
             onClose={() => setViewer(null)}
             onOpenProfile={() => setViewer(null)}
           />

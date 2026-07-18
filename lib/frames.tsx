@@ -36,6 +36,9 @@ export type FrameDef = {
   markerShape: MarkerShape;
   suffixText: string | null;
   suffixColor: string | null;
+  /** Avatar-ring accent when this frame is equipped as the PROFILE frame. null → no
+   *  frame ring (the level ring shows instead). */
+  ringColor: string | null;
   unlockKind: string; // 'default' | 'potd' | 'event' | 'manual'
   unlockLabel: string | null;
   eventStart: string | null;
@@ -68,6 +71,7 @@ export const DEFAULT_FRAME_DEF: FrameDef = {
   markerShape: null,
   suffixText: null,
   suffixColor: null,
+  ringColor: null,
   unlockKind: "default",
   unlockLabel: null,
   eventStart: null,
@@ -86,6 +90,7 @@ type FrameRow = {
   marker_shape?: string | null;
   suffix_text?: string | null;
   suffix_color?: string | null;
+  ring_color?: string | null;
   unlock_kind?: string | null;
   unlock_label?: string | null;
   event_start?: string | null;
@@ -107,6 +112,9 @@ function rowToDef(r: FrameRow): FrameDef {
     markerShape: r.marker_shape ?? inferMarkerShape(r.id),
     suffixText: r.suffix_text ?? null,
     suffixColor: r.suffix_color ?? null,
+    // Fall back to the frame's suffix accent so a frame rings correctly even before
+    // ring_color is populated (crown → gold, valentines → red, default → null).
+    ringColor: r.ring_color ?? r.suffix_color ?? null,
     unlockKind: r.unlock_kind ?? 'manual',
     unlockLabel: r.unlock_label ?? null,
     eventStart: r.event_start ?? null,
@@ -164,6 +172,28 @@ export function useFrameCatalog(): Map<FrameId, FrameDef> {
 export function useFrameDef(id: FrameId): FrameDef {
   const catalog = useFrameCatalog();
   return catalog.get(id) ?? catalog.get("default") ?? DEFAULT_FRAME_DEF;
+}
+
+/**
+ * The CONTEXTUAL frame for a photo, from the day it was captured: the event frame
+ * whose window contains that date, else 'default'. Mirrors the server's photo_frame()
+ * (used by decorate_photos for gallery/profile) for the surfaces the client queries
+ * directly — Today and Archive — so a photo never wears a frame from another day.
+ */
+export function frameForDate(catalog: Map<FrameId, FrameDef>, dateISO: string | null | undefined): FrameId {
+  if (!dateISO) return "default";
+  const d = dateISO.slice(0, 10); // YYYY-MM-DD
+  for (const def of catalog.values()) {
+    if (def.unlockKind === "event" && def.eventStart && def.eventEnd && d >= def.eventStart && d <= def.eventEnd) {
+      return def.id;
+    }
+  }
+  return "default";
+}
+
+/** Hook form of frameForDate for single-date surfaces (Today's prints). */
+export function useFrameForDate(dateISO: string | null | undefined): FrameId {
+  return frameForDate(useFrameCatalog(), dateISO);
 }
 
 /** Server strings are untrusted at the type level; funnel them through these. */
