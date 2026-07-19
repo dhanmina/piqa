@@ -67,7 +67,7 @@ const BLOCKS: LegalBlock[] = [
 
   { h: 'Governing law' },
   {
-    p: 'These Terms are governed by the laws of [JURISDICTION], without regard to its conflict-of-laws rules.',
+    p: 'These Terms are governed by the laws of the Philippines, without regard to its conflict-of-laws rules.',
   },
 
   { h: 'Contact' },
