@@ -137,7 +137,7 @@ export function PhotoDetailView({
     if (sharing || !shareCardRef.current) return;
     setSharing(true);
     try {
-      const result = await shareCard(shareCardRef.current);
+      const result = await shareCard(shareCardRef);
       if (result === 'unavailable') setToast('Sharing isn’t available on this device.');
     } catch {
       setToast('Couldn’t create the image. Try again.');
@@ -217,7 +217,7 @@ export function PhotoDetailView({
   const rootRef = useRef<View>(null);
   const rootOrigin = useRef({ x: 0, y: 0 });
   const measureRoot = () => {
-    rootRef.current?.measureInWindow((x, y) => {
+    (rootRef.current as any)?.measureInWindow((x: number, y: number) => {
       rootOrigin.current = { x, y };
     });
   };
@@ -261,7 +261,7 @@ export function PhotoDetailView({
     // Measure the heart button fresh on each tap (its onLayout position can be
     // stale before the bar has settled), then fly into its center.
     if (heartRef.current) {
-      heartRef.current.measureInWindow((x, y, w, h) => {
+      (heartRef.current as any).measureInWindow((x: number, y: number, w: number, h: number) => {
         const hasBox = w > 0 || h > 0;
         const targetX = hasBox ? x + w / 2 - ox : startX;
         const targetY = hasBox ? y + h / 2 - oy : startY + 160;

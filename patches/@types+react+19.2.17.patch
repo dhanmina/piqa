@@ -1,0 +1,26 @@
+diff --git a/node_modules/@types/react/index.d.ts b/node_modules/@types/react/index.d.ts
+index b4948e7..6fbf93d 100644
+--- a/node_modules/@types/react/index.d.ts
++++ b/node_modules/@types/react/index.d.ts
+@@ -135,8 +135,7 @@ declare namespace React {
+         | ((
+             props: P,
+         ) => ReactNode | Promise<ReactNode>)
+-        // constructor signature must match React.Component
+-        | (new(props: P, context: any) => Component<any, any>);
++        | (new(props: P, context: any) => any);
+ 
+     /**
+      * Created by {@link createRef}, or {@link useRef} when passed `null`.
+diff --git a/node_modules/@types/react/jsx-runtime.d.ts b/node_modules/@types/react/jsx-runtime.d.ts
+index 8a54c12..afc4a3d 100644
+--- a/node_modules/@types/react/jsx-runtime.d.ts
++++ b/node_modules/@types/react/jsx-runtime.d.ts
+@@ -1,5 +1,5 @@
+-import * as React from "./";
+-export { Fragment, JSX } from "./";
++import * as React from "react";
++export { Fragment, JSX } from "react";
+ 
+ /**
+  * Create a React element.
