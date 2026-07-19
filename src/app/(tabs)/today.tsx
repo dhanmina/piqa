@@ -84,6 +84,10 @@ export default function TodayScreen() {
   const potd = data?.yesterday_potd ?? null;
   const lastResult = data?.last_result ?? null;
   const pending: QueueItem | undefined = drop ? getPendingItemForDrop(drop.id) : undefined;
+  // The submitted daily is the hero print — show it full-res, not the 300px thumb
+  // blown up (that read as blurry). The thumb rides along as an instant placeholder
+  // so the print never blinks while the full-res decodes in behind it.
+  const signedSubFull = useSignedThumb(!pending ? submission?.image_path : null);
   const signedSubThumb = useSignedThumb(!pending ? submission?.thumb_path : null);
   const signedPotdThumb = useSignedThumb(potd?.thumb_path);
   // A photo wears the frame of the day it was shot (event day → event frame, else
@@ -233,7 +237,8 @@ export default function TodayScreen() {
           <Brackets animated color={colors.paper}>
             <View>
               <FramedPhoto
-                photoUri={pending?.originalUri ?? signedSubThumb}
+                photoUri={pending?.originalUri ?? signedSubFull}
+                placeholderUri={signedSubThumb}
                 dayNumber={drop?.day_number ?? submission?.day_number ?? 0}
                 frameId={dropFrame}
                 status={submission?.status ?? null}
