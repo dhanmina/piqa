@@ -2,7 +2,7 @@
  * /legal/privacy — Privacy Policy, rendered in-app. Prose lives here as data;
  * LegalDoc owns all the styling.
  *
- * NOTE: starter text describing the data Piqa handles today (Supabase auth, photo
+ * NOTE: starter text describing the data piqa handles today (Supabase auth, photo
  * storage, push tokens, profile). Before public launch, have counsel review it,
  * fill the [BRACKETED] placeholders, and confirm it matches your actual data
  * processors. Bump EFFECTIVE_DATE on material changes.
@@ -13,7 +13,7 @@ const EFFECTIVE_DATE = '19 July 2026';
 
 const BLOCKS: LegalBlock[] = [
   {
-    p: 'This Privacy Policy explains what information Piqa ("we", "us"), operated by [LEGAL ENTITY], collects when you use the Piqa app, how we use it, and the choices you have. By using Piqa you agree to this policy.',
+    p: 'This Privacy Policy explains what information piqa ("we", "us"), operated by Dhanrev Mina, collects when you use the piqa app, how we use it, and the choices you have. By using piqa you agree to this policy.',
   },
 
   { h: 'Information you give us' },
@@ -36,7 +36,7 @@ const BLOCKS: LegalBlock[] = [
 
   { h: 'Camera and photos' },
   {
-    p: 'Piqa uses your camera only when you choose to shoot, and photo-library access only if you pick an image for your profile. Photos are captured in the app and uploaded to our storage so they can appear in the gallery, the daily competition, and on your profile. We do not access your camera or library in the background.',
+    p: 'piqa uses your camera only when you choose to shoot, and photo-library access only if you pick an image for your profile. Photos are captured in the app and uploaded to our storage so they can appear in the gallery, the daily competition, and on your profile. We do not access your camera or library in the background.',
   },
 
   { h: 'How we use your information' },
@@ -44,7 +44,7 @@ const BLOCKS: LegalBlock[] = [
     li: [
       'To provide and operate the Service — accounts, posting, the competition, following, and profiles.',
       'To send notifications you have enabled.',
-      'To keep Piqa safe: preventing abuse, enforcing our Terms, and moderating content.',
+      'To keep piqa safe: preventing abuse, enforcing our Terms, and moderating content.',
       'To fix problems and improve features.',
       'To comply with legal obligations.',
     ],
@@ -52,7 +52,7 @@ const BLOCKS: LegalBlock[] = [
 
   { h: 'How your information is shared' },
   {
-    p: 'Your profile, username, avatar, and the photos you post are visible to other people using Piqa — that is the point of the app. Beyond that, we do not sell your personal information. We share data only with service providers who help us run Piqa (for example, cloud hosting, database, storage, authentication, and push delivery), and only as needed to provide the Service, or when required by law.',
+    p: 'Your profile, username, avatar, and the photos you post are visible to other people using piqa — that is the point of the app. Beyond that, we do not sell your personal information. We share data only with service providers who help us run piqa (for example, cloud hosting, database, storage, authentication, and push delivery), and only as needed to provide the Service, or when required by law.',
   },
 
   { h: 'Data storage and security' },
@@ -71,12 +71,12 @@ const BLOCKS: LegalBlock[] = [
 
   { h: 'Children' },
   {
-    p: 'Piqa is not intended for children under 13 (or the minimum age of digital consent in your country). We do not knowingly collect personal information from children below that age. If you believe a child has given us personal information, contact us and we will delete it.',
+    p: 'piqa is not intended for children under 13 (or the minimum age of digital consent in your country). We do not knowingly collect personal information from children below that age. If you believe a child has given us personal information, contact us and we will delete it.',
   },
 
   { h: 'Changes to this policy' },
   {
-    p: 'We may update this policy as Piqa evolves. When we make material changes we will update the effective date above and, where appropriate, notify you in the app.',
+    p: 'We may update this policy as piqa evolves. When we make material changes we will update the effective date above and, where appropriate, notify you in the app.',
   },
 
   { h: 'Contact' },
