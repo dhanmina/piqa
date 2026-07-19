@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { IconButton } from '@/components/atoms/IconButton';
 import { displayFamily } from '@/components/fonts';
-import { colors, space, typeScale } from '@/components/tokens';
+import { colors, control, space, typeScale } from '@/components/tokens';
 
 type ScreenHeaderProps = {
   /** Show a back chevron on the left. Omit for a header with no back affordance. */
@@ -29,7 +29,7 @@ type ScreenHeaderProps = {
 export function ScreenHeader({ onBack, title, right, children, bordered }: ScreenHeaderProps) {
   return (
     <View style={[styles.header, bordered && styles.bordered]}>
-      {onBack ? <IconButton icon={ChevronLeft} accessibilityLabel="Back" onPress={onBack} /> : null}
+      {onBack ? <IconButton icon={ChevronLeft} accessibilityLabel="Back" onPress={onBack} style={styles.back} /> : null}
       {children ?? (title ? (
         <Text style={styles.title} numberOfLines={1}>
           {title}
@@ -47,11 +47,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    // The app-wide back-button inset: gutter - 4 horizontal, 4 top. Because
-    // IconButton centers its glyph in a 48px box, these two numbers are what pin
-    // the chevron to the same spot on every screen.
-    paddingHorizontal: space.gutter - 4,
+    // Content sits on the gutter; the right slot keeps a touch less inset. The
+    // back chevron is pulled back onto the gutter via `back` below (its 48px box
+    // centers the glyph, which otherwise floated ~13px inboard — too far right).
+    paddingLeft: space.gutter,
+    paddingRight: space.gutter - 4,
     paddingTop: 4,
+  },
+  // Cancel the icon-box centering inset so the CHEVRON (not its tap box) lands on
+  // the gutter, matching the content margin below — the tap target stays 48px.
+  back: {
+    marginLeft: -(space.target - control.icon) / 2,
   },
   bordered: {
     paddingBottom: 12,
