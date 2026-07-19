@@ -46,6 +46,11 @@ function RootNavigator() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: colors.ink },
+        // Snappier transitions: the 350ms default read as slow/laggy. iOS-only
+        // (Android stack durations are fixed by the OS) and only applies to
+        // fade / slide_from_bottom / simple_push — which is exactly why the
+        // drill-in screens below use simple_push, not slide_from_right.
+        animationDuration: 220,
       }}
     >
       <Stack.Protected guard={session === null}>
@@ -62,12 +67,12 @@ function RootNavigator() {
         />
         <Stack.Screen name="curate" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="photo/[id]" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="u/[id]" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="following" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="edit-profile" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="legal/terms" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="legal/privacy" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="u/[id]" options={{ animation: 'simple_push' }} />
+        <Stack.Screen name="following" options={{ animation: 'simple_push' }} />
+        <Stack.Screen name="settings" options={{ animation: 'simple_push' }} />
+        <Stack.Screen name="edit-profile" options={{ animation: 'simple_push' }} />
+        <Stack.Screen name="legal/terms" options={{ animation: 'simple_push' }} />
+        <Stack.Screen name="legal/privacy" options={{ animation: 'simple_push' }} />
         {__DEV__ && <Stack.Screen name="dev/time-machine" />}
         {__DEV__ && <Stack.Screen name="dev/kit" />}
       </Stack.Protected>
