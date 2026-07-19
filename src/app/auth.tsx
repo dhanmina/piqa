@@ -224,8 +224,18 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      {/* Keep the focused field above the keyboard on both platforms. iOS lets the
+          ScrollView auto-inset + scroll to the caret (automaticallyAdjustKeyboardInsets,
+          a no-op on Android); Android — where SDK 57 edge-to-edge breaks the old
+          window resize — leans on KeyboardAvoidingView padding. */}
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'android' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.hero}>
             <Brandmark size={64} />
             <Text style={styles.wordmark}>piqa</Text>
