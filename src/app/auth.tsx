@@ -127,8 +127,7 @@ export default function AuthScreen() {
       if (isSignup) {
         await setRememberMe(true); // a fresh account stays signed in
         const name = username.trim().toLowerCase();
-        // Email confirm is OFF: signUp returns a live session. The DB trigger
-        // creates the profiles + streaks rows from the username metadata.
+        // The DB trigger creates the profiles + streaks rows from the username metadata.
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
@@ -138,6 +137,12 @@ export default function AuthScreen() {
         if (data.session) {
           const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'Asia/Manila';
           await supabase.from('profiles').update({ timezone }).eq('id', data.session.user.id);
+        } else {
+          setToast('Account created! Please check your email to confirm.');
+          setMode('signin');
+          setUsername('');
+          setEmail('');
+          setPassword('');
         }
       } else if (isForgot) {
         const em = email.trim();
