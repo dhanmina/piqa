@@ -385,7 +385,7 @@ export default function TodayScreen() {
               onPress={() => router.push('/(tabs)/gallery')}
             >
               <Mono size={typeScale.caption} color={colors.paper60}>
-                YESTERDAY’S PHOTO OF THE DAY
+                YESTERDAY'S PHOTO OF THE DAY
               </Mono>
               <View style={styles.potdSpacer} />
               {/* The winner wears their own frame and their own crown — the tile
@@ -410,9 +410,9 @@ export default function TodayScreen() {
               </View>
             </Pressable>
           )}
-        </View>
 
-        {whileYouWait}
+          {whileYouWait}
+        </View>
       </View>
     );
   }
