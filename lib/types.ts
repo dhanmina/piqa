@@ -39,6 +39,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          entity: string
+          entity_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -134,8 +175,8 @@ export type Database = {
           label: string
           marker_shape: string | null
           marker_svg: string | null
-          ring_color: string | null
           profile_svg: string | null
+          ring_color: string | null
           suffix_color: string | null
           suffix_text: string | null
           unlock_kind: string
@@ -151,8 +192,8 @@ export type Database = {
           label: string
           marker_shape?: string | null
           marker_svg?: string | null
-          ring_color?: string | null
           profile_svg?: string | null
+          ring_color?: string | null
           suffix_color?: string | null
           suffix_text?: string | null
           unlock_kind?: string
@@ -168,8 +209,8 @@ export type Database = {
           label?: string
           marker_shape?: string | null
           marker_svg?: string | null
-          ring_color?: string | null
           profile_svg?: string | null
+          ring_color?: string | null
           suffix_color?: string | null
           suffix_text?: string | null
           unlock_kind?: string
@@ -253,6 +294,7 @@ export type Database = {
           created_at: string
           equipped_frame: string
           id: string
+          is_admin: boolean
           is_premium: boolean
           push_token: string | null
           region: string
@@ -265,6 +307,7 @@ export type Database = {
           created_at?: string
           equipped_frame?: string
           id: string
+          is_admin?: boolean
           is_premium?: boolean
           push_token?: string | null
           region?: string
@@ -277,6 +320,7 @@ export type Database = {
           created_at?: string
           equipped_frame?: string
           id?: string
+          is_admin?: boolean
           is_premium?: boolean
           push_token?: string | null
           region?: string
@@ -674,6 +718,75 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_analytics: { Args: never; Returns: Json }
+      admin_close_day: { Args: { p_drop: string }; Returns: Json }
+      admin_config_history: {
+        Args: { p_key: string; p_limit?: number }
+        Returns: Json
+      }
+      admin_config_last_changes: { Args: never; Returns: Json }
+      admin_create_prompt: {
+        Args: {
+          p_category: string
+          p_is_sponsored?: boolean
+          p_seq?: number
+          p_text: string
+        }
+        Returns: Json
+      }
+      admin_delete_prompt: { Args: { p_id: string }; Returns: Json }
+      admin_drop_next: { Args: { p_region?: string }; Returns: Json }
+      admin_grant_frame: {
+        Args: { p_frame: string; p_user: string }
+        Returns: Json
+      }
+      admin_list_drops: { Args: { p_limit?: number }; Returns: Json }
+      admin_list_frames: { Args: never; Returns: Json }
+      admin_list_prompts: { Args: never; Returns: Json }
+      admin_list_reports: { Args: never; Returns: Json }
+      admin_next_prompt: { Args: { p_region?: string }; Returns: Json }
+      admin_read_config: { Args: never; Returns: Json }
+      admin_recent_audit: { Args: { p_limit?: number }; Returns: Json }
+      admin_resolve_report: {
+        Args: { p_remove: boolean; p_submission: string }
+        Returns: Json
+      }
+      admin_save_frame: { Args: { p_data: Json; p_id: string }; Returns: Json }
+      admin_search_users: {
+        Args: { p_limit?: number; p_q?: string }
+        Returns: Json
+      }
+      admin_set_config: {
+        Args: { p_key: string; p_value: Json }
+        Returns: Json
+      }
+      admin_set_premium: {
+        Args: { p_user: string; p_value: boolean }
+        Returns: Json
+      }
+      admin_set_user_admin: {
+        Args: { p_user: string; p_value: boolean }
+        Returns: Json
+      }
+      admin_update_drop_times: {
+        Args: {
+          p_drop: string
+          p_drops_at: string
+          p_submit_closes_at: string
+          p_voting_closes_at: string
+        }
+        Returns: Json
+      }
+      admin_update_prompt: {
+        Args: {
+          p_category: string
+          p_id: string
+          p_is_sponsored: boolean
+          p_seq: number
+          p_text: string
+        }
+        Returns: Json
+      }
       cast_vote: {
         Args: { p_drop: string; p_loser: string; p_winner: string }
         Returns: Json
@@ -731,6 +844,7 @@ export type Database = {
       get_latest_gallery: { Args: never; Returns: Json }
       get_matchup: { Args: never; Returns: Json }
       get_profile: { Args: { p_user?: string }; Returns: Json }
+      is_admin: { Args: { p_uid?: string }; Returns: boolean }
       is_live_drop_thumb: { Args: { object_name: string }; Returns: boolean }
       photo_frame: { Args: { p_date: string }; Returns: string }
       photo_status: {
