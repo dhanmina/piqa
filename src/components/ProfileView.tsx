@@ -137,7 +137,9 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
               <Text style={styles.username} numberOfLines={1}>
                 {data?.username ?? ' '}
               </Text>
-              {(data?.streakWeeks ?? 0) > 0 && (
+              {/* Self only: a streak is a private motivational metric, like the
+                  hidden follower counts — never surfaced on someone else's crest. */}
+              {data?.isSelf && (data?.streakWeeks ?? 0) > 0 && (
                 <View style={styles.flame}>
                   <Flame size={13} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
                   {/* streakWeeks now carries days-alive (see 20260716000005). */}
