@@ -57,7 +57,10 @@
       "reactCompiler": true
     },
     "ios": {
-      "bundleIdentifier": "com.joinpiqa.app"
+      "bundleIdentifier": "com.joinpiqa.app",
+      "infoPlist": {
+        "CADisableMinimumFrameDurationOnPhone": true
+      }
     },
     "extra": {
       "router": {},
