@@ -15,7 +15,7 @@ import LottieView from 'lottie-react-native';
 import { ArrowLeft, Calendar, ChevronRight, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import confettiSource from '@/assets/lottie/confetti.json';
 
@@ -53,6 +53,12 @@ export default function GalleryScreen() {
   const router = useRouter();
   const { session } = useSession();
   const myId = session?.user.id;
+  const insets = useSafeAreaInsets();
+
+  // Tab bar overlays the bottom: paddingTop(8) + minHeight(56) + safe-area inset.
+  // paddingBottom of that amount shifts the vertical center up by half, keeping
+  // EmptyState visually centered in the visible area.
+  const centerPad = { paddingBottom: 8 + 56 + insets.bottom } as const;
 
   const [tab, setTab] = useState<'world' | 'following'>('world');
   const [selectedDropId, setSelectedDropId] = useState<string | null>(null);
@@ -262,7 +268,7 @@ export default function GalleryScreen() {
       <SafeAreaView style={styles.root} edges={['top']}>
         {segmented}
         {followingError && followingPhotos.length === 0 ? (
-          <View style={styles.center}>
+          <View style={[styles.center, centerPad]}>
             <EmptyState
               icon={CloudOff}
               line="Couldn't load Following. Check your connection."
@@ -275,7 +281,7 @@ export default function GalleryScreen() {
             <GalleryGridSkeleton />
           </View>
         ) : followingPhotos.length === 0 ? (
-          <View style={styles.center}>
+          <View style={[styles.center, centerPad]}>
             <EmptyState
               icon={Users}
               line="Follow shooters and their winning galleries land here"
@@ -309,7 +315,7 @@ export default function GalleryScreen() {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
         {segmented}
-        <View style={styles.center}>
+        <View style={[styles.center, centerPad]}>
           <EmptyState
             icon={CloudOff}
             line="Couldn't load the gallery. Check your connection."
@@ -335,9 +341,11 @@ export default function GalleryScreen() {
   if (!data?.drop || data.photos.length === 0) {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
-        {segmented}
-        <View style={styles.center}>
-          <EmptyState icon={ImageIcon} line="The first galleries are rolling in." />
+        <View style={{ flex: 1 }}>
+          {segmented}
+          <View style={[styles.center, centerPad]}>
+            <EmptyState icon={ImageIcon} line="The first galleries are rolling in." />
+          </View>
         </View>
       </SafeAreaView>
     );
