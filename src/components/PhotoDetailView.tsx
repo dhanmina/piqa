@@ -332,7 +332,10 @@ export function PhotoDetailView({
         onPress={() => void onShare()}
         style={sharing ? styles.sharing : undefined}
       >
-        <Share size={24} strokeWidth={icons.strokeWidth} color={colors.paper} />
+        {/* 20, not 24: lucide's share glyph fills ~20/24 of its box while the
+            HeartGlyph path only spans ~16/24, so a matched nominal size made
+            share read visibly larger. 20 optically matches the heart beside it. */}
+        <Share size={20} strokeWidth={icons.strokeWidth} color={colors.paper} />
       </Pressable>
     </View>
   );
