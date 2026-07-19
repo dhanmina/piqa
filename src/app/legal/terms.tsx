@@ -12,7 +12,7 @@ const EFFECTIVE_DATE = '19 July 2026';
 
 const BLOCKS: LegalBlock[] = [
   {
-    p: 'Welcome to piqa. These Terms of Service ("Terms") are an agreement between you and [LEGAL ENTITY] ("piqa", "we", "us") and govern your use of the piqa mobile app and related services (the "Service"). By creating an account or using the Service, you agree to these Terms. If you do not agree, do not use the Service.',
+    p: 'Welcome to piqa. These Terms of Service ("Terms") are an agreement between you and Dhanrev Mina ("piqa", "we", "us") and govern your use of the piqa mobile app and related services (the "Service"). By creating an account or using the Service, you agree to these Terms. If you do not agree, do not use the Service.',
   },
 
   { h: 'Who can use piqa' },
