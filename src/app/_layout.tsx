@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
 import { initCaptureQueue } from '@lib/captureQueue';
 import { FrameCatalogProvider } from '@lib/frames';
@@ -67,6 +68,7 @@ function RootNavigator() {
         />
         <Stack.Screen name="curate" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="photo/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="search" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="u/[id]" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="following" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="settings" options={{ animation: 'simple_push' }} />
@@ -105,11 +107,17 @@ export default function RootLayout() {
   }
 
   return (
-    <SessionProvider>
-      <FrameCatalogProvider>
-        <StatusBar style="light" />
-        <RootNavigator />
-      </FrameCatalogProvider>
-    </SessionProvider>
+    // Required by react-native-safe-area-context v5: without it SafeAreaView and
+    // useSafeAreaInsets() report 0 insets, so pushed-screen headers (search,
+    // others' profile, following, settings) rendered under the notch and their
+    // back button was hidden on real devices. expo-router no longer injects one.
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <SessionProvider>
+        <FrameCatalogProvider>
+          <StatusBar style="light" />
+          <RootNavigator />
+        </FrameCatalogProvider>
+      </SessionProvider>
+    </SafeAreaProvider>
   );
 }
