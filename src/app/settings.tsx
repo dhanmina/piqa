@@ -24,7 +24,6 @@ import { Mono } from '@/components/atoms/Mono';
 import { FramePicker } from '@/components/molecules/FramePicker';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { Sheet } from '@/components/molecules/Sheet';
-import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -79,10 +78,13 @@ export default function SettingsScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [equipping, setEquipping] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
-  const soon = () => setToast('Coming soon');
+
+  // Contact opens the mail app pre-addressed to support. Subject is tagged with the
+  // app version so replies arrive with the context we'd otherwise have to ask for.
+  const contact = () =>
+    void Linking.openURL(`mailto:hello@joinpiqa.com?subject=${encodeURIComponent(`Piqa support (v${version})`)}`);
 
   // Reflect the real OS notification permission, re-read on focus so it updates
   // after the user flips it in system settings and returns. (Delivery itself lights
@@ -152,11 +154,11 @@ export default function SettingsScreen() {
         <Section title="ABOUT">
           <Row label="Version" value={version} />
           <View style={styles.divider} />
-          <Row label="Terms of Service" chevron onPress={soon} />
+          <Row label="Terms of Service" chevron onPress={() => router.push('/legal/terms')} />
           <View style={styles.divider} />
-          <Row label="Privacy Policy" chevron onPress={soon} />
+          <Row label="Privacy Policy" chevron onPress={() => router.push('/legal/privacy')} />
           <View style={styles.divider} />
-          <Row label="Contact" chevron onPress={soon} />
+          <Row label="Contact" chevron onPress={contact} />
         </Section>
 
         <Section title="DANGER ZONE">
@@ -193,8 +195,6 @@ export default function SettingsScreen() {
         </Pressable>
         <View style={styles.pad} />
       </Sheet>
-
-      <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} />
     </SafeAreaView>
   );
 }

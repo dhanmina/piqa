@@ -66,6 +66,8 @@ function RootNavigator() {
         <Stack.Screen name="following" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="edit-profile" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="legal/terms" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="legal/privacy" options={{ animation: 'slide_from_right' }} />
         {__DEV__ && <Stack.Screen name="dev/time-machine" />}
         {__DEV__ && <Stack.Screen name="dev/kit" />}
       </Stack.Protected>
