@@ -60,7 +60,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "gen:types": "supabase gen types typescript --linked > lib/types.ts"
+    "gen:types": "supabase gen types typescript --linked > lib/types.ts",
+    "postinstall": "patch-package"
   },
   "private": true
 }

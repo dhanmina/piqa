@@ -1,4 +1,5 @@
 import * as Sharing from "expo-sharing";
+import type React from "react";
 import type { View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 
@@ -22,8 +23,8 @@ export function photoShareUrl(id: string): string {
  * the device pixel ratio (a 360pt card is ~720–1080px). Returns "unavailable" when
  * the platform has no share sheet; throws on a real capture failure.
  */
-export async function shareCard(node: View): Promise<"shared" | "unavailable"> {
-  const uri = await captureRef(node, { format: "png", quality: 1, result: "tmpfile" });
+export async function shareCard(ref: React.RefObject<View | null>): Promise<"shared" | "unavailable"> {
+  const uri = await captureRef(ref, { format: "png", quality: 1, result: "tmpfile" });
   if (!(await Sharing.isAvailableAsync())) return "unavailable";
   await Sharing.shareAsync(uri, { mimeType: "image/png", UTI: "public.png", dialogTitle: "Share your shot" });
   return "shared";

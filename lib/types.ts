@@ -756,6 +756,7 @@ export type Database = {
         Args: { p_limit?: number; p_q?: string }
         Returns: Json
       }
+      admin_start_drop: { Args: { p_drop: string }; Returns: Json }
       admin_set_config: {
         Args: { p_key: string; p_value: Json }
         Returns: Json
