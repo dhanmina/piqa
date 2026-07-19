@@ -512,6 +512,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: space.gutter,
+    // The raised center shutter (§11) overhangs ~SIZE/2 above the bar into this
+    // scene. Without extra bottom room, a bottom-pinned action (e.g. WHILE IT'S
+    // LIVE → Curate) lands under it. Reserve the overhang plus a gutter of air.
+    paddingBottom: space.gutter + space.shutter / 2,
     gap: space.gutter,
     flexGrow: 1, // fill the viewport so states can center their hero + drop the action into the thumb zone
   },
