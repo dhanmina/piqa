@@ -1,6 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import type { FrameId, PhotoStatus } from '@lib/frames';
@@ -48,6 +50,23 @@ type GalleryGridProps = {
 };
 
 /**
+ * Two equal columns with a fixed gap. Measure the grid's own width and floor the
+ * tile width so two cells + the gap can never overflow into a single column.
+ * Percentage widths ('48.8%') mix badly with a fixed-pixel gap: Yoga counts the
+ * gap against available space, and the percentage rounds up per pixel-density, so
+ * narrow / high-density real devices wrap to one column while emulators don't.
+ */
+function useTwoColumn() {
+  const [width, setWidth] = useState(0);
+  const onLayout = (e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0 && w !== width) setWidth(w);
+  };
+  const tileWidth = width > 0 ? Math.floor((width - space.gridGap) / 2) : undefined;
+  return { tileWidth, onLayout };
+}
+
+/**
  * The morning paper: the PotD full-width first, then an unnumbered 2-col grid.
  * Finite by construction — galleries are bounded, so this is a plain wrapped
  * grid, never an infinite list.
@@ -71,6 +90,9 @@ export function GalleryGrid({
   isHearted,
   heartCount,
 }: GalleryGridProps) {
+  const { tileWidth, onLayout } = useTwoColumn();
+  const cellStyle = [styles.cell, tileWidth ? { width: tileWidth } : null];
+
   const wrap = (photo: GalleryPhoto, child: ReactNode) =>
     onPress ? (
       <Pressable accessibilityRole="button" onPress={() => onPress(photo)}>
@@ -113,9 +135,9 @@ export function GalleryGrid({
   if (flat) {
     return (
       <View style={styles.container}>
-        <View style={styles.grid}>
+        <View style={styles.grid} onLayout={onLayout}>
           {photos.map((p) => (
-            <View key={p.id} style={styles.cell}>
+            <View key={p.id} style={cellStyle}>
               {wrap(p, print(p))}
               {heartOverlay(p)}
             </View>
@@ -146,12 +168,12 @@ export function GalleryGrid({
       <Animated.View
         key={photo.id}
         entering={FadeInUp.duration(300).delay(i * motion.revealStaggerMs)}
-        style={styles.cell}
+        style={cellStyle}
       >
         {body}
       </Animated.View>
     ) : (
-      <View key={photo.id} style={styles.cell}>
+      <View key={photo.id} style={cellStyle}>
         {body}
       </View>
     );
@@ -188,7 +210,7 @@ export function GalleryGrid({
           </View>
         </View>
       )}
-      <View style={styles.grid}>{rest.map((photo, i) => tile(photo, i))}</View>
+      <View style={styles.grid} onLayout={onLayout}>{rest.map((photo, i) => tile(photo, i))}</View>
     </View>
   );
 }
@@ -198,15 +220,17 @@ export function GalleryGrid({
  * cover over a 2-col tile grid. Flat ink2, no shimmer (spec §11d).
  */
 export function GalleryGridSkeleton({ tiles = 6 }: { tiles?: number }) {
+  const { tileWidth, onLayout } = useTwoColumn();
+  const cellStyle = [styles.cell, tileWidth ? { width: tileWidth } : null];
   return (
     <View style={styles.container} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <View style={styles.potdBlock}>
         <View style={styles.skelEyebrow} />
         <View style={[styles.skelBlock, styles.skelPhoto]} />
       </View>
-      <View style={styles.grid}>
+      <View style={styles.grid} onLayout={onLayout}>
         {Array.from({ length: tiles }).map((_, i) => (
-          <View key={i} style={styles.cell}>
+          <View key={i} style={cellStyle}>
             <View style={[styles.skelBlock, styles.skelPhoto]} />
           </View>
         ))}
@@ -260,7 +284,9 @@ const styles = StyleSheet.create({
     gap: space.gridGap,
   },
   cell: {
-    width: '48.8%', // 2 columns with the 8dp gap
+    // Fallback for the first frame only; useTwoColumn() overrides with an exact
+    // floored pixel width once the grid is measured (see the hook's note).
+    width: '48.8%',
   },
   tileFade: {
     position: 'absolute',
