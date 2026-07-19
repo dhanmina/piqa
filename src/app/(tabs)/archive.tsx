@@ -79,9 +79,9 @@ export default function ArchiveScreen() {
   // derived from its drop_date against the catalog — never the viewer's profile frame.
   const catalog = useFrameCatalog();
 
-  // Starred shots are the ones kept at full resolution — so warm ONLY their full-res
-  // in the background. Opening a starred shot is then instant and sharp; unstarred
-  // shots (whose full-res may be gone) stay on their cached thumb.
+  // Warm the starred shots' full-res in the background so favorites open instantly
+  // sharp. Unstarred shots also open at full-res (see viewerFull below) — they just
+  // fetch on demand, showing their cached thumb for the beat before it sharpens.
   useEffect(() => {
     const paths = (data?.items ?? [])
       .filter((it) => it.starred)
@@ -97,9 +97,12 @@ export default function ArchiveScreen() {
     };
   }, [data?.items]);
 
-  // Full-res for the open shot, but only if it's starred (else its full-res may be
-  // purged). The thumb stays as the placeholder, so it's shown instantly with no blink.
-  const viewerFull = useSignedThumb(selected?.starred ? selected.imagePath : null);
+  // Full-res for the open shot, starred or not — this is a photos app, so an
+  // opened shot must be sharp, never an upscaled 300px thumb. Full-res is uploaded
+  // for every shot and nothing purges it today (retention is Phase 4); if a purge
+  // ever lands, a missing full-res simply falls back to the thumb placeholder
+  // below. The thumb stays the placeholder, so the print shows instantly with no blink.
+  const viewerFull = useSignedThumb(selected?.imagePath ?? null);
 
   const filtered = items.filter((it) =>
     filter === 'all'
