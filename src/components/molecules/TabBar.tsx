@@ -27,14 +27,29 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const router = useRouter();
   const { data } = useHomeState();
   const [queueTick, setQueueTick] = useState(0);
+  // The drop we've locally submitted a daily for. Holds the aperture on 'done'
+  // across the handoff gap: once a shot uploads, its queue item is removed, but
+  // the server submission may not be fetched yet — without this, hasSubmitted
+  // briefly drops and the aperture flicks back to 'live'/'default'.
+  const [submittedDropId, setSubmittedDropId] = useState<string | null>(null);
 
-  useEffect(() => subscribeQueue(() => setQueueTick((t) => t + 1)), []);
+  useEffect(
+    () =>
+      subscribeQueue((event) => {
+        setQueueTick((t) => t + 1);
+        if (event.type === 'saved' && event.item.kind === 'daily' && event.item.dropId) {
+          setSubmittedDropId(event.item.dropId);
+        }
+      }),
+    [],
+  );
 
   const drop = data?.drop ?? null;
-  // A shot sitting in the queue counts as submitted — calm, not nagging.
+  // A shot sitting in the queue (or just uploaded) counts as submitted — calm, not nagging.
   void queueTick;
   const pendingDaily = drop ? getPendingItemForDrop(drop.id) : undefined;
-  const hasSubmitted = Boolean(data?.submission) || Boolean(pendingDaily);
+  const hasSubmitted =
+    Boolean(data?.submission) || Boolean(pendingDaily) || (!!drop && submittedDropId === drop.id);
 
   // Two dots, two meanings: Today = "your result is in", Gallery = "the reveal is
   // waiting". Re-read on every tab change so a dot clears once its screen is read.

@@ -117,6 +117,20 @@ export function invalidate(key: string) {
 }
 
 /**
+ * Force the next read to fetch fresh — WITHOUT dropping the cached value. Same
+ * generation bump + inflight clear as invalidate() (so a fresh request is issued
+ * and any pre-write fetch in flight is discarded), but the current value stays in
+ * the store, so the UI keeps showing it while revalidating instead of blanking to
+ * a loading state. Use when the on-screen data is still usable and a hard flash
+ * would be worse than briefly-stale data (e.g. home state after a shot uploads).
+ */
+export function revalidate(key: string) {
+  inflight.delete(key);
+  bumpGeneration(key);
+  emit(key);
+}
+
+/**
  * Drop every key under a prefix. Needed when one write changes a field that is
  * embedded in many dynamically-keyed reads — equipping a frame re-skins every
  * gallery (`gallery:<dropId>`) and every profile (`profile:<id>`) at once, and
