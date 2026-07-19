@@ -1,7 +1,7 @@
 import { Eye, EyeOff } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getRememberedEmail, getRememberMe, setRememberedEmail, setRememberMe } from '@lib/authPrefs';
 import { supabase } from '@lib/supabase';
@@ -36,6 +36,7 @@ export default function AuthScreen() {
   const [code, setCode] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true); // stay signed in across restarts; opt out on a shared device
+  const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -134,16 +135,10 @@ export default function AuthScreen() {
           options: { data: { username: name } },
         });
         if (error) return setToast(friendlyError(error.message));
-        if (data.session) {
-          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'Asia/Manila';
-          await supabase.from('profiles').update({ timezone }).eq('id', data.session.user.id);
-        } else {
-          setToast('Account created! Please check your email to confirm.');
-          setMode('signin');
-          setUsername('');
-          setEmail('');
-          setPassword('');
-        }
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'Asia/Manila';
+        await supabase.from('profiles').update({ timezone }).eq('id', data.session!.user.id);
+        await setRememberedEmail(email.trim());
+        setToast('Welcome to piqa!');
       } else if (isForgot) {
         const em = email.trim();
         // Product choice: tell the user up front if there's no account (see the
@@ -229,16 +224,14 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
-      {/* Keep the focused field above the keyboard on both platforms. iOS lets the
-          ScrollView auto-inset + scroll to the caret (automaticallyAdjustKeyboardInsets,
-          a no-op on Android); Android — where SDK 57 edge-to-edge breaks the old
-          window resize — leans on KeyboardAvoidingView padding. */}
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'android' ? 'padding' : undefined}>
+      {/* Keep the focused field above the keyboard on both platforms. The
+          KeyboardAvoidingView padding pushes content up; keyboardVerticalOffset
+          accounts for the SafeAreaView so the calculation is accurate. */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={insets.top}>
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.hero}>
