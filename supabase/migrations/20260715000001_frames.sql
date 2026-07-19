@@ -27,10 +27,12 @@
 -- 1. day_number — the global day counter
 -- ---------------------------------------------------------------------------
 
--- Launch day = the first drop we ever ran (or today, on a virgin database).
+-- Launch day = the first drop we ever ran. When no drops exist yet, skip — the
+-- set_day_number() trigger will set launch_date to the first drop's drop_date.
 insert into public.config (key, value)
-select 'launch_date', to_jsonb(coalesce(min(drop_date), current_date)::text)
+select 'launch_date', to_jsonb(min(drop_date)::text)
 from public.prompt_drops
+having min(drop_date) is not null
 on conflict (key) do nothing;
 
 alter table public.prompt_drops add column if not exists day_number integer;
