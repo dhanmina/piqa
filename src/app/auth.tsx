@@ -40,8 +40,8 @@ export default function AuthScreen() {
   const [toast, setToast] = useState<string | null>(null);
 
   // Refs let the keyboard's "next" jump email → password without leaving it.
-  const emailRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
+  const emailRef = useRef<any>(null);
+  const passwordRef = useRef<any>(null);
   // The remembered email is a sign-in convenience. Track whether the user has
   // actually typed in the field so we never force the auto-fill into sign-up.
   const rememberedEmail = useRef('');
