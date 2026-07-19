@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 import { subscribeQueue } from "./captureQueue";
-import { fetchKey, invalidate, useCached } from "./cache";
+import { fetchKey, revalidate, useCached } from "./cache";
 import type { FrameId, PhotoStatus } from "./frames";
 import { supabase } from "./supabase";
 
@@ -105,7 +105,11 @@ export function useHomeState() {
   useEffect(() => {
     const unsubscribe = subscribeQueue((event) => {
       if (event.type === "done" || event.type === "duplicate") {
-        invalidate(HOME_KEY);
+        // Revalidate, don't invalidate: the submitted shot's upload just landed,
+        // so pull the real submission row — but keep the current home state on
+        // screen meanwhile. Blanking it here is what made the shutter aperture
+        // (and Today) reset for a beat right after a shot uploaded.
+        revalidate(HOME_KEY);
         void fetchKey(HOME_KEY, fetchHomeState);
       }
     });
