@@ -89,6 +89,10 @@ export default function CameraScreen() {
   const capture = async () => {
     if (busy || captured) return;
     setBusy(true);
+    // Confirm the shutter the INSTANT it's pressed. takePictureAsync can take a
+    // beat on real hardware; firing the haptic only after it resolved made the
+    // press feel laggy or dropped. Fire-and-forget — never block the capture.
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       const shot = await cameraRef.current?.takePictureAsync({ quality: 0.9 });
       if (shot) {
@@ -104,7 +108,6 @@ export default function CameraScreen() {
           width = cropped.width;
           height = cropped.height;
         }
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setCaptured({ uri, width, height, capturedAt: new Date().toISOString() });
       }
     } finally {
@@ -233,7 +236,16 @@ export default function CameraScreen() {
           </View>
           <Brackets color={colors.paper} style={styles.finder}>
             <View style={styles.camWindow}>
-              <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} flash={flash} />
+              <CameraView
+                ref={cameraRef}
+                style={StyleSheet.absoluteFill}
+                facing={facing}
+                flash={flash}
+                // We own the shutter feedback (ring press + instant haptic + the
+                // jump to review). The native black-flash only added a competing
+                // beat that read as lag.
+                animateShutter={false}
+              />
             </View>
           </Brackets>
         </View>
