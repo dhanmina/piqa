@@ -32,11 +32,14 @@ import { getConfig } from "./config";
 import { classifyImage, NSFW_REJECTION_COPY } from "./nsfw";
 import { supabase } from "./supabase";
 
-// Pipeline constants from spec §4 (fixed by design, not tunable thresholds):
-// 1080px long edge @ q0.7 full-res, 300px thumbnail.
-const FULL_LONG_EDGE = 1080;
+// Image pipeline. Piqa is a photos app, so the full-res is sized to stay sharp
+// fullscreen on high-DPI phones (a 4:5 portrait fills ~1600px tall on a 3x
+// display) with headroom for pinch-zoom, at a quality that avoids visible JPEG
+// artifacts. The thumbnail stays tiny — it's only a grid tile and a placeholder.
+const FULL_LONG_EDGE = 2048;
 const THUMB_LONG_EDGE = 300;
-const JPEG_QUALITY = 0.7;
+const FULL_QUALITY = 0.85;
+const THUMB_QUALITY = 0.7;
 // Every shared photo is 4:5 portrait (width/height). We bake this crop into the
 // uploaded bytes so the stored asset matches the capture preview and every grid
 // exactly — no per-image reflow, uniform frames everywhere. The local original
@@ -209,14 +212,14 @@ function cropTo45(width: number, height: number) {
   return { originX: 0, originY: Math.round((height - cropH) / 2), width, height: cropH };
 }
 
-async function compressTo(item: QueueItem, longEdge: number, suffix: string): Promise<string> {
+async function compressTo(item: QueueItem, longEdge: number, quality: number, suffix: string): Promise<string> {
   const context = ImageManipulator.manipulate(item.originalUri);
   // Crop to the canonical 4:5 frame first, then the cropped image is always
   // portrait, so the long edge is its height.
   context.crop(cropTo45(item.width, item.height));
   context.resize({ height: longEdge });
   const rendered = await context.renderAsync();
-  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: JPEG_QUALITY });
+  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: quality });
   // Move out of cache into document storage so the queue survives cache eviction.
   const target = new File(capturesDir(), `${item.id}_${suffix}.jpg`);
   if (target.exists) target.delete();
@@ -293,11 +296,11 @@ function cleanupIntermediates(item: QueueItem) {
 async function processItem(item: QueueItem): Promise<void> {
   try {
     if (!item.thumbUri) {
-      item.thumbUri = await compressTo(item, THUMB_LONG_EDGE, "thumb");
+      item.thumbUri = await compressTo(item, THUMB_LONG_EDGE, THUMB_QUALITY, "thumb");
       await persist();
     }
     if (!item.fullUri) {
-      item.fullUri = await compressTo(item, FULL_LONG_EDGE, "full");
+      item.fullUri = await compressTo(item, FULL_LONG_EDGE, FULL_QUALITY, "full");
       await persist();
     }
 
