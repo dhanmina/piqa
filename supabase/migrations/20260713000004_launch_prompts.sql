@@ -81,10 +81,10 @@ begin
     return jsonb_build_object('ok', false, 'reason', 'no_prompts');
   end if;
 
-  drops_at     := ((today_local + time '19:00') at time zone 'Asia/Manila')
+  drops_at     := ((today_local + time '06:00') at time zone 'Asia/Manila')
                   + make_interval(mins => floor(random() * 60)::int);
-  submit_close := (((today_local + 1) + time '00:00') at time zone 'Asia/Manila');
-  voting_close := (((today_local + 1) + time '08:00') at time zone 'Asia/Manila');
+  submit_close := ((today_local + time '18:00') at time zone 'Asia/Manila');
+  voting_close := ((today_local + time '19:00') at time zone 'Asia/Manila');
 
   insert into public.prompt_drops
     (prompt_id, region, drop_date, drops_at, submit_closes_at, voting_closes_at, status)
