@@ -9,6 +9,9 @@ import { supabase } from "./supabase";
 export type ProfileWin = {
   id: string;
   uri: string | null;
+  /** Signed full-res — what the wins wall displays over the thumb, so the trophy
+   *  shelf is never soft (already warmed into cache by ProfileView). */
+  fullUri: string | null;
   thumbPath: string | null;
   /** Full-res object, for the in-place fullscreen lightbox. Null on old payloads. */
   imagePath: string | null;
@@ -91,7 +94,7 @@ export async function fetchProfile(
   if (!p || p.found === false) return null;
 
   const winPaths = (p.wins ?? [])
-    .map((w) => w.thumb_path)
+    .flatMap((w) => [w.thumb_path, w.image_path])
     .filter((x): x is string => !!x);
 
   let starRows: {
@@ -151,6 +154,7 @@ export async function fetchProfile(
       thumbPath: w.thumb_path,
       imagePath: w.image_path ?? null,
       uri: w.thumb_path ? (signed.get(w.thumb_path) ?? null) : null,
+      fullUri: w.image_path ? (signed.get(w.image_path) ?? null) : null,
       isPotd: w.is_potd,
       dropDate: w.drop_date,
       dayNumber: w.day_number,

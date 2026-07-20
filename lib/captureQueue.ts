@@ -35,11 +35,18 @@ import { supabase } from "./supabase";
 // Image pipeline. Piqa is a photos app, so the full-res is sized to stay sharp
 // fullscreen on high-DPI phones (a 4:5 portrait fills ~1600px tall on a 3x
 // display) with headroom for pinch-zoom, at a quality that avoids visible JPEG
-// artifacts. The thumbnail stays tiny — it's only a grid tile and a placeholder.
+// artifacts.
+//
+// The thumbnail is NOT a tiny placeholder — it is the image every grid actually
+// displays (gallery tiles, the full-width PotD hero, archive, profile). On a 3x
+// phone a 2-col tile is ~640px wide and the PotD hero spans ~1290px, so a 300px
+// thumb was being upscaled 2–5x and read as blurry. In a photos app that alone
+// reads as "broken". The thumb long edge is sized so a tile is at/above 1:1 and
+// the hero is only mildly upscaled; full-res still carries fullscreen + zoom.
 const FULL_LONG_EDGE = 2048;
-const THUMB_LONG_EDGE = 300;
+const THUMB_LONG_EDGE = 1080;
 const FULL_QUALITY = 0.85;
-const THUMB_QUALITY = 0.7;
+const THUMB_QUALITY = 0.8;
 // Every shared photo is 4:5 portrait (width/height). We bake this crop into the
 // uploaded bytes so the stored asset matches the capture preview and every grid
 // exactly — no per-image reflow, uniform frames everywhere. The local original

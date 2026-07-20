@@ -221,8 +221,17 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
           <View style={styles.grid}>
             {data?.starred.map((s, i) => (
               <Pressable key={s.key} accessibilityRole="button" style={styles.starCell} onPress={() => setStarIndex(i)}>
-                {s.uri ? (
-                  <Image source={{ uri: s.uri, cacheKey: imageCacheKey(s.uri) }} style={styles.starImg} contentFit="cover" />
+                {s.fullUri || s.uri ? (
+                  <Image
+                    // Full-res over the warmed thumb placeholder — the starred wall
+                    // is a viewing surface, so it must be sharp, not the 300px thumb.
+                    source={s.fullUri ? { uri: s.fullUri, cacheKey: imageCacheKey(s.fullUri) } : undefined}
+                    placeholder={s.uri ? { uri: s.uri, cacheKey: imageCacheKey(s.uri) } : undefined}
+                    placeholderContentFit="cover"
+                    style={styles.starImg}
+                    contentFit="cover"
+                    transition={100}
+                  />
                 ) : (
                   <View style={[styles.starImg, styles.skeleton]} />
                 )}
@@ -254,9 +263,11 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
                 style={styles.winCell}
                 onPress={() => setViewer(w)}
               >
-                {/* No crown badge: the print carries its own status glyph. */}
+                {/* No crown badge: the print carries its own status glyph. Full-res
+                    over the thumb (already warmed) keeps the trophy shelf sharp. */}
                 <FramedPhoto
-                  photoUri={w.uri}
+                  photoUri={w.fullUri ?? w.uri}
+                  placeholderUri={w.uri}
                   dayNumber={w.dayNumber}
                   frameId={w.frameId}
                   status={w.status}

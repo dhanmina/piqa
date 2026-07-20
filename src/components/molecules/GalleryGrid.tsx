@@ -13,7 +13,10 @@ import { colors, fade, frame, motion, radius, space, typeScale } from '@/compone
 
 export type GalleryPhoto = {
   id: string;
+  /** Signed thumb — the instant placeholder the print paints while full-res decodes. */
   uri?: string | null;
+  /** Signed full-res — what the tile actually displays, so the grid is never soft. */
+  fullUri?: string | null;
   hearts: number;
   isPotd?: boolean;
   /** Shooter name — shown only on the PotD cover (appreciation is signed). */
@@ -123,9 +126,13 @@ export function GalleryGrid({
     );
   };
 
+  // Display full-res over the thumb: the thumb paints instantly as the placeholder
+  // and the sharp full-res crossfades in (already warmed into cache by the gallery
+  // screen, so no extra fetch). Falls back to the thumb when there's no full-res.
   const print = (photo: GalleryPhoto) => (
     <FramedPhoto
-      photoUri={photo.uri}
+      photoUri={photo.fullUri ?? photo.uri}
+      placeholderUri={photo.uri}
       dayNumber={photo.dayNumber}
       frameId={photo.frameId}
       status={photo.status}
