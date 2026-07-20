@@ -55,6 +55,10 @@ function toGalleryPhoto(p: RichPhotoRow, signed: Map<string, string>): GalleryDe
   return {
     id: p.id,
     uri: p.thumb_path ? (signed.get(p.thumb_path) ?? null) : null,
+    // Full-res for the grid to display over the thumb — the gallery warms these
+    // into cache anyway, so showing them costs no extra fetch and keeps tiles +
+    // the full-width PotD hero pixel-sharp (a photos app can't show a soft grid).
+    fullUri: p.image_path ? (signed.get(p.image_path) ?? null) : null,
     hearts: p.hearts,
     isPotd: p.is_potd,
     shooter: p.shooter,
@@ -94,7 +98,9 @@ export async function loadGallery(dropId: string | null): Promise<GalleryFeed> {
     return { drop: null, isSeed: false, photos: [], past: result?.past ?? [], nextDropAt: result?.next_drop_at ?? null };
   }
 
-  const signed = await signThumbs(result.photos.map((p) => p.thumb_path).filter((p): p is string => !!p));
+  const signed = await signThumbs(
+    result.photos.flatMap((p) => [p.thumb_path, p.image_path]).filter((p): p is string => !!p),
+  );
   const photos: GalleryDetailPhoto[] = result.photos.map((p) => toGalleryPhoto(p, signed));
 
   return {
@@ -127,7 +133,9 @@ async function loadFollowingGallery(): Promise<GalleryDetailPhoto[]> {
   const { data, error } = await supabase.rpc("get_following_gallery");
   if (error) throw error;
   const rows = (data as unknown as { photos: RichPhotoRow[] }).photos ?? [];
-  const signed = await signThumbs(rows.map((r) => r.thumb_path).filter((p): p is string => !!p));
+  const signed = await signThumbs(
+    rows.flatMap((r) => [r.thumb_path, r.image_path]).filter((p): p is string => !!p),
+  );
   return rows.map((r) => toGalleryPhoto(r, signed));
 }
 
