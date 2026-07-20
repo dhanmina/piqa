@@ -19,6 +19,8 @@
       "package": "com.joinpiqa.app",
       "permissions": [
         "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -67,6 +69,12 @@
       "eas": {
         "projectId": "695fe1c2-f6a3-485f-b8b9-1b0314618f44"
       }
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/695fe1c2-f6a3-485f-b8b9-1b0314618f44"
     }
   }
 }
