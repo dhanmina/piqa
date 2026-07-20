@@ -38,6 +38,8 @@ export type ProfileData = {
   equippedFrame: FrameId;
   /** The VIEWER's unlocked frames (never someone else's). Drives the equip picker. */
   ownedFrames: FrameId[];
+  /** Badge types earned by this user (e.g. 'beta_tester', 'early_adopter'). */
+  badges: string[];
   isSelf: boolean;
   isFollowing: boolean;
 };
@@ -64,6 +66,7 @@ type RawProfile = {
   }[];
   equipped_frame: string;
   owned_frames: string[];
+  badges: string[];
   is_self: boolean;
   is_following: boolean;
 };
@@ -161,6 +164,7 @@ export async function fetchProfile(
     })),
     equippedFrame: asFrameId(p.equipped_frame),
     ownedFrames: (p.owned_frames ?? []).map(asFrameId),
+    badges: p.badges ?? [],
     isSelf: p.is_self,
     isFollowing: p.is_following,
   };
