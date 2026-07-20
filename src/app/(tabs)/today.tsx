@@ -222,9 +222,11 @@ export default function TodayScreen() {
     // The status line names the problem, the button names the fix — "Upload needs a
     // retry" sitting on top of a "Retry upload" button said the cure twice, the cause never.
     const statusLine = inRound
-      ? 'Curators are picking'
+      ? votingOpen
+        ? 'Shot submitted'
+        : 'Curators are picking'
       : blocked
-        ? 'Upload didn’t go through'
+        ? 'Upload didn\'t go through'
         : queued
           ? 'Shot saved · will upload'
           : 'Shot saved · uploading';
@@ -266,7 +268,7 @@ export default function TodayScreen() {
         {!blocked && votingOpen && (
           <View style={styles.submittedAction}>
             <Mono size={typeScale.caption} color={colors.paper60}>
-              KEEP THE DAY GOING
+              VOTING IS OPEN
             </Mono>
             <Button
               label="Curate today’s shots"

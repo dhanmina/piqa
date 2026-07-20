@@ -67,24 +67,39 @@ begin
       and s.user_id <> uid
       and s.thumb_path is not null
   ),
-  pool as (
-    -- exposure floor: least-seen photos first, randomised within ties
-    select *, row_number() over (order by vote_count asc, random()) as expo
-    from cand
+  pool_size as (
+    select count(*) as n from cand
   ),
-  banded as (
-    select * from pool where expo <= 40
-  ),
-  ordered as (
-    -- pair neighbours in rating order → similar-Elo match-ups
-    select *, row_number() over (order by rating asc, random()) as rn
-    from banded
-  ),
-  raw_pairs as (
+  elo_pairs as (
+    -- Elo-matched pairs for larger pools (>= 10 eligible).
+    -- Exposure floor: least-seen photos first, then similar-Elo neighbours.
     select a.id as a_id, a.thumb_path as a_thumb,
            b.id as b_id, b.thumb_path as b_thumb
-    from ordered a
-    join ordered b on b.rn = a.rn + 1 and (a.rn % 2) = 1
+    from (
+      select *, row_number() over (order by vote_count asc, random()) as expo,
+               row_number() over (order by rating asc, random()) as rn
+      from cand
+    ) a
+    join (
+      select *, row_number() over (order by vote_count asc, random()) as expo,
+               row_number() over (order by rating asc, random()) as rn
+      from cand
+    ) b on b.rn = a.rn + 1 and (a.rn % 2) = 1
+    where (select n from pool_size) >= 10
+  ),
+  rr_pairs as (
+    -- Round-robin pairs for small pools (< 10 eligible).
+    -- Every possible combination, no Elo matching (too few photos).
+    select a.id as a_id, a.thumb_path as a_thumb,
+           b.id as b_id, b.thumb_path as b_thumb
+    from cand a
+    join cand b on b.id > a.id
+    where (select n from pool_size) < 10
+  ),
+  raw_pairs as (
+    select * from elo_pairs
+    union all
+    select * from rr_pairs
   ),
   fresh as (
     select rp.*
@@ -169,19 +184,27 @@ begin
   end;
 
   -- Incremental Elo (K from config): expected = 1 / (1 + 10^((loserR - winnerR)/400)).
-  select rating into wr from public.submissions where id = p_winner for update;
-  select rating into lr from public.submissions where id = p_loser  for update;
+  -- Skip for small pools (< 10 eligible) — round-robin, no Elo matching.
+  if (select count(*) from public.submissions where drop_id = p_drop and thumb_path is not null) >= 10 then
+    select rating into wr from public.submissions where id = p_winner for update;
+    select rating into lr from public.submissions where id = p_loser  for update;
 
-  expected_w := 1.0 / (1.0 + power(10.0, (lr - wr) / 400.0));
-  new_wr := round(wr + k * (1.0 - expected_w));
-  new_lr := round(lr - k * (1.0 - expected_w));
+    expected_w := 1.0 / (1.0 + power(10.0, (lr - wr) / 400.0));
+    new_wr := round(wr + k * (1.0 - expected_w));
+    new_lr := round(lr - k * (1.0 - expected_w));
 
-  update public.submissions
-    set rating = new_wr, vote_count = vote_count + 1
-    where id = p_winner;
-  update public.submissions
-    set rating = new_lr
-    where id = p_loser;
+    update public.submissions
+      set rating = new_wr, vote_count = vote_count + 1
+      where id = p_winner;
+    update public.submissions
+      set rating = new_lr
+      where id = p_loser;
+  else
+    -- Small pool: just bump vote_count, skip Elo.
+    update public.submissions set vote_count = vote_count + 1 where id = p_winner;
+    new_wr := null;
+    new_lr := null;
+  end if;
 
   return jsonb_build_object(
     'ok', true,
