@@ -53,6 +53,12 @@ begin
     return jsonb_build_object('drop_id', d.id, 'remaining', 0, 'capped', true, 'pairs', '[]'::jsonb);
   end if;
 
+  -- Need >= 3 submissions to form fair pairs (self-excluded, need even >= 2).
+  if (select count(*) from public.submissions where drop_id = d.id and thumb_path is not null) < 3 then
+    return jsonb_build_object('drop_id', d.id, 'remaining', remaining, 'capped', false,
+                              'pairs', '[]'::jsonb, 'reason', 'insufficient_submissions');
+  end if;
+
   with cand as (
     -- eligible: this drop, not mine, actually uploaded (has a thumb)
     select s.id, s.thumb_path, s.rating, s.vote_count
