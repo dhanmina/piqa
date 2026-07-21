@@ -18,7 +18,7 @@ import { getConfig } from '@lib/config';
 import { useFrameForDate } from '@lib/frames';
 import { capture } from '@lib/analytics';
 import { markResultSeen, useSignedThumb } from '@lib/gallery';
-import { useHomeState } from '@lib/homeState';
+import { useHomeState, useTodayHint } from '@lib/homeState';
 import { useLast7Pattern } from '@lib/streak';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
@@ -46,6 +46,7 @@ const clockTime = (iso: string) => {
 export default function TodayScreen() {
   const router = useRouter();
   const { data, loading, error, refresh } = useHomeState();
+  const hint = useTodayHint();
   const [toast, setToast] = useState<string | null>(null);
   const [showStreakInfo, setShowStreakInfo] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -291,6 +292,7 @@ export default function TodayScreen() {
         <View style={styles.liveHero}>
           <ShotCard
             prompt={drop.prompt}
+            hint={hint}
             closesAt={drop.submit_closes_at}
             quickDrawUntil={quickDrawUntil}
             onShoot={() => router.push('/camera')}

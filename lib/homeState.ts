@@ -1,9 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { subscribeQueue } from "./captureQueue";
 import { fetchKey, revalidate, useCached } from "./cache";
 import type { FrameId, PhotoStatus } from "./frames";
 import { supabase } from "./supabase";
+
+/** The photography tip for the user's current Subject, or null (learning loop). */
+export function useTodayHint(): string | null {
+  const [hint, setHint] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    // Cast until `supabase gen types` re-runs after the subject_hints migration.
+    void supabase.rpc("get_today_hint" as never).then(({ data }) => {
+      if (alive) setHint((data as string | null) ?? null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return hint;
+}
 
 export type HomeDrop = {
   id: string;

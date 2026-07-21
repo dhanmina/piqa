@@ -19,6 +19,8 @@ type ShotCardProps = {
   offline?: boolean;
   submitted?: boolean;
   loading?: boolean;
+  /** Optional photography tip for today's Subject (learning loop). */
+  hint?: string | null;
 };
 
 /**
@@ -34,6 +36,7 @@ export function ShotCard({
   offline = false,
   submitted = false,
   loading = false,
+  hint,
 }: ShotCardProps) {
   const [quickDrawOver, setQuickDrawOver] = useState(false);
   const showQuickDraw =
@@ -50,6 +53,11 @@ export function ShotCard({
           <Text style={styles.prompt} numberOfLines={3}>
             {prompt}
           </Text>
+          {hint ? (
+            <Text style={styles.hint} numberOfLines={2}>
+              {hint}
+            </Text>
+          ) : null}
 
           <View style={styles.countdownBlock}>
             <Mono size={typeScale.caption} color={colors.paper60}>
@@ -118,6 +126,15 @@ const styles = StyleSheet.create({
     color: colors.paper,
     lineHeight: 30,
     textAlign: 'center',
+  },
+  hint: {
+    fontFamily: fonts.sans,
+    fontSize: typeScale.caption,
+    color: colors.paper60,
+    lineHeight: typeScale.caption * 1.4,
+    textAlign: 'center',
+    marginTop: 8,
+    maxWidth: 280,
   },
   countdownBlock: {
     alignItems: 'center',
