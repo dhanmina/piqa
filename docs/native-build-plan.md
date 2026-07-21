@@ -17,6 +17,7 @@ Only a *new native dependency* should ever trigger another build.
 | `expo-media-library` (+ plugin, save permission) | Save-to-device |
 | `@react-native-google-signin/google-signin` (+ plugin) | Google sign-in (Android) |
 | `expo-apple-authentication` (+ plugin, `ios.usesAppleSignIn`) | Apple sign-in (iOS, future) |
+| `expo-store-review` | Growth-phase app-store rating prompt (Phase 4) |
 
 All of Phase 1 was already OTA'd onto the previous binary; this build simply bakes it
 in natively so *new* installs get it without the cold-launch OTA dance.
