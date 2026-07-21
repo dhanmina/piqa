@@ -22,6 +22,11 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.ACCESS_MEDIA_LOCATION"
       ]
     },
     "web": {
@@ -55,14 +60,6 @@
       "./plugins/withAndroidHighRefreshRate",
       "expo-localization",
       "@react-native-google-signin/google-signin",
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "Piqa needs photo access to save your shots.",
-          "savePhotosPermission": "Piqa saves your shots to your camera roll.",
-          "isAccessMediaLocationEnabled": true
-        }
-      ],
       "expo-apple-authentication"
     ],
     "experiments": {

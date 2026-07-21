@@ -14,13 +14,21 @@ Only a *new native dependency* should ever trigger another build.
 ## What went into "the one build" (2026-07-21, preview/Android)
 | Added | For |
 |---|---|
-| `expo-media-library` (+ plugin, save permission) | Save-to-device |
+| ~~`expo-media-library`~~ (removed) | Save-to-device, deferred (see note) |
 | `@react-native-google-signin/google-signin` (+ plugin) | Google sign-in (Android) |
 | `expo-apple-authentication` (+ plugin, `ios.usesAppleSignIn`) | Apple sign-in (iOS, future) |
 | `expo-store-review` | Growth-phase app-store rating prompt (Phase 4) |
 
 All of Phase 1 was already OTA'd onto the previous binary; this build simply bakes it
 in natively so *new* installs get it without the cold-launch OTA dance.
+
+## Media permissions (Play policy)
+piqa captures in-app and never reads the user's gallery, so it must NOT declare
+`READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO` (Google's Photo & Video Permissions policy).
+Steps taken: removed `expo-media-library` (was unused, pulled in the video permission),
+`android.blockedPermissions` strips READ_MEDIA_IMAGES/VIDEO + ACCESS_MEDIA_LOCATION,
+and the profile-picture picker uses the OS photo picker (no permission). When
+save-to-device is actually built, add media-library back with add-only (write) access.
 
 ## Deliberately NOT in the build (kept efficient)
 - **Sentry** — the `@sentry/react-native` native module is *already* in the binary.

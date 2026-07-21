@@ -53,11 +53,8 @@ export default function EditProfileScreen() {
 
   const pickAvatar = async () => {
     if (busyAvatar) return;
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      setToast('Photo access is off. Turn it on in your phone settings.');
-      return;
-    }
+    // Uses the OS photo picker (no media-library permission), so piqa never
+    // requests READ_MEDIA_IMAGES and stays clear of Play's broad-media policy.
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
