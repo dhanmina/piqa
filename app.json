@@ -53,8 +53,7 @@
         }
       ],
       "./plugins/withAndroidHighRefreshRate",
-      "expo-localization",
-      "@sentry/react-native"
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,
