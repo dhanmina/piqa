@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { asFrameId, asStatus } from '@lib/frames';
 import { useSignedThumb } from '@lib/gallery';
+import { NOD_TAGS, nodLabel, submitNod, topNod, type NodCounts, type NodTag } from '@lib/nods';
 import { shareCard } from '@lib/share';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
@@ -66,6 +67,8 @@ export type PhotoDetailData = {
   frame?: string | null;
   /** The day's theme/brief — passed through to the share card when the host has it. */
   theme?: string | null;
+  /** Per-photo nod aggregate ({ great_light: 38, ... }), from decorate_photos. */
+  nods?: NodCounts | null;
   /** An already-cached thumb (e.g. the gallery grid's) shown instantly under the
    *  full-res image, so opening a shot never waits on a reload. */
   placeholderUri?: string | null;
@@ -92,6 +95,7 @@ export function PhotoDetailView({
   status: statusRaw,
   frame: frameRaw,
   theme,
+  nods,
   placeholderUri,
   onClose,
   onOpenProfile,
@@ -279,6 +283,46 @@ export function PhotoDetailView({
       runOnJS(likeFromDoubleTap)(e.absoluteX, e.absoluteY);
     });
 
+  // Nods — craft recognition (feature-research §3): the top tag as an aggregate,
+  // plus a one-tap picker on others' photos (optimistic via myNod). Attaches after
+  // the reveal, when the photo is named — never on the blind voting pairs.
+  const [myNod, setMyNod] = useState<NodTag | null>(null);
+  const displayNods: NodCounts = { ...(nods ?? {}) };
+  if (myNod) displayNods[myNod] = (displayNods[myNod] ?? 0) + 1;
+  const topTag = topNod(displayNods);
+  const nodsBlock =
+    topTag || !isOwn ? (
+      <View style={styles.nods}>
+        {topTag && (
+          <Mono size={typeScale.caption} color={colors.paper60}>
+            {`Curators nodded: ${topTag.label} ×${topTag.count}`}
+          </Mono>
+        )}
+        {!isOwn &&
+          (myNod ? (
+            <Mono size={typeScale.caption} color={colors.safelight}>
+              {`You nodded: ${nodLabel(myNod)}`}
+            </Mono>
+          ) : (
+            <View style={styles.nodChips}>
+              {NOD_TAGS.map((t) => (
+                <Pressable
+                  key={t.id}
+                  accessibilityRole="button"
+                  style={styles.nodChip}
+                  onPress={() => {
+                    setMyNod(t.id);
+                    void submitNod(id, t.id);
+                  }}
+                >
+                  <Text style={styles.nodChipText}>{t.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ))}
+      </View>
+    ) : null;
+
   // The signed-appreciation pair — shooter (→ profile) + heart. Shared by the
   // route's on-cover overlay and the lightbox's bottom bar.
   const identityBlock = (
@@ -304,6 +348,7 @@ export function PhotoDetailView({
           {statusWords.toUpperCase()}
         </Mono>
       )}
+      {nodsBlock}
     </View>
   );
   const heartControl = (
@@ -501,6 +546,16 @@ const styles = StyleSheet.create({
   // Name + status read as one unit — tight pairing, with the air below (overlay
   // paddingBottom) separating them from the rail.
   identity: { flex: 1, gap: 3 },
+  nods: { gap: 6, marginTop: 2 },
+  nodChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  nodChip: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.paper30,
+    borderRadius: 100,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  nodChipText: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper },
   nameLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   shooter: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper, flexShrink: 1 },
   statusEyebrow: { letterSpacing: 1.5 },

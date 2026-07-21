@@ -224,6 +224,7 @@ export default function GalleryScreen() {
           // World shows one drop's photos, so its prompt is this photo's theme.
           // Following mixes days/themes, so leave it unset there.
           theme={tab === 'world' ? data?.drop?.prompt : undefined}
+          nods={viewer.nods}
           onClose={() => setViewer(null)}
           onOpenProfile={(uid) => {
             setViewer(null);

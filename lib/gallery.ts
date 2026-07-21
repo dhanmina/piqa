@@ -35,6 +35,8 @@ type RichPhotoRow = {
   frame_id: string;
   status: string | null;
   day_number: number;
+  /** Per-photo nod aggregate from decorate_photos: { great_light: 38, ... }. */
+  nods?: Record<string, number>;
 };
 
 type GetGalleryResult = {
@@ -69,6 +71,7 @@ function toGalleryPhoto(p: RichPhotoRow, signed: Map<string, string>): GalleryDe
     frameId: asFrameId(p.frame_id),
     status: asStatus(p.status),
     dayNumber: p.day_number,
+    nods: p.nods ?? null,
   };
 }
 
@@ -78,6 +81,8 @@ export type GalleryDetailPhoto = GalleryPhoto & {
   imagePath?: string | null;
   thumbPath?: string | null;
   capturedAt?: string | null;
+  /** Per-photo nod aggregate ({ great_light: 38, ... }), from decorate_photos. */
+  nods?: import("./nods").NodCounts | null;
 };
 
 export type GalleryFeed = {
