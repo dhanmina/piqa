@@ -21,6 +21,22 @@ export function useTodayHint(): string | null {
   return hint;
 }
 
+/** Whether the user's current Subject is a Golden Shot (weekly special event). */
+export function useTodayGolden(): boolean {
+  const [golden, setGolden] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    // Cast until `supabase gen types` re-runs after the golden_shot migration.
+    void supabase.rpc("get_today_golden" as never).then(({ data }) => {
+      if (alive) setGolden(data === true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return golden;
+}
+
 export type HomeDrop = {
   id: string;
   prompt: string;

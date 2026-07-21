@@ -21,6 +21,8 @@ type ShotCardProps = {
   loading?: boolean;
   /** Optional photography tip for today's Subject (learning loop). */
   hint?: string | null;
+  /** Weekly Golden Shot event — a gold treatment on the whole card. */
+  golden?: boolean;
 };
 
 /**
@@ -37,6 +39,7 @@ export function ShotCard({
   submitted = false,
   loading = false,
   hint,
+  golden = false,
 }: ShotCardProps) {
   const [quickDrawOver, setQuickDrawOver] = useState(false);
   const showQuickDraw =
@@ -47,9 +50,11 @@ export function ShotCard({
 
   return (
     <View style={styles.card}>
-      <Brackets color={colors.paper} style={styles.brackets}>
+      <Brackets color={golden ? colors.crown : colors.paper} style={styles.brackets}>
         <View style={styles.inner}>
-          <Text style={styles.kicker}>Today’s Shot</Text>
+          <Text style={[styles.kicker, golden && styles.kickerGold]}>
+            {golden ? 'Golden Shot' : 'Today’s Shot'}
+          </Text>
           <Text style={styles.prompt} numberOfLines={3}>
             {prompt}
           </Text>
@@ -119,6 +124,10 @@ const styles = StyleSheet.create({
     color: colors.paper60,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
+  },
+  kickerGold: {
+    color: colors.crown,
+    letterSpacing: 2,
   },
   prompt: {
     fontFamily: displayFamily,

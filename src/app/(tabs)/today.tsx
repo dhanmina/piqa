@@ -18,7 +18,7 @@ import { getConfig } from '@lib/config';
 import { useFrameForDate } from '@lib/frames';
 import { capture } from '@lib/analytics';
 import { markResultSeen, useSignedThumb } from '@lib/gallery';
-import { useHomeState, useTodayHint } from '@lib/homeState';
+import { useHomeState, useTodayHint, useTodayGolden } from '@lib/homeState';
 import { useLast7Pattern } from '@lib/streak';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
@@ -47,6 +47,7 @@ export default function TodayScreen() {
   const router = useRouter();
   const { data, loading, error, refresh } = useHomeState();
   const hint = useTodayHint();
+  const golden = useTodayGolden();
   const [toast, setToast] = useState<string | null>(null);
   const [showStreakInfo, setShowStreakInfo] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -293,6 +294,7 @@ export default function TodayScreen() {
           <ShotCard
             prompt={drop.prompt}
             hint={hint}
+            golden={golden}
             closesAt={drop.submit_closes_at}
             quickDrawUntil={quickDrawUntil}
             onShoot={() => router.push('/camera')}
