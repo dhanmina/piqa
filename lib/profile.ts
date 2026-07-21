@@ -1,7 +1,7 @@
 import { File, Paths } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as Sharing from "expo-sharing";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { invalidate, signThumbs, useCached } from "./cache";
 import { asFrameId, asStatus, type FrameId, type PhotoStatus } from "./frames";
@@ -244,6 +244,44 @@ export async function deleteAccount(): Promise<boolean> {
   const { data, error } = await supabase.rpc("delete_account");
   if (error) return false;
   return (data as unknown as { ok: boolean }).ok;
+}
+
+/** Private self-stats for the "Your journey" section (own profile only). */
+export type MyStats = {
+  shots: number;
+  galleries: number;
+  potd: number;
+  best_rank: number | null;
+  quick_draws: number;
+};
+
+/** Fetch the signed-in user's own stats. `enabled` gates it to own profiles. */
+export function useMyStats(enabled: boolean): MyStats | null {
+  const [stats, setStats] = useState<MyStats | null>(null);
+  useEffect(() => {
+    if (!enabled) {
+      setStats(null);
+      return;
+    }
+    let alive = true;
+    // Cast until `supabase gen types` re-runs after the get_my_stats migration.
+    void supabase.rpc("get_my_stats" as never).then(({ data }) => {
+      if (alive && data) setStats(data as MyStats);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [enabled]);
+  return stats;
+}
+
+/** Human phrasing for the best-ever finish. Null when there's no gallery yet. */
+export function bestFinishLabel(s: MyStats | null): string | null {
+  if (!s) return null;
+  if (s.potd > 0) return "Photo of the Day";
+  if (s.best_rank != null) return `#${s.best_rank} in the gallery`;
+  if (s.galleries > 0) return "Made the gallery";
+  return null;
 }
 
 /**

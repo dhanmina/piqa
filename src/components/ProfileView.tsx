@@ -15,7 +15,7 @@ import { imageCacheKey, signThumbs } from '@lib/cache';
 import { titleForLevel } from '@lib/cosmetics';
 import { plural } from '@lib/format';
 import { useNodsReceived } from '@lib/nods';
-import type { ProfileData, ProfileWin } from '@lib/profile';
+import { bestFinishLabel, useMyStats, type ProfileData, type ProfileWin } from '@lib/profile';
 import { levelProgress } from '@lib/xp';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { FramedAvatar } from '@/components/molecules/FramedAvatar';
@@ -68,6 +68,9 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
   // Nods a shooter's work has earned, by tag — the craft signal ("known for
   // your light"). Closes the Nods loop: the shooter sees what curators notice.
   const craftNods = useNodsReceived(profileId);
+  // Private "your journey" stats — own profile only (never a comparison).
+  const stats = useMyStats(!!data?.isSelf);
+  const bestFinish = bestFinishLabel(stats);
   useEffect(() => {
     if (!data) return;
     setTab(data.isSelf && data.wins.length === 0 && data.starred.length > 0 ? 'starred' : 'wins');
@@ -210,6 +213,18 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
             </Mono>
             <Text style={styles.craftLine}>
               {craftNods.slice(0, 3).map((n) => `${n.label} ×${n.count}`).join('   ·   ')}
+            </Text>
+          </View>
+        )}
+
+        {data?.isSelf && stats && stats.shots > 0 && (
+          <View style={styles.craft}>
+            <Mono size={typeScale.caption} color={colors.paper40} style={styles.craftLabel}>
+              YOUR JOURNEY
+            </Mono>
+            <Text style={styles.craftLine}>
+              {`${stats.shots} ${plural(stats.shots, 'shot', 'shots')} · ${stats.galleries} ${plural(stats.galleries, 'gallery', 'galleries')}`}
+              {bestFinish ? ` · Best finish: ${bestFinish}` : ''}
             </Text>
           </View>
         )}
