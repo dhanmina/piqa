@@ -83,6 +83,8 @@ export default function AdminScreen() {
       <ScreenHeader onBack={() => router.back()} title="Admin · Content" />
 
       <ScrollView contentContainerStyle={styles.content}>
+        <Button label="Subject library →" variant="ghost" onPress={() => router.push('/admin-library')} fullWidth />
+
         {loading && !drop ? (
           <ActivityIndicator color={colors.paper60} style={{ marginTop: 40 }} />
         ) : error ? (

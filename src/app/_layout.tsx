@@ -74,6 +74,7 @@ function RootNavigator() {
         <Stack.Screen name="following" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="settings" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="admin" options={{ animation: 'simple_push' }} />
+        <Stack.Screen name="admin-library" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="edit-profile" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="legal/terms" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="legal/privacy" options={{ animation: 'simple_push' }} />
