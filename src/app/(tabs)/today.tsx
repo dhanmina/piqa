@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPendingItemForDrop, retryBlocked, subscribeQueue, type QueueItem } from '@lib/captureQueue';
 import { getConfig } from '@lib/config';
 import { useFrameForDate } from '@lib/frames';
+import { capture } from '@lib/analytics';
 import { markResultSeen, useSignedThumb } from '@lib/gallery';
 import { useHomeState } from '@lib/homeState';
 import { useLast7Pattern } from '@lib/streak';
@@ -102,7 +103,10 @@ export default function TodayScreen() {
   const resultDropId = lastResult?.drop_id ?? null;
   useFocusEffect(
     useCallback(() => {
-      if (resultDropId) void markResultSeen(resultDropId);
+      if (resultDropId) {
+        void markResultSeen(resultDropId);
+        capture('result_seen');
+      }
     }, [resultDropId]),
   );
 

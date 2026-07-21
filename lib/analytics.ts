@@ -60,11 +60,11 @@ export function resetAnalytics() {
 export const analyticsEnabled = client !== null;
 
 // ---------------------------------------------------------------------------
-// Integration checklist (Phase 0A) — where to add capture() calls:
-//   shot_entered         → lib/captureQueue.ts, when a submission upload succeeds
-//   curate_set_completed → src/app/curate.tsx, after a 10-pair set finishes
-//   reveal_seen          → src/app/(tabs)/gallery.tsx, when the reveal plays
-//   result_seen          → src/app/(tabs)/today.tsx, when the result card shows
-//   gallery_opened       → src/app/(tabs)/gallery.tsx, on tab focus
-// identify()/resetAnalytics() are already wired in lib/session.tsx.
+// Wired (Phase 0A) — capture() call sites:
+//   shot_entered         ✓ lib/captureQueue.ts (daily submission row inserted)
+//   curate_set_completed ✓ src/app/curate.tsx (a 10-pair set finishes)
+//   reveal_seen          ✓ src/app/(tabs)/gallery.tsx (fresh morning reveal)
+//   result_seen          ✓ src/app/(tabs)/today.tsx (result card focused)
+//   gallery_opened       ✓ src/app/(tabs)/gallery.tsx (tab focus, both sub-tabs)
+//   identify/reset       ✓ lib/session.tsx (login / sign-out)
 // ---------------------------------------------------------------------------

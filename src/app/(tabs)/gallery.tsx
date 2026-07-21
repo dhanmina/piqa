@@ -10,10 +10,10 @@
  */
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import { ArrowLeft, Calendar, ChevronRight, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,6 +29,7 @@ import {
 } from '@lib/gallery';
 import { imageCacheKey, signThumbs } from '@lib/cache';
 import { useSession } from '@lib/session';
+import { capture } from '@lib/analytics';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
@@ -81,6 +82,13 @@ export default function GalleryScreen() {
   // Direct hearting for the active tab's photos (grid + PotD).
   const activePhotos = tab === 'following' ? followingPhotos : data?.photos ?? [];
   const gHearts = useGalleryHearts(activePhotos);
+
+  // Phase 0A: measure Gallery opens (both sub-tabs) for the retention funnel.
+  useFocusEffect(
+    useCallback(() => {
+      capture('gallery_opened', { tab });
+    }, [tab]),
+  );
 
   // Warm full-res in the background while the grid is browsed, so opening a shot
   // is instant AND sharp — no thumb→full-res swap (that's what blinked). It MUST
@@ -142,6 +150,7 @@ export default function GalleryScreen() {
       setReveal(!seen);
       if (!seen) {
         void markRevealSeen(dropId);
+        capture('reveal_seen');
         // Win moment (spec §11d moment 2): if my shot placed, a success haptic
         // + a text celebration. Real Lottie confetti is a post-beta upgrade
         // (needs lottie-react-native); the spec sanctions the text version for beta.
