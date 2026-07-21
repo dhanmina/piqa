@@ -28,6 +28,7 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as Network from "expo-network";
 import { AppState } from "react-native";
 
+import { capture } from "./analytics";
 import { getConfig } from "./config";
 import { classifyImage, NSFW_REJECTION_COPY } from "./nsfw";
 import { supabase } from "./supabase";
@@ -275,6 +276,7 @@ async function insertRow(item: QueueItem, userId: string): Promise<"inserted" | 
       if (error.code === "23505") return "duplicate";
       throw new Error(error.message);
     }
+    capture("shot_entered", { quick_draw: quickDraw });
     return "inserted";
   }
   const { error } = await supabase.from("free_shots").insert({
