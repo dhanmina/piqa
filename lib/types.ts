@@ -283,7 +283,7 @@ export type Database = {
             foreignKeyName: "galleries_drop_id_fkey"
             columns: ["drop_id"]
             isOneToOne: true
-            referencedRelation: "prompt_drops"
+            referencedRelation: "subject_drops"
             referencedColumns: ["id"]
           },
         ]
@@ -337,83 +337,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      prompt_drops: {
-        Row: {
-          created_at: string
-          day_number: number
-          drop_date: string
-          drops_at: string
-          id: string
-          prompt_id: string
-          region: string
-          status: string
-          submit_closes_at: string
-          voting_closes_at: string
-        }
-        Insert: {
-          created_at?: string
-          day_number: number
-          drop_date: string
-          drops_at: string
-          id?: string
-          prompt_id: string
-          region: string
-          status?: string
-          submit_closes_at: string
-          voting_closes_at: string
-        }
-        Update: {
-          created_at?: string
-          day_number?: number
-          drop_date?: string
-          drops_at?: string
-          id?: string
-          prompt_id?: string
-          region?: string
-          status?: string
-          submit_closes_at?: string
-          voting_closes_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "prompt_drops_prompt_id_fkey"
-            columns: ["prompt_id"]
-            isOneToOne: false
-            referencedRelation: "prompts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      prompts: {
-        Row: {
-          category: string
-          created_at: string
-          id: string
-          is_sponsored: boolean
-          seq: number | null
-          text: string
-          used_at: string | null
-        }
-        Insert: {
-          category?: string
-          created_at?: string
-          id?: string
-          is_sponsored?: boolean
-          seq?: number | null
-          text: string
-          used_at?: string | null
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          id?: string
-          is_sponsored?: boolean
-          seq?: number | null
-          text?: string
-          used_at?: string | null
-        }
-        Relationships: []
       }
       reactions: {
         Row: {
@@ -543,6 +466,83 @@ export type Database = {
           },
         ]
       }
+      subject_drops: {
+        Row: {
+          created_at: string
+          day_number: number
+          drop_date: string
+          drops_at: string
+          id: string
+          prompt_id: string
+          region: string
+          status: string
+          submit_closes_at: string
+          voting_closes_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_number: number
+          drop_date: string
+          drops_at: string
+          id?: string
+          prompt_id: string
+          region: string
+          status?: string
+          submit_closes_at: string
+          voting_closes_at: string
+        }
+        Update: {
+          created_at?: string
+          day_number?: number
+          drop_date?: string
+          drops_at?: string
+          id?: string
+          prompt_id?: string
+          region?: string
+          status?: string
+          submit_closes_at?: string
+          voting_closes_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_drops_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_sponsored: boolean
+          seq: number | null
+          text: string
+          used_at: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_sponsored?: boolean
+          seq?: number | null
+          text: string
+          used_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_sponsored?: boolean
+          seq?: number | null
+          text?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       submissions: {
         Row: {
           bt_score: number | null
@@ -612,7 +612,7 @@ export type Database = {
             foreignKeyName: "submissions_drop_id_fkey"
             columns: ["drop_id"]
             isOneToOne: false
-            referencedRelation: "prompt_drops"
+            referencedRelation: "subject_drops"
             referencedColumns: ["id"]
           },
           {
@@ -623,6 +623,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_badges: {
+        Row: {
+          badge_type: string
+          earned_at: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          badge_type: string
+          earned_at?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          badge_type?: string
+          earned_at?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_frames: {
         Row: {
@@ -687,7 +708,7 @@ export type Database = {
             foreignKeyName: "votes_drop_id_fkey"
             columns: ["drop_id"]
             isOneToOne: false
-            referencedRelation: "prompt_drops"
+            referencedRelation: "subject_drops"
             referencedColumns: ["id"]
           },
           {
@@ -713,6 +734,21 @@ export type Database = {
           },
         ]
       }
+      waitlist: {
+        Row: {
+          created_at: string
+          email: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -735,20 +771,34 @@ export type Database = {
         Returns: Json
       }
       admin_delete_prompt: { Args: { p_id: string }; Returns: Json }
+      admin_delete_waitlist: { Args: { p_email: string }; Returns: Json }
+      admin_drop_gallery: { Args: { p_drop: string }; Returns: Json }
       admin_drop_next: { Args: { p_region?: string }; Returns: Json }
+      admin_engagement: { Args: never; Returns: Json }
+      admin_grant_badge: {
+        Args: { p_badge: string; p_metadata?: Json; p_user: string }
+        Returns: Json
+      }
       admin_grant_frame: {
         Args: { p_frame: string; p_user: string }
         Returns: Json
       }
+      admin_list_badges: { Args: { p_badge?: string }; Returns: Json }
       admin_list_drops: { Args: { p_limit?: number }; Returns: Json }
       admin_list_frames: { Args: never; Returns: Json }
       admin_list_prompts: { Args: never; Returns: Json }
       admin_list_reports: { Args: never; Returns: Json }
+      admin_list_waitlist: { Args: never; Returns: Json }
       admin_next_prompt: { Args: { p_region?: string }; Returns: Json }
       admin_read_config: { Args: never; Returns: Json }
       admin_recent_audit: { Args: { p_limit?: number }; Returns: Json }
+      admin_recent_submissions: { Args: never; Returns: Json }
       admin_resolve_report: {
         Args: { p_remove: boolean; p_submission: string }
+        Returns: Json
+      }
+      admin_revoke_badge: {
+        Args: { p_badge: string; p_user: string }
         Returns: Json
       }
       admin_save_frame: { Args: { p_data: Json; p_id: string }; Returns: Json }
@@ -756,7 +806,6 @@ export type Database = {
         Args: { p_limit?: number; p_q?: string }
         Returns: Json
       }
-      admin_start_drop: { Args: { p_drop: string }; Returns: Json }
       admin_set_config: {
         Args: { p_key: string; p_value: Json }
         Returns: Json
@@ -769,6 +818,7 @@ export type Database = {
         Args: { p_user: string; p_value: boolean }
         Returns: Json
       }
+      admin_start_drop: { Args: { p_drop: string }; Returns: Json }
       admin_update_drop_times: {
         Args: {
           p_drop: string
@@ -835,6 +885,7 @@ export type Database = {
         Args: { p_as_of: string; p_uid: string }
         Returns: undefined
       }
+      export_my_data: { Args: never; Returns: Json }
       filter_public_photos: {
         Args: { p_photos: Json; p_viewer: string }
         Returns: Json
@@ -845,6 +896,8 @@ export type Database = {
       get_latest_gallery: { Args: never; Returns: Json }
       get_matchup: { Args: never; Returns: Json }
       get_profile: { Args: { p_user?: string }; Returns: Json }
+      get_user_badges: { Args: { p_user: string }; Returns: Json }
+      has_badge: { Args: { p_badge: string; p_user: string }; Returns: boolean }
       is_admin: { Args: { p_uid?: string }; Returns: boolean }
       is_live_drop_thumb: { Args: { object_name: string }; Returns: boolean }
       photo_frame: { Args: { p_date: string }; Returns: string }

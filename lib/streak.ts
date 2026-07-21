@@ -7,12 +7,12 @@ import { supabase } from "./supabase";
 
 const DAY = 86_400_000;
 
-/** Local YYYY-MM-DD for a date, to compare against prompt_drops.drop_date. */
+/** Local YYYY-MM-DD for a date, to compare against subject_drops.drop_date. */
 function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-type Row = { prompt_drops: { drop_date: string } | { drop_date: string }[] | null };
+type Row = { subject_drops: { drop_date: string } | { drop_date: string }[] | null };
 
 /**
  * The real last-7-days submission pattern for the flame's dots — one boolean per
@@ -24,7 +24,7 @@ type Row = { prompt_drops: { drop_date: string } | { drop_date: string }[] | nul
 async function fetchLast7(userId: string): Promise<boolean[]> {
   const { data, error } = await supabase
     .from("submissions")
-    .select("prompt_drops(drop_date)")
+    .select("subject_drops(drop_date)")
     .eq("user_id", userId)
     .not("thumb_path", "is", null)
     .order("captured_at", { ascending: false })
@@ -33,7 +33,7 @@ async function fetchLast7(userId: string): Promise<boolean[]> {
 
   const shot = new Set<string>();
   for (const r of (data ?? []) as Row[]) {
-    const pd = Array.isArray(r.prompt_drops) ? r.prompt_drops[0] : r.prompt_drops;
+    const pd = Array.isArray(r.subject_drops) ? r.subject_drops[0] : r.subject_drops;
     if (pd?.drop_date) shot.add(pd.drop_date);
   }
 
