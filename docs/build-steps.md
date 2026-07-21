@@ -5,7 +5,7 @@
 **Rules for every phase**
 - One phase = **one shippable slice** to the closed test. Never batch.
 - Server owns every earned value (`is_premium`, standings, results, Nod aggregates) — the client **reads**, never asserts.
-- New tables use the locked names (`studios`, `studio_members`, `nods`). Internal `prompts` table stays.
+- New tables use the locked names (`studios`, `studio_members`, `nods`). Core tables `prompts`/`prompt_drops` are **renamed** to `subjects`/`subject_drops` in Phase 0B — every feature phase below assumes the new names.
 - Don't start a phase before the prior **exit gate** (in the roadmap) is met.
 
 ---
@@ -21,8 +21,8 @@ You can't gate on "D7/D30 trending up" without measuring it. This is the measuri
 
 ### 0B · Align the schema to the lexicon *(do before any feature phase)*
 Rename the core concept's tables now, while the DB is tiny — a code↔product mismatch on the central concept is confusing forever, and alpha is the cheapest fix.
-1. **Migration (one transaction):** `ALTER TABLE prompts RENAME TO subjects;` · `ALTER TABLE prompt_drops RENAME TO subject_drops;` · rename FK column `subject_drops.prompt_id → subject_id`. Postgres keeps data + FKs; dependent FKs auto-follow.
-2. **`CREATE OR REPLACE` every function** that references the old names — `get_gallery`, `close_day`, `get_active_prompt` (→ `get_active_subject`), `decorate_photos`, `get_home_state`, and the `drop-prompt` cron (→ `drop-subject`). Same migration, so nothing is broken mid-way.
+1. **Migration (one transaction):** `ALTER TABLE prompts RENAME TO subjects;` · `ALTER TABLE prompt_drops RENAME TO subject_drops;` · rename FK column `subject_drops.prompt_id → subject_id` · rename `votes.voter_id → curator_id` (Curator is the voting role). Postgres keeps data + FKs; dependent FKs auto-follow.
+2. **`CREATE OR REPLACE` every function** that references the old names — `get_gallery`, `close_day`, `get_active_prompt` (→ `get_active_subject`), `decorate_photos`, `get_home_state`, the `drop-prompt` cron (→ `drop-subject`), and the vote/matchup RPCs that read `voter_id`. Same migration, so nothing is broken mid-way.
 3. **Regenerate types** (`supabase gen types`); update client `.from("prompts")` / `.rpc("get_active_prompt")` call sites to the new names.
 4. **Test the full loop** on a preview/branch DB before pushing.
 - **Caveat:** the DB migration and the client update must ship **together** (coordinated release) — table renames aren't OTA-able.
@@ -33,7 +33,7 @@ Rename the core concept's tables now, while the DB is tiny — a code↔product 
 ## Phase 1 — Content & Recognition
 
 ### 1A · Subject library + Golden Shot *(content engine — existential)*
-1. **Content:** write 60 Subjects into `prompts`, tagged by category (object/color/light/POV/emotion/absurd).
+1. **Content:** write 60 Subjects into `subjects` (renamed in 0B), tagged by category (object/color/light/POV/emotion/absurd).
 2. **Golden Shot:** add a weekly flag/event marker; schedule via the existing drop cron.
 3. **UI:** none required (Subjects flow through the existing Shot pipeline); optional gold treatment on the Today card for the Golden Shot.
 4. **Test:** rotation has no repeats; Golden Shot lands weekly.
@@ -49,7 +49,7 @@ Rename the core concept's tables now, while the DB is tiny — a code↔product 
 
 ### 1C · Learning loop
 1. **"Why this won":** a `potd_note` (one editorial line), set at `close_day` or admin; shown on the Reveal.
-2. **Technique hint per Subject:** add `hint` to `prompts`; show on the Today Shot card.
+2. **Technique hint per Subject:** add `hint` to `subjects`; show on the Today Shot card.
 3. **"Your growth":** a private profile view of best finishes over time (stats RPC over `submissions` history).
 - **Ship.**
 

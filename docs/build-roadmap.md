@@ -26,11 +26,23 @@ Monetization is **post-retention** (spec §17 + monetization plan). Build the fe
 
 ## Phases
 
+### Phase 0 — Prep & launch hardening *(do first; some are compliance)*
+**Goal:** measurable, reliable, compliant before feature work lands.
+- [ ] **Instrument** (PostHog funnels + retention dashboard) and **baseline** the alpha — the measuring stick for every exit gate. *(build-steps §0A)*
+- [ ] **Align the schema** — rename `prompts`→`subjects`, `prompt_drops`→`subject_drops`, and `votes.voter_id`→`curator_id` while the DB is tiny. *(build-steps §0B)*
+- [ ] **Crash & error monitoring** (Sentry) — nothing catches crashes today; critical on budget Android + the offline queue.
+- [ ] **Save your Shot to device** (`expo-media-library`) — basic photo-app expectation, currently missing.
+- [ ] **Data export ("Download my data")** — the privacy-right companion to the existing Delete Account (§12).
+- [ ] **Finish social sign-in** (Apple/Google) — in progress on `oauth-social-login`; Apple Sign-In becomes mandatory once iOS ships.
+
+**Exit gate:** analytics live · schema aligned · crash reporting on · export/delete both work.
+
 ### Phase 1 — Content & recognition *(retention core; cheap, high impact)*
 **Goal:** beat the BeReal boredom curve and reclaim the feedback payoff users love.
 - [ ] **Subject library** to 60+, categorized; weekly **Golden Shot** + event scaffolding (event dates/labels already exist for event frames).
-- [ ] **Curator Nods** — fixed positive-tag set, attached when a curator picks; aggregate shown on the photo. Schema: `nods(voter_id, submission_id, tag)` (or extend `reactions`).
+- [ ] **Curator Nods** — fixed positive-tag set, attached when a curator picks; aggregate shown on the photo. Schema: `nods(curator_id, submission_id, tag)` (or extend `reactions`).
 - [ ] **Learning loop** — a technique hint per Subject · a "Why this won" line on the PotD · a private "your growth" view (best finishes over time, from existing data).
+- [ ] **Subject editorial calendar (admin)** — schedule Subjects, the weekly Golden Shot, and events. §3 makes the Subject library a first-class editorial product, so it needs an admin surface, not ad-hoc rows — and it's what keeps the anti-boredom bet fed.
 
 **Exit gate:** D7/D30 + submissions/drop trending up on the alpha cohort.
 
@@ -42,16 +54,24 @@ Monetization is **post-retention** (spec §17 + monetization plan). Build the fe
 
 **Exit gate:** studios generating invites and lifting D30 for members.
 
+### Growth loops *(thread alongside Phases 1–2, once retention shows signs of holding)*
+- [ ] **Share profile — link or QR** + **shareable content deep-links** — share a Gallery / a single Shot / a Studio invite that opens the app to the right place. Base exists (`expo-linking`, scheme `piqa`); build the share cards + link routing.
+- [ ] **Referral / invite-a-friend** — a tracked referral loop beyond share-profile.
+- [ ] **App-store review prompt** (`expo-store-review`) — ask right after a PotD / gallery placement (a genuine happy moment). Free ratings.
+- [ ] **Weekly recap — "your week in photos"** — a gentle re-engagement digest (positive-only, Law 3).
+
 ### Phase 3 — Monetization *(only after retention holds)*
 **Goal:** revenue without touching the fairness firewall. Details in `monetization-plan.md`.
-- [ ] **3a — Pipeline + cosmetics:** RevenueCat in the EAS build; entitlement → webhook → Supabase `is_premium` (server-side truth); ship **cosmetics only first** (frames / rings / reaction packs) — lowest-risk validation of the whole chain.
+- [ ] **3a — Pipeline + cosmetics:** RevenueCat in the EAS build; entitlement → webhook → Supabase `is_premium` (server-side truth); ship **cosmetics only first** (frames / rings / reaction packs) — lowest-risk validation of the whole chain. Include **Restore Purchases + Manage Subscription** — Apple/Google require both.
 - [ ] **3b — Piqa Pro:** subscription (archive retention + stats + 2 shields/mo); **soft, contextual** paywall; PostHog funnel + first A/B. Defuse the archive-retention stick first (monetization §7).
 - [ ] **3c — Rest of the catalog:** consumables (shields, archive top-ups) · **studio cosmetics** (Director-gifted) · studio-size valve · Pro studio stats.
 
 **Exit gate:** healthy trial→paid; net revenue per retained user positive.
 
-### Phase 4 — Depth *(later)*
+### Phase 4 — Depth & reach *(later)*
 - [ ] Showcase (§21 #1) · opt-in **Leagues** (§21 #5) · Collections · Studios polish.
+- [ ] **Localization / i18n** — framework + EN + a PH locale (you're "global from day one" but nothing's installed; do before scaling beyond EN).
+- [ ] **Accessibility pass** — screen-reader labels, dynamic type, reduced-motion (spec gestures at it; make it a tracked deliverable).
 - [ ] **Sponsored Shots** — parked until real DAU (monetization §9).
 - [ ] iOS.
 

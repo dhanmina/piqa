@@ -61,11 +61,14 @@ Priority is by review evidence × law-fit × retention impact. Effort is rough.
 - [ ] **Opt-in Leagues / skill tiers** — so "top 20%" doesn't permanently shut beginners out; rookies compete with rookies. Backlog (§21 #5). Keep opt-in + positive (Law 3). *Effort: L.*
 - [ ] **The learning loop** — surface the stealth curriculum: a technique hint per Subject, "Why this won" on the PotD, a private "your growth" view (best finishes over time). *Effort: M.*
 
-### P2 — Trust & polish
+### P2 — Trust, settings & growth
+- [ ] **Account & privacy** *(launch requirement)* — Settings → Account: account info, **change password**, **Deactivate** (reversible pause) vs **Delete account** (permanent). The delete Edge Function (purge storage + anonymize votes, §12) is already specced — this builds the Settings section + reversible deactivate. Delete is Play-required, so if it isn't live yet it's **high priority**, not polish. *Effort: M.*
+- [ ] **Notifications — delivery + preferences** — the push system (drop · reveal · daily-batched reaction pushes via Expo→FCM, §8) **plus** user-facing per-type toggles + quiet mode (answers BeReal's #1 complaint). No notification *center* (§11). *Effort: M.*
+- [ ] **Share profile — link or QR** — a shareable profile deep-link + a generated QR (for in-person adds). Pure growth loop; stays law-safe — sharing a profile is not follower counts or leaderboards. *Effort: S.*
 - [ ] **Showcase** (§21 #1, already next) — the pull-surface for best shots.
-- [ ] **Notification controls** — granular, gentle, off-able. Directly answers BeReal's #1 complaint. *Effort: S.*
 - [ ] **Privacy/ownership trust** — onboarding line + no-download/watermark on public shots; make "your photos are yours" explicit. *Effort: S.*
 - [ ] **In-app feedback/support channel** — a lightweight "report a bug / suggest a Subject" path; competitors bleed users over silence. *Effort: S.*
+- [ ] *(open — add more build items here)*
 
 ### Deliberately NOT building (users ask, laws forbid)
 - **Free-text comments** — the toxicity + IG-anxiety engine. Curator Nods replaces the need. (§21 keeps it only as a distant creator-opt-in maybe.)

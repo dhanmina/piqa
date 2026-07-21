@@ -27,7 +27,7 @@ Legend: ✅ say this · 🔧 internal/code · 🚫 never say (and why)
 | Your entered photo | **Shot** / entry | `submissions` | pic, post |
 | A person using Piqa | **Photographer** · "you" | `profiles` | shooter (violent read), user, creator |
 | Voting (verb) | **pick** | vote | judge, rate, like |
-| A voter | **Curator** | voter | judge, juror |
+| A voter (voting role) | **Curator** | `curator_id` (renamed from `voter_id` in 0B) | judge, juror, voter |
 | The blind pair | **matchup** / two shots | `matchup` | battle, versus |
 | Winning photo | **Photo of the Day (PotD)** | `is_potd` | winner-badge |
 | Reaching the daily gallery | **made the Gallery** | `in_gallery` | featured |
