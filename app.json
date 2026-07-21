@@ -53,7 +53,17 @@
         }
       ],
       "./plugins/withAndroidHighRefreshRate",
-      "expo-localization"
+      "expo-localization",
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Piqa needs photo access to save your shots.",
+          "savePhotosPermission": "Piqa saves your shots to your camera roll.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -61,6 +71,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.joinpiqa.app",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "CADisableMinimumFrameDurationOnPhone": true
       }
