@@ -11,11 +11,11 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useCallback, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { equipFrame, type FrameId } from '@lib/frames';
-import { deleteAccount, useProfile } from '@lib/profile';
+import { deleteAccount, exportMyData, useProfile } from '@lib/profile';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
 import { levelProgress } from '@lib/xp';
@@ -125,6 +125,16 @@ export default function SettingsScreen() {
     }
   };
 
+  // Data export (Play/GDPR): gather everything the user owns into a JSON file and
+  // open the share sheet. Label flips to "Preparing…" while the RPC + file write run.
+  const [exporting, setExporting] = useState(false);
+  const onExport = async () => {
+    setExporting(true);
+    const ok = await exportMyData();
+    setExporting(false);
+    if (!ok) Alert.alert("Couldn't export your data", 'Something went wrong. Please try again.');
+  };
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScreenHeader onBack={() => router.back()} title="Settings" />
@@ -147,6 +157,12 @@ export default function SettingsScreen() {
 
         <Section title="ACCOUNT">
           <Row label="Email" value={session?.user.email ?? '—'} />
+          <View style={styles.divider} />
+          <Row
+            label={exporting ? 'Preparing…' : 'Download my data'}
+            chevron={!exporting}
+            onPress={exporting ? undefined : () => void onExport()}
+          />
           <View style={styles.divider} />
           <Row label="Sign out" onPress={() => setConfirmSignOut(true)} />
         </Section>

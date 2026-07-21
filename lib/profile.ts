@@ -1,5 +1,6 @@
-import { File } from "expo-file-system";
+import { File, Paths } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import * as Sharing from "expo-sharing";
 import { useCallback } from "react";
 
 import { invalidate, signThumbs, useCached } from "./cache";
@@ -243,6 +244,37 @@ export async function deleteAccount(): Promise<boolean> {
   const { data, error } = await supabase.rpc("delete_account");
   if (error) return false;
   return (data as unknown as { ok: boolean }).ok;
+}
+
+/**
+ * Data export — "Download my data" (Play/GDPR companion to delete). Pulls
+ * everything the user owns via the export_my_data RPC, writes it to a JSON file,
+ * and opens the share sheet so they can save or send it. Returns false on failure.
+ */
+export async function exportMyData(): Promise<boolean> {
+  // Cast until `supabase gen types` is re-run after this migration deploys — the
+  // generated Database type doesn't know export_my_data yet.
+  const { data, error } = await supabase.rpc("export_my_data" as never);
+  if (error || !data) return false;
+  try {
+    const json = JSON.stringify(data, null, 2);
+    const date = new Date().toISOString().slice(0, 10);
+    const file = new File(Paths.cache, `piqa-my-data-${date}.json`);
+    if (file.exists) file.delete();
+    file.create();
+    file.write(json);
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(file.uri, {
+        mimeType: "application/json",
+        dialogTitle: "Your Piqa data",
+        UTI: "public.json",
+      });
+    }
+    return true;
+  } catch (e) {
+    console.warn("exportMyData failed:", e);
+    return false;
+  }
 }
 
 /**
