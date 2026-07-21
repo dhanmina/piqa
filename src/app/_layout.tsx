@@ -7,6 +7,7 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 
 import { initCaptureQueue } from '@lib/captureQueue';
 import { FrameCatalogProvider } from '@lib/frames';
+import { wrapRoot } from '@lib/sentry';
 import { prefetchEssentials } from '@lib/prefetch';
 import { registerForPush, useNotificationRouting } from '@lib/push';
 import { SessionProvider, useSession } from '@lib/session';
@@ -82,7 +83,7 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded, fontError] = useAppFonts();
 
   useEffect(() => {
@@ -121,3 +122,6 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+// Sentry.wrap the root so render/runtime errors are captured (no-op without a DSN).
+export default wrapRoot(RootLayout);
