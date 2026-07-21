@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import { supabase } from "./supabase";
 
 /**
@@ -43,4 +45,35 @@ export function topNod(nods?: NodCounts | null): { label: string; count: number 
   if (entries.length === 0) return null;
   const [id, count] = entries.sort((a, b) => b[1] - a[1])[0];
   return { label: nodLabel(id), count };
+}
+
+/** All the nods a photographer's shots have earned, aggregated by tag. */
+export async function getNodsReceived(userId?: string): Promise<NodCounts> {
+  const { data, error } = await supabase.rpc(
+    "get_nods_received" as never,
+    (userId ? { p_user: userId } : {}) as never,
+  );
+  if (error || !data) return {};
+  return data as NodCounts;
+}
+
+/** Tags a user's work is known for, sorted high→low: [{ label, count }]. */
+export function useNodsReceived(userId?: string | null): { label: string; count: number }[] {
+  const [nods, setNods] = useState<NodCounts>({});
+  useEffect(() => {
+    if (!userId) {
+      setNods({});
+      return;
+    }
+    let alive = true;
+    void getNodsReceived(userId).then((n) => {
+      if (alive) setNods(n);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [userId]);
+  return Object.entries(nods)
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, count]) => ({ label: nodLabel(id), count }));
 }

@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { imageCacheKey, signThumbs } from '@lib/cache';
 import { titleForLevel } from '@lib/cosmetics';
 import { plural } from '@lib/format';
+import { useNodsReceived } from '@lib/nods';
 import type { ProfileData, ProfileWin } from '@lib/profile';
 import { levelProgress } from '@lib/xp';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
@@ -64,6 +65,9 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
   // is one a day), so a shooter with no wins yet but a starred shelf should land on
   // Starred, not a blank Wins. Re-decided per profile, then the user can toggle.
   const profileId = data?.id;
+  // Nods a shooter's work has earned, by tag — the craft signal ("known for
+  // your light"). Closes the Nods loop: the shooter sees what curators notice.
+  const craftNods = useNodsReceived(profileId);
   useEffect(() => {
     if (!data) return;
     setTab(data.isSelf && data.wins.length === 0 && data.starred.length > 0 ? 'starred' : 'wins');
@@ -197,6 +201,17 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
             loading={followBusy}
             onPress={onFollowToggle}
           />
+        )}
+
+        {craftNods.length > 0 && (
+          <View style={styles.craft}>
+            <Mono size={typeScale.caption} color={colors.paper40} style={styles.craftLabel}>
+              {data?.isSelf ? 'WHAT CURATORS NOTICE' : 'KNOWN FOR'}
+            </Mono>
+            <Text style={styles.craftLine}>
+              {craftNods.slice(0, 3).map((n) => `${n.label} ×${n.count}`).join('   ·   ')}
+            </Text>
+          </View>
         )}
 
         {/* Work — one surface at a time. Others just see the wins. */}
@@ -354,6 +369,9 @@ const styles = StyleSheet.create({
   },
   followingLabel: { flex: 1, fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper },
   // Segment (Wins/Starred) — mirrors the gallery's segmented control.
+  craft: { gap: 6, marginTop: 4 },
+  craftLabel: { letterSpacing: 1.5 },
+  craftLine: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, lineHeight: typeScale.sub * 1.35 },
   segment: { flexDirection: 'row', gap: 22, marginTop: 4 },
   segItem: { alignItems: 'center', gap: 5 },
   segBar: { height: 2, width: 18, backgroundColor: 'transparent', borderRadius: 1 },
