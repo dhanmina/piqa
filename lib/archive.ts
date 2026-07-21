@@ -116,7 +116,7 @@ export async function fetchArchive(): Promise<Archive> {
     supabase
       .from("submissions")
       .select(
-        "id, image_path, thumb_path, captured_at, starred, starred_at, in_gallery, is_potd, gallery_rank, prompt_drops(day_number, drop_date)",
+        "id, image_path, thumb_path, captured_at, starred, starred_at, in_gallery, is_potd, gallery_rank, subject_drops(day_number, drop_date)",
       )
       .eq("user_id", uid)
       .not("thumb_path", "is", null)
@@ -148,8 +148,8 @@ export async function fetchArchive(): Promise<Archive> {
     starredAt: r.starred_at,
     inGallery: r.in_gallery,
     isPotd: r.is_potd,
-    dayNumber: dayOf(r.prompt_drops),
-    dropDate: dateOf(r.prompt_drops),
+    dayNumber: dayOf(r.subject_drops),
+    dropDate: dateOf(r.subject_drops),
     status: deriveStatus(r.is_potd, r.gallery_rank),
   }));
 

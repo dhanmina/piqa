@@ -71,7 +71,7 @@ where u.email like '%@joinpiqa.com'
 -- ---------------------------------------------------------------------------
 -- Today's prompt + BETA drop: 7pm Manila drop, midnight submit close, 8am vote close
 -- ---------------------------------------------------------------------------
-insert into public.prompts (id, text, category, used_at)
+insert into public.subjects (id, text, category, used_at)
 values (
   md5('piqa-seed-prompt-1')::uuid,
   'Something red within reach',
@@ -80,7 +80,7 @@ values (
 )
 on conflict (id) do nothing;
 
-insert into public.prompt_drops
+insert into public.subject_drops
   (id, prompt_id, region, drop_date, drops_at, submit_closes_at, voting_closes_at, status)
 select
   md5('piqa-seed-drop-1')::uuid,
@@ -114,7 +114,7 @@ select
   vc.v,
   mins.m <= 30
 from generate_series(1, 30) as i
-cross join lateral (select id, drops_at from public.prompt_drops
+cross join lateral (select id, drops_at from public.subject_drops
                     where id = md5('piqa-seed-drop-1')::uuid) d
 cross join lateral (select (4 + floor(random() * 18))::int as v) vc
 cross join lateral (select (3 + floor(random() * 167))::int as m) mins
@@ -126,7 +126,7 @@ on conflict (drop_id, user_id) do nothing;
 -- exists (Phase 3). House accounts (i<=4) score highest so liwanag takes PotD;
 -- top 10 by votes are flagged in_gallery, #1 is is_potd.
 -- ---------------------------------------------------------------------------
-insert into public.prompts (id, text, category, used_at)
+insert into public.subjects (id, text, category, used_at)
 values (
   md5('piqa-seed-prompt-0')::uuid,
   'The color of morning',
@@ -135,7 +135,7 @@ values (
 )
 on conflict (id) do nothing;
 
-insert into public.prompt_drops
+insert into public.subject_drops
   (id, prompt_id, region, drop_date, drops_at, submit_closes_at, voting_closes_at, status)
 select
   md5('piqa-seed-ydrop-1')::uuid,
@@ -177,6 +177,6 @@ select
   r.rnk = 1,
   false
 from ranked r
-cross join (select id, drops_at from public.prompt_drops
+cross join (select id, drops_at from public.subject_drops
             where id = md5('piqa-seed-ydrop-1')::uuid) yd
 on conflict (drop_id, user_id) do nothing;

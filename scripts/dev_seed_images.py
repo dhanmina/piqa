@@ -71,7 +71,7 @@ def upload_s3(key: str, data: bytes) -> None:
 
 def main():
     drops = supabase_query(
-        "select id, status from public.prompt_drops order by drop_date desc limit 2"
+        "select id, status from public.subject_drops order by drop_date desc limit 2"
     )
     if not drops:
         print("No drops found. Run `supabase db reset` first.")
