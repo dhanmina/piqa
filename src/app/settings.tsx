@@ -7,6 +7,7 @@
  */
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
+import * as Updates from 'expo-updates';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import type { ReactNode } from 'react';
@@ -80,6 +81,11 @@ export default function SettingsScreen() {
   const [busy, setBusy] = useState(false);
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
+
+  // OTA canary: "embedded" = running the built-in bundle (no update applied yet),
+  // otherwise the short id of the live OTA. Lets us (and alpha reporters) tell at a
+  // glance which build a phone is actually running.
+  const build = Updates.isEmbeddedLaunch ? 'embedded' : (Updates.updateId?.slice(0, 8) ?? 'ota');
 
   // Contact opens the mail app pre-addressed to support. Subject is tagged with the
   // app version so replies arrive with the context we'd otherwise have to ask for.
@@ -169,6 +175,8 @@ export default function SettingsScreen() {
 
         <Section title="ABOUT">
           <Row label="Version" value={version} />
+          <View style={styles.divider} />
+          <Row label="Build" value={build} />
           <View style={styles.divider} />
           <Row label="Terms of Service" chevron onPress={() => router.push('/legal/terms')} />
           <View style={styles.divider} />
