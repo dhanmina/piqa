@@ -21,6 +21,9 @@ let client: PostHog | null = null;
 if (KEY) {
   try {
     client = new PostHog(KEY, { host: HOST });
+    // Tag every event dev vs prod so the retention baseline can exclude your own
+    // dev/testing traffic (filter `app_env = prod` in PostHog).
+    client.register({ app_env: __DEV__ ? "dev" : "prod" });
   } catch (e) {
     console.warn("[analytics] PostHog init failed; analytics disabled:", e);
   }
