@@ -15,6 +15,7 @@ import { useCallback, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useIsAdmin } from '@lib/admin';
 import { equipFrame, type FrameId } from '@lib/frames';
 import { deleteAccount, exportMyData, useProfile } from '@lib/profile';
 import { useSession } from '@lib/session';
@@ -79,6 +80,7 @@ export default function SettingsScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [equipping, setEquipping] = useState(false);
   const [busy, setBusy] = useState(false);
+  const isAdmin = useIsAdmin();
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
@@ -146,6 +148,12 @@ export default function SettingsScreen() {
       <ScreenHeader onBack={() => router.back()} title="Settings" />
 
       <ScrollView contentContainerStyle={styles.content}>
+        {isAdmin ? (
+          <Section title="ADMIN">
+            <Row label="Content panel" chevron onPress={() => router.push('/admin')} />
+          </Section>
+        ) : null}
+
         <Section title="PROFILE">
           <Row label="Edit profile" chevron onPress={() => router.push('/edit-profile')} />
           <View style={styles.divider} />
