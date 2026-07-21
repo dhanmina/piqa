@@ -52,7 +52,8 @@
           "photosPermission": "Piqa needs your photos only to set your profile picture."
         }
       ],
-      "./plugins/withAndroidHighRefreshRate"
+      "./plugins/withAndroidHighRefreshRate",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,
