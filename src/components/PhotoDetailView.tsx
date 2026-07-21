@@ -323,6 +323,28 @@ export function PhotoDetailView({
       </View>
     ) : null;
 
+  // "Why this won" — the PotD's editorial note (learning loop). Fetched directly
+  // (public-gallery RLS), only for the crowned photo — off the get_gallery path.
+  const [potdNote, setPotdNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (status !== 'crown' || !id) {
+      setPotdNote(null);
+      return;
+    }
+    let alive = true;
+    void supabase
+      .from('submissions')
+      .select('potd_note')
+      .eq('id', id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (alive) setPotdNote((data as { potd_note?: string | null } | null)?.potd_note ?? null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [status, id]);
+
   // The signed-appreciation pair — shooter (→ profile) + heart. Shared by the
   // route's on-cover overlay and the lightbox's bottom bar.
   const identityBlock = (
@@ -349,6 +371,9 @@ export function PhotoDetailView({
         </Mono>
       )}
       {nodsBlock}
+      {status === 'crown' && potdNote && (
+        <Text style={styles.potdNote} numberOfLines={3}>{`Why it won: ${potdNote}`}</Text>
+      )}
     </View>
   );
   const heartControl = (
@@ -547,6 +572,7 @@ const styles = StyleSheet.create({
   // paddingBottom) separating them from the rail.
   identity: { flex: 1, gap: 3 },
   nods: { gap: 6, marginTop: 2 },
+  potdNote: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.crown, lineHeight: typeScale.caption * 1.4, marginTop: 2 },
   nodChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   nodChip: {
     borderWidth: StyleSheet.hairlineWidth,
