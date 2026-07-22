@@ -24,6 +24,12 @@ const FALLBACKS = {
   xp_daily_cap: 250,
   reports_quarantine_at: 3,
   nsfw_threshold: 0.7,
+  // Play Store update nudge (client-side, OTA-shippable). Compare the installed
+  // Android versionCode against these: below latest_build -> soft nudge, below
+  // min_build -> forced. 0 (the fallback) never nags, so an offline cold start or
+  // an unset value is always safe.
+  latest_build: 0,
+  min_build: 0,
 } as const;
 
 export type ConfigKey = keyof typeof FALLBACKS;

@@ -2,15 +2,17 @@ import * as Font from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
+import { useAppUpdate } from '@lib/appUpdate';
 import { initCaptureQueue } from '@lib/captureQueue';
 import { FrameCatalogProvider } from '@lib/frames';
 import { wrapRoot } from '@lib/sentry';
 import { prefetchEssentials } from '@lib/prefetch';
 import { registerForPush, useNotificationRouting } from '@lib/push';
 import { SessionProvider, useSession } from '@lib/session';
+import { UpdatePrompt } from '@/components/molecules/UpdatePrompt';
 import { useAppFonts } from '@/components/fonts';
 import { colors, fonts } from '@/components/tokens';
 
@@ -18,6 +20,11 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { session, loading } = useSession();
+
+  // Play Store update nudge — soft (dismissible) unless the installed build is
+  // below the config's min_build. Gated on a session (config reads are RLS'd).
+  const { status: updateStatus, openStore } = useAppUpdate(session !== null);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
 
   // Register for push once signed in (spec §14). Best-effort — the app works
   // fully without it, so a failure never blocks anything.
@@ -44,6 +51,7 @@ function RootNavigator() {
   if (loading) return null; // splash stays up until the stored session is read
 
   return (
+    <>
     <Stack
       screenOptions={{
         headerShown: false,
@@ -82,6 +90,13 @@ function RootNavigator() {
         {__DEV__ && <Stack.Screen name="dev/kit" />}
       </Stack.Protected>
     </Stack>
+    <UpdatePrompt
+      visible={updateStatus !== 'none' && !(updateStatus === 'soft' && updateDismissed)}
+      forced={updateStatus === 'forced'}
+      onUpdate={openStore}
+      onDismiss={() => setUpdateDismissed(true)}
+    />
+    </>
   );
 }
 
