@@ -41,8 +41,22 @@ type PushRequest = {
 
 Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  // Trusted callers only — this can message every user, so gate on the service key.
-  if (req.headers.get("Authorization") !== `Bearer ${serviceKey}`) {
+  // Trusted callers only — this can message every user. The function sits behind
+  // the platform JWT gateway (verify_jwt), so any request that reaches here already
+  // has a Supabase-signed token; we just confirm the caller is service_role (not an
+  // anon user) by reading the already-verified `role` claim. Exact-matching
+  // SUPABASE_SERVICE_ROLE_KEY breaks under the new API-key system, where that env is
+  // an sb_secret_ value that can't be sent as a JWT Bearer through the gateway.
+  const auth = req.headers.get("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  let role = "";
+  try {
+    const seg = token.split(".")[1] ?? "";
+    role = JSON.parse(atob(seg.replace(/-/g, "+").replace(/_/g, "/"))).role ?? "";
+  } catch {
+    // not a JWT
+  }
+  if (role !== "service_role") {
     return new Response("unauthorized", { status: 401 });
   }
 
