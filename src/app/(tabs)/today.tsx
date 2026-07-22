@@ -328,17 +328,17 @@ export default function TodayScreen() {
     //
     // "Picked", not "hearts", and no "worldwide". This branch only ever fires for a shot
     // that did NOT make the gallery — which means nobody could ever see it to react to it,
-    // so its reaction_count is 0 forever and `hearts` (votes + reactions) is exactly
-    // vote_count: blind curation picks. Calling those "hearts" would tell someone whose
-    // shot didn't place that a crowd saw it and loved it. Nobody saw it. Curators chose it.
+    // so its heart (reaction) count is 0. The meaningful signal is `votes`: the blind
+    // curation picks it earned. Calling those "hearts" would tell someone whose shot
+    // didn't place that a crowd saw it and loved it. Nobody saw it. Curators chose it.
     // It's also why only this branch carries a count: a non-gallery shot has no tile in the
     // gallery, so Today is the one surface that will ever tell them.
     const resultLine = lastResult.is_potd
       ? 'Photo of the Day'
       : lastResult.in_gallery
         ? 'In the gallery'
-        : lastResult.hearts > 0
-          ? `Picked ${lastResult.hearts} ${lastResult.hearts === 1 ? 'time' : 'times'} by curators`
+        : lastResult.votes > 0
+          ? `Picked ${lastResult.votes} ${lastResult.votes === 1 ? 'time' : 'times'} by curators`
           : 'Safe in your archive';
     body = (
       <View style={styles.stateFill}>

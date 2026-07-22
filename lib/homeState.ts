@@ -89,7 +89,12 @@ export type LastResult = {
   drop_date: string;
   day_number: number;
   thumb_path: string | null;
+  /** Signed likes (reactions) on this shot. 0 for a non-gallery shot — nobody
+   *  could see it to react. Use `votes` for the "picked by curators" line. */
   hearts: number;
+  /** Blind-curation picks (the ranking signal). This is what a non-gallery shot
+   *  earns; shown as "Picked N times by curators", never as hearts. */
+  votes: number;
   in_gallery: boolean;
   is_potd: boolean;
   status: PhotoStatus;

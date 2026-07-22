@@ -83,6 +83,15 @@ type Props = PhotoDetailData & {
    *  tap outside it dismisses — the archive-viewer feel, for the in-place gallery
    *  modal. Off (default) = the full opaque screen used by the route. */
   lightbox?: boolean;
+  /** Controlled heart mode. The gallery hosts BOTH the grid and this fullscreen,
+   *  so it drives both from the same `useGalleryHearts` controller — passing the
+   *  count/liked/toggle in here keeps the two surfaces identical and in sync (a
+   *  heart here moves the grid tile too). When omitted (the /photo/[id] route and
+   *  profile, which have no adjacent grid), the view falls back to its own live
+   *  count from `submissions`. All three must be provided together. */
+  heartCount?: number;
+  hearted?: boolean;
+  onToggleHeart?: () => void;
 };
 
 export function PhotoDetailView({
@@ -100,7 +109,14 @@ export function PhotoDetailView({
   onClose,
   onOpenProfile,
   lightbox = false,
+  heartCount,
+  hearted,
+  onToggleHeart,
 }: Props) {
+  // Controlled heart mode: the gallery drives this fullscreen off the SAME
+  // useGalleryHearts state as its grid, so both show one number and toggle
+  // together. Uncontrolled (route / profile) → the internal live-count path below.
+  const heartControlled = onToggleHeart !== undefined;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
@@ -171,23 +187,31 @@ export function PhotoDetailView({
 
   useEffect(() => {
     if (!id) return;
+    // Controlled mode: count + liked come from the host (useGalleryHearts); we
+    // only still need the signed-reactor list for the sheet.
+    if (heartControlled) {
+      void loadReactors();
+      return;
+    }
     let alive = true;
     void (async () => {
       const [{ data: sub }, { data: mine }] = await Promise.all([
-        supabase.from('submissions').select('vote_count, reaction_count').eq('id', id).maybeSingle(),
+        // Likes only — the heart never counts anonymous blind votes (reaction_count
+        // is the signed-heart tally; vote_count is the hidden ranking signal).
+        supabase.from('submissions').select('reaction_count').eq('id', id).maybeSingle(),
         myId
           ? supabase.from('reactions').select('user_id').eq('user_id', myId).eq('submission_id', id).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
       if (!alive) return;
-      if (sub) setLiveBase(sub.vote_count + sub.reaction_count);
+      if (sub) setLiveBase(sub.reaction_count);
       setLiked(!!mine);
       void loadReactors();
     })();
     return () => {
       alive = false;
     };
-  }, [myId, id, loadReactors]);
+  }, [myId, id, loadReactors, heartControlled]);
 
   const toggle = async () => {
     if (!myId || !id) return;
@@ -211,6 +235,12 @@ export function PhotoDetailView({
   };
 
   const baseHeartsValue = liveBase ?? baseHearts;
+  // One source of truth for what the heart shows: the host's controller when
+  // present, else the internal live state. Both surfaces (grid + this view) read
+  // the same numbers in controlled mode, so they can't disagree.
+  const displayLiked = heartControlled ? !!hearted : liked;
+  const displayCount = heartControlled ? heartCount ?? 0 : Math.max(baseHeartsValue + delta, 0);
+  const doToggle = heartControlled ? onToggleHeart! : () => void toggle();
 
   // Double-tap to like — others' photos only (you can't heart your own). A heart
   // blooms where you tapped and sails into the heart control. Double-tap only ever
@@ -257,7 +287,7 @@ export function PhotoDetailView({
 
   const likeFromDoubleTap = (absX: number, absY: number) => {
     if (isOwn) return; // never heart your own photo
-    if (!liked) void toggle();
+    if (!displayLiked) doToggle(); // double-tap only ever likes, never un-likes
     const ox = rootOrigin.current.x;
     const oy = rootOrigin.current.y;
     const startX = absX - ox;
@@ -381,9 +411,9 @@ export function PhotoDetailView({
       <HeartButton
         onPhoto
         readOnly={isOwn}
-        liked={liked}
-        count={Math.max(baseHeartsValue + delta, 0)}
-        onToggle={() => void toggle()}
+        liked={displayLiked}
+        count={displayCount}
+        onToggle={doToggle}
         onCountPress={() => setShowReactors(true)}
       />
     </View>

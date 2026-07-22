@@ -225,6 +225,11 @@ export default function GalleryScreen() {
           // Following mixes days/themes, so leave it unset there.
           theme={tab === 'world' ? data?.drop?.prompt : undefined}
           nods={viewer.nods}
+          // Drive the heart off the SAME controller as the grid tile, so the
+          // fullscreen and the grid always show one count and toggle together.
+          heartCount={gHearts.count(viewer)}
+          hearted={gHearts.isLiked(viewer.id)}
+          onToggleHeart={() => void gHearts.toggle(viewer.id)}
           onClose={() => setViewer(null)}
           onOpenProfile={(uid) => {
             setViewer(null);
