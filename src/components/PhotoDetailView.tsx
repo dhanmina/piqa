@@ -210,6 +210,12 @@ export function PhotoDetailView({
   // the real remaining space — a winH-based estimate clipped the frame's bottom
   // rail whenever the bar was taller than assumed.
   const [stageH, setStageH] = useState(0);
+  // Tallest meta bar observed (measured, includes its safe-area inset). The bar's
+  // height varies per photo — nod chips can wrap to two rows on others' shots, a
+  // "why it won" note on the crown — so we reserve its ACTUAL height, and keep the
+  // MAX so the print clears the tallest bar yet never resizes back down. That way
+  // the frame is never cut AND never jumps between photos.
+  const [barH, setBarH] = useState(0);
   const listRef = useRef<FlatList<PhotoDetailData>>(null);
   // Live horizontal scroll offset — drives the pager dots continuously (UI thread).
   const scrollX = useSharedValue(0);
@@ -586,12 +592,11 @@ export function PhotoDetailView({
   // it so the print centers in the space BELOW the header and its top corners are
   // never tucked under the buttons.
   const headroom = insets.top + 48;
-  // Reserve a STABLE bottom band for the meta bar. The bar is an overlay (absolute,
-  // below), and its height varies per photo — nod chips on others' shots, none on
-  // your own, a "why it won" note on the crown. Sizing/centering the print against
-  // the live stage therefore made it resize and shift between pages (your own shots
-  // "jumped" down). A fixed reserve gives the print an identical box on every page.
-  const BAR_RESERVE = insets.bottom + 160;
+  // Reserve the MEASURED (max-observed) bar height + a small gap, so the print box
+  // clears even the tallest bar (2 rows of nod chips, a crown note) on any screen
+  // size, never gets cut, and never oscillates. Fall back to an estimate until the
+  // bar has laid out once.
+  const BAR_RESERVE = (barH > 0 ? barH : insets.bottom + 150) + 10;
   // Fit the whole 3:4 print inside the stage minus the header and that reserved band;
   // width bounds it too. `* 0.98` leaves a hair of breathing room. Before the first
   // layout pass (stageH 0) fall back to the component estimate.
@@ -709,7 +714,15 @@ export function PhotoDetailView({
               />
             </View>
             </GestureDetector>
-            <SafeAreaView edges={['bottom']} style={styles.pagingBarSafe} pointerEvents="box-none">
+            <SafeAreaView
+              edges={['bottom']}
+              style={styles.pagingBarSafe}
+              pointerEvents="box-none"
+              onLayout={(e) => {
+                const h = e.nativeEvent.layout.height;
+                setBarH((prev) => (h > prev ? h : prev));
+              }}
+            >
               {/* The bar's blank space (right of the name / status, around the heart
                   and share) exits too — a Pressable owns the background, and the real
                   controls (name → profile, nod chips, heart, share) sit on top and win
