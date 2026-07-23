@@ -31,7 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { asFrameId, asStatus } from '@lib/frames';
 import { useSignedThumb } from '@lib/gallery';
-import { NOD_TAGS, nodLabel, submitNod, topNod, type NodCounts, type NodTag } from '@lib/nods';
+import { nodLabel, nodsFor, submitNod, topNod, type NodCounts, type NodTag } from '@lib/nods';
 import { shareCard } from '@lib/share';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
@@ -67,6 +67,9 @@ export type PhotoDetailData = {
   frame?: string | null;
   /** The day's theme/brief — passed through to the share card when the host has it. */
   theme?: string | null;
+  /** The Subject's category (light/color/pov/absurd/emotion/object) — narrows the
+   *  nod picker to the tags that best fit this image. Absent → the full set. */
+  category?: string | null;
   /** Per-photo nod aggregate ({ great_light: 38, ... }), from decorate_photos. */
   nods?: NodCounts | null;
   /** An already-cached thumb (e.g. the gallery grid's) shown instantly under the
@@ -104,6 +107,7 @@ export function PhotoDetailView({
   status: statusRaw,
   frame: frameRaw,
   theme,
+  category,
   nods,
   placeholderUri,
   onClose,
@@ -335,7 +339,7 @@ export function PhotoDetailView({
             </Mono>
           ) : (
             <View style={styles.nodChips}>
-              {NOD_TAGS.map((t) => (
+              {nodsFor(category).map((t) => (
                 <Pressable
                   key={t.id}
                   accessibilityRole="button"

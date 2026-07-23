@@ -224,6 +224,9 @@ export default function GalleryScreen() {
           // World shows one drop's photos, so its prompt is this photo's theme.
           // Following mixes days/themes, so leave it unset there.
           theme={tab === 'world' ? data?.drop?.prompt : undefined}
+          // Tailor the nod picker to this Subject's category (World only — Following
+          // mixes categories, so it falls back to the universal set).
+          category={tab === 'world' ? data?.drop?.category : undefined}
           nods={viewer.nods}
           // Drive the heart off the SAME controller as the grid tile, so the
           // fullscreen and the grid always show one count and toggle together.

@@ -45,6 +45,7 @@ type GetGalleryResult = {
     prompt: string | null;
     drop_date: string | null;
     day_number: number | null;
+    category: string | null;
   } | null;
   photos: RichPhotoRow[];
   is_seed: boolean;
@@ -86,7 +87,7 @@ export type GalleryDetailPhoto = GalleryPhoto & {
 };
 
 export type GalleryFeed = {
-  drop: { id: string; prompt: string | null; drop_date: string; day_number: number } | null;
+  drop: { id: string; prompt: string | null; drop_date: string; day_number: number; category: string | null } | null;
   isSeed: boolean;
   photos: GalleryDetailPhoto[];
   past: { drop_id: string; drop_date: string; prompt: string | null }[];
@@ -114,6 +115,7 @@ export async function loadGallery(dropId: string | null): Promise<GalleryFeed> {
       prompt: result.drop.prompt,
       drop_date: result.drop.drop_date!,
       day_number: result.drop.day_number ?? 0,
+      category: result.drop.category ?? null,
     },
     isSeed: result.is_seed,
     photos,

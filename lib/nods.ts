@@ -7,16 +7,46 @@ import { supabase } from "./supabase";
  * a photo — the payoff of comments with none of the toxicity. A fixed, positive-
  * only set (no free text), one per curator per photo. Server: submit_nod + the
  * `nods` aggregate on decorate_photos output.
+ *
+ * ONE universal craft vocabulary (so "what your work is known for" aggregates
+ * coherently across all your photos), worded the natural way a person actually
+ * compliments a shot — not clinical craft terms. Broad enough that a fitting nod
+ * always exists for any image; `nodsFor(category)` narrows the PICKER to the ones
+ * that best fit a given Subject's category, so it reads as relevant per image.
  */
 export const NOD_TAGS = [
-  { id: "great_light", label: "Great light" },
-  { id: "strong_composition", label: "Strong composition" },
-  { id: "bold_color", label: "Bold color" },
-  { id: "perfect_timing", label: "Perfect timing" },
+  { id: "great_light", label: "Beautiful light" },
+  { id: "strong_composition", label: "Great framing" },
+  { id: "bold_color", label: "Love the colors" },
+  { id: "perfect_timing", label: "Perfect moment" },
   { id: "moved_me", label: "Moved me" },
+  { id: "so_creative", label: "So creative" },
+  { id: "fresh_perspective", label: "Love the angle" },
+  { id: "tells_a_story", label: "Tells a story" },
 ] as const;
 
 export type NodTag = (typeof NOD_TAGS)[number]["id"];
+
+/**
+ * The picker's tags for a Subject category — the ~5 most relevant, each category
+ * led by its natural fit, filled out with universal craft. Keeps the vocabulary
+ * universal (clean aggregation) while the PICKER feels tailored to the image.
+ * Unknown/absent category → the full set (a fitting nod always exists).
+ */
+const NODS_BY_CATEGORY: Record<string, NodTag[]> = {
+  light:   ["great_light", "strong_composition", "bold_color", "moved_me", "tells_a_story"],
+  color:   ["bold_color", "strong_composition", "great_light", "so_creative", "moved_me"],
+  object:  ["strong_composition", "great_light", "so_creative", "bold_color", "tells_a_story"],
+  pov:     ["fresh_perspective", "strong_composition", "great_light", "tells_a_story", "moved_me"],
+  absurd:  ["so_creative", "perfect_timing", "tells_a_story", "strong_composition", "moved_me"],
+  emotion: ["moved_me", "tells_a_story", "great_light", "strong_composition", "perfect_timing"],
+};
+
+export function nodsFor(category?: string | null): readonly { id: NodTag; label: string }[] {
+  const ids = category ? NODS_BY_CATEGORY[category] : undefined;
+  if (!ids) return NOD_TAGS;
+  return ids.map((id) => NOD_TAGS.find((t) => t.id === id)!).filter(Boolean);
+}
 
 /** Per-photo aggregate as it arrives from the server: { great_light: 38, ... }. */
 export type NodCounts = Record<string, number>;
