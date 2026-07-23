@@ -1,6 +1,5 @@
 import { Image } from 'expo-image';
 import { Crown, RefreshCw } from 'lucide-react-native';
-import { useState, useEffect } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -36,24 +35,15 @@ function BracketMini({ color }: { color: string }) {
  * "queued ↻" is a first-class state — offline never looks like an error.
  */
 export function PhotoTile({ uri, hearts, badge, aspectRatio = photo.aspect, style }: PhotoTileProps) {
-  const [loadError, setLoadError] = useState(false);
-
-  // Reset error state when uri changes (e.g. on re-sign after pull-to-refresh).
-  useEffect(() => setLoadError(false), [uri]);
-
-  // Hide broken image, show skeleton.
-  const displayUri = loadError ? null : uri;
-
   return (
     <View style={style}>
       <View style={[styles.photoBox, { aspectRatio }]}>
-        {displayUri ? (
+        {uri ? (
           <Image
-            source={{ uri: displayUri, cacheKey: imageCacheKey(displayUri) }}
+            source={{ uri, cacheKey: imageCacheKey(uri) }}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
             transition={100}
-            onError={() => setLoadError(true)}
           />
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.skeleton]} />
