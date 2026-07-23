@@ -1,3 +1,5 @@
+import * as Application from "expo-application";
+import * as Updates from "expo-updates";
 import PostHog from "posthog-react-native";
 
 /**
@@ -21,9 +23,17 @@ let client: PostHog | null = null;
 if (KEY) {
   try {
     client = new PostHog(KEY, { host: HOST });
-    // Tag every event dev vs prod so the retention baseline can exclude your own
-    // dev/testing traffic (filter `app_env = prod` in PostHog).
-    client.register({ app_env: __DEV__ ? "dev" : "prod" });
+    // Super-properties attached to EVERY event:
+    // - app_env: exclude your own dev/testing traffic (filter `app_env = prod`).
+    // - app_build / ota_update_id / runtime_version: which native build + OTA a
+    //   phone is running, so you can verify OTA rollout per user from the dashboard
+    //   (no need to show build ids in the UI). "embedded" = no OTA applied yet.
+    client.register({
+      app_env: __DEV__ ? "dev" : "prod",
+      app_build: Application.nativeBuildVersion ?? "unknown",
+      ota_update_id: Updates.isEmbeddedLaunch ? "embedded" : (Updates.updateId ?? "unknown"),
+      runtime_version: Updates.runtimeVersion ?? "unknown",
+    });
   } catch (e) {
     console.warn("[analytics] PostHog init failed; analytics disabled:", e);
   }

@@ -89,10 +89,12 @@ export default function SettingsScreen() {
   const buildNumber = Application.nativeBuildVersion; // "6" on Android, null in dev/web
   const version = buildNumber ? `${semver} (${buildNumber})` : semver;
 
-  // OTA canary — ADMIN ONLY. "embedded" = running the built-in bundle (no update
-  // applied yet), else the short id of the live OTA. Meaningless to end users, so
-  // it's gated behind isAdmin; alpha reporters who need it are admins.
-  const otaBuild = Updates.isEmbeddedLaunch ? 'embedded' : (Updates.updateId?.slice(0, 8) ?? 'ota');
+  // OTA canary — shown to everyone during ALPHA so testers can screenshot/report
+  // which update they're on. "base" = running the build's baked-in bundle (no OTA
+  // applied yet), else the short id of the live OTA. TODO(launch): hide this row
+  // for non-admins before the public launch (it's dev-facing). The same signal is
+  // also in PostHog as `ota_update_id`, so hiding it later loses no visibility.
+  const otaBuild = Updates.isEmbeddedLaunch ? 'base' : (Updates.updateId?.slice(0, 8) ?? 'ota');
 
   // Contact opens the mail app pre-addressed to support. Subject is tagged with the
   // app version so replies arrive with the context we'd otherwise have to ask for.
@@ -189,12 +191,8 @@ export default function SettingsScreen() {
         <Section title="ABOUT">
           <Row label="Version" value={version} />
           <View style={styles.divider} />
-          {isAdmin && (
-            <>
-              <Row label="Build" value={otaBuild} />
-              <View style={styles.divider} />
-            </>
-          )}
+          <Row label="Build" value={otaBuild} />
+          <View style={styles.divider} />
           <Row label="Terms of Service" chevron onPress={() => router.push('/legal/terms')} />
           <View style={styles.divider} />
           <Row label="Privacy Policy" chevron onPress={() => router.push('/legal/privacy')} />
