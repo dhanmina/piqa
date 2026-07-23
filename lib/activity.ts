@@ -30,6 +30,8 @@ type RawActivity = {
   image_path: string | null;
   /** Raw thumb storage path (signed for the row, and a fallback for the view). */
   thumb_path: string | null;
+  /** The drop's global day counter, printed on the frame rail. */
+  day_number: number | null;
   /** The Subject text of the shot's drop, or null. */
   subject: string | null;
 };

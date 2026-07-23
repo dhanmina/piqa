@@ -145,6 +145,7 @@ export default function ActivityScreen() {
               path: viewer.image_path ?? viewer.thumb_path ?? null,
               placeholderUri: viewer.thumb,
               userId: myId, // your own shot → isOwn true (no nod picker / self-heart)
+              day: viewer.day_number ?? 0,
             },
           ]
         : [],
@@ -196,6 +197,7 @@ export default function ActivityScreen() {
             path={viewer.image_path ?? viewer.thumb_path ?? ''}
             placeholderUri={viewer.thumb}
             userId={myId}
+            day={viewer.day_number ?? 0}
             theme={viewer.subject ?? undefined}
             photos={viewerPhotos}
             initialIndex={0}
