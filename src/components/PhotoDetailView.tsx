@@ -38,7 +38,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { signThumb } from '@lib/cache';
 import { asFrameId, asStatus } from '@lib/frames';
 import { useSignedThumb } from '@lib/gallery';
-import { nodLabel, nodsFor, submitNod, topNod, type NodCounts, type NodTag } from '@lib/nods';
+import { getPhotoNods, nodLabel, nodsFor, submitNod, topNod, type NodCounts, type NodTag } from '@lib/nods';
 import { shareCard } from '@lib/share';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
@@ -202,8 +202,12 @@ export function PhotoDetailView({
 
   const baseHearts = hearts;
 
-  // --- Paging (gallery modal) ---
-  const hasPaging = Boolean(photos && photos.length > 1);
+  // --- Paging (gallery + profile modals) ---
+  // Any caller that passes `photos` uses the polished paged layout (measured stage,
+  // bar reserve, tap-to-exit) — even a single item — so the fullscreen is identical
+  // everywhere. Swipe + dots only appear when there's more than one. The route and
+  // profile-less callers omit `photos` and fall to the single/route branch.
+  const hasPaging = Boolean(photos && photos.length >= 1);
   const [page, setPage] = useState(initialIndex);
   // Measured height of the paging stage (the area above the bottom bar). The bar
   // grows with the nods chips / "why it won" note, so the print MUST be sized to
@@ -463,7 +467,26 @@ export function PhotoDetailView({
   // plus a one-tap picker on others' photos (optimistic via myNod). Attaches after
   // the reveal, when the photo is named — never on the blind voting pairs.
   const [myNod, setMyNod] = useState<NodTag | null>(null);
-  const displayNods: NodCounts = { ...(activeNods ?? {}) };
+  // Per-photo nods, so the profile's fullscreen reads exactly like the gallery's:
+  // reset your session pick when the photo changes (fixes a carryover across swipes),
+  // and fetch the public aggregate when the caller didn't supply one — the gallery
+  // passes it via decorate_photos; a profile's wins don't carry it.
+  const [fetchedNods, setFetchedNods] = useState<NodCounts | null>(null);
+  useEffect(() => {
+    setMyNod(null);
+    if (!activeId || activeNods) {
+      setFetchedNods(null);
+      return;
+    }
+    let alive = true;
+    void getPhotoNods(activeId).then((n) => {
+      if (alive) setFetchedNods(n);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [activeId, activeNods]);
+  const displayNods: NodCounts = { ...(activeNods ?? fetchedNods ?? {}) };
   if (myNod) displayNods[myNod] = (displayNods[myNod] ?? 0) + 1;
   const topTag = topNod(displayNods);
   const nodsBlock =

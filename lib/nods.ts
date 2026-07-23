@@ -10,49 +10,62 @@ import { supabase } from "./supabase";
  *
  * ONE universal craft vocabulary (so "what your work is known for" aggregates
  * coherently across all your photos), worded the natural way a person actually
- * compliments a shot — not clinical craft terms. Broad enough that a fitting nod
- * always exists for any image; `nodsFor(category)` narrows the PICKER to the ones
- * that best fit a given Subject's category, so it reads as relevant per image.
+ * compliments a shot — not clinical craft terms. Kept deliberately SMALL: too many
+ * options is choice overload, so a photo only ever offers a tight, relevant few
+ * (`nodsFor`), and the whole vocabulary stays short.
  */
+
+// Display labels for EVERY tag that can exist in the DB — including ones retired
+// from the picker (e.g. "moved_me") — so a historical aggregate never shows a raw id.
+const NOD_LABELS: Record<string, string> = {
+  great_light: "Beautiful light",
+  strong_composition: "Nicely framed",
+  bold_color: "Love the colors",
+  perfect_timing: "Perfect timing",
+  fresh_perspective: "Love the angle",
+  so_creative: "So creative",
+  tells_a_story: "Tells a story",
+  moved_me: "Moved me", // retired from the picker; still labels old nods
+};
+
+// The tags OFFERED — natural, positive, and few. "Moved me" is retired (too vague /
+// not a craft cue). A fitting nod still exists for any image.
 export const NOD_TAGS = [
-  { id: "great_light", label: "Beautiful light" },
-  { id: "strong_composition", label: "Great framing" },
-  { id: "bold_color", label: "Love the colors" },
-  { id: "perfect_timing", label: "Perfect moment" },
-  { id: "moved_me", label: "Moved me" },
-  { id: "so_creative", label: "So creative" },
-  { id: "fresh_perspective", label: "Love the angle" },
-  { id: "tells_a_story", label: "Tells a story" },
+  { id: "great_light", label: NOD_LABELS.great_light },
+  { id: "strong_composition", label: NOD_LABELS.strong_composition },
+  { id: "bold_color", label: NOD_LABELS.bold_color },
+  { id: "perfect_timing", label: NOD_LABELS.perfect_timing },
+  { id: "fresh_perspective", label: NOD_LABELS.fresh_perspective },
+  { id: "so_creative", label: NOD_LABELS.so_creative },
+  { id: "tells_a_story", label: NOD_LABELS.tells_a_story },
 ] as const;
 
 export type NodTag = (typeof NOD_TAGS)[number]["id"];
 
 /**
- * The picker's tags for a Subject category — the ~5 most relevant, each category
- * led by its natural fit, filled out with universal craft. Keeps the vocabulary
- * universal (clean aggregation) while the PICKER feels tailored to the image.
- * Unknown/absent category → the full set (a fitting nod always exists).
+ * The picker shows only FOUR tags — enough to fit any shot, few enough to choose in
+ * a glance. Each Subject category leads with its natural fit; unknown category →
+ * a sensible default four.
  */
 const NODS_BY_CATEGORY: Record<string, NodTag[]> = {
-  light:   ["great_light", "strong_composition", "bold_color", "moved_me", "tells_a_story"],
-  color:   ["bold_color", "strong_composition", "great_light", "so_creative", "moved_me"],
-  object:  ["strong_composition", "great_light", "so_creative", "bold_color", "tells_a_story"],
-  pov:     ["fresh_perspective", "strong_composition", "great_light", "tells_a_story", "moved_me"],
-  absurd:  ["so_creative", "perfect_timing", "tells_a_story", "strong_composition", "moved_me"],
-  emotion: ["moved_me", "tells_a_story", "great_light", "strong_composition", "perfect_timing"],
+  light:   ["great_light", "bold_color", "strong_composition", "so_creative"],
+  color:   ["bold_color", "great_light", "strong_composition", "so_creative"],
+  object:  ["strong_composition", "great_light", "bold_color", "so_creative"],
+  pov:     ["fresh_perspective", "strong_composition", "great_light", "tells_a_story"],
+  absurd:  ["so_creative", "perfect_timing", "tells_a_story", "strong_composition"],
+  emotion: ["tells_a_story", "so_creative", "great_light", "perfect_timing"],
 };
+const DEFAULT_PICKER: NodTag[] = ["great_light", "strong_composition", "bold_color", "so_creative"];
 
 export function nodsFor(category?: string | null): readonly { id: NodTag; label: string }[] {
-  const ids = category ? NODS_BY_CATEGORY[category] : undefined;
-  if (!ids) return NOD_TAGS;
+  const ids = (category ? NODS_BY_CATEGORY[category] : undefined) ?? DEFAULT_PICKER;
   return ids.map((id) => NOD_TAGS.find((t) => t.id === id)!).filter(Boolean);
 }
 
 /** Per-photo aggregate as it arrives from the server: { great_light: 38, ... }. */
 export type NodCounts = Record<string, number>;
 
-export const nodLabel = (id: string): string =>
-  NOD_TAGS.find((t) => t.id === id)?.label ?? id;
+export const nodLabel = (id: string): string => NOD_LABELS[id] ?? id;
 
 /** Attach (or change) your nod on a photo. No-op-safe; returns false on failure. */
 export async function submitNod(submissionId: string, tag: NodTag): Promise<boolean> {
@@ -63,6 +76,28 @@ export async function submitNod(submissionId: string, tag: NodTag): Promise<bool
   } as never);
   if (error) console.warn("submitNod failed:", error);
   return !error;
+}
+
+/**
+ * Per-photo nod aggregate ({ great_light: 3, ... }), fetched directly — aggregates
+ * are public (RLS `select using (true)`, like hearts). Used when a surface didn't
+ * already carry the decorate_photos `nods` (e.g. a profile's wins), so its
+ * fullscreen reads identically to the gallery's.
+ */
+export async function getPhotoNods(submissionId: string): Promise<NodCounts> {
+  // Cast until `supabase gen types` re-runs after the nods migration deploys.
+  const { data, error } = await (supabase as never as {
+    from: (t: string) => {
+      select: (c: string) => { eq: (k: string, v: string) => Promise<{ data: { tag: string }[] | null; error: unknown }> };
+    };
+  })
+    .from("nods")
+    .select("tag")
+    .eq("submission_id", submissionId);
+  if (error || !data) return {};
+  const counts: NodCounts = {};
+  for (const r of data) counts[r.tag] = (counts[r.tag] ?? 0) + 1;
+  return counts;
 }
 
 /** Total nods across all tags. */

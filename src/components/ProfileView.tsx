@@ -7,7 +7,7 @@
  */
 import { Image } from 'expo-image';
 import { ChevronRight, CloudOff, Crown, Flame, MoreHorizontal, Settings, Trophy, Users } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -49,9 +49,34 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
   const title = titleForLevel(prog.level);
   const xpPct = prog.toNext > 0 ? Math.min(100, (prog.into / prog.toNext) * 100) : 0;
 
-  // A tapped win opens in place as a fullscreen lightbox — the same feel as the
-  // gallery, no route change. Lives here so both own-profile and /u/[id] get it.
+  // A tapped win opens in place as a fullscreen lightbox — the SAME paged viewer as
+  // the gallery (no route change), so you swipe through the shelf from where you
+  // tapped. Lives here so both own-profile and /u/[id] get it.
   const [viewer, setViewer] = useState<ProfileWin | null>(null);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const openWin = (w: ProfileWin) => {
+    setViewer(w);
+    setViewerIndex(Math.max(0, data?.wins.findIndex((x) => x.id === w.id) ?? 0));
+  };
+  // Rotate the shelf so the tapped win is first (swipe forward, wrapping) — the same
+  // model as the gallery, and it opens at index 0 so there's no initialScrollIndex
+  // jump. Mapped to the viewer's PhotoDetailData shape. The shooter is this profile's
+  // owner, so every page carries their name/id.
+  const winPhotos = useMemo(() => {
+    const wins = data?.wins ?? [];
+    const idx = viewerIndex > 0 ? viewerIndex : 0;
+    const ordered = idx > 0 ? [...wins.slice(idx), ...wins.slice(0, idx)] : wins;
+    return ordered.map((w) => ({
+      id: w.id,
+      path: w.imagePath ?? w.thumbPath ?? null,
+      shooter: data?.username,
+      userId: data?.id,
+      day: w.dayNumber,
+      status: w.status,
+      frame: w.frameId,
+      placeholderUri: w.uri,
+    }));
+  }, [data?.wins, data?.username, data?.id, viewerIndex]);
   // Starred shots are private and unframed (a mix of practice free shots and
   // submissions), so they open in a plain paged photo viewer, not a framed print.
   const [starIndex, setStarIndex] = useState<number | null>(null);
@@ -295,7 +320,7 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
                 key={w.id}
                 accessibilityRole="button"
                 style={styles.winCell}
-                onPress={() => setViewer(w)}
+                onPress={() => openWin(w)}
               >
                 {/* No crown badge: the print carries its own status glyph. Full-res
                     over the thumb (already warmed) keeps the trophy shelf sharp. */}
@@ -337,6 +362,11 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
             frame={viewer.frameId}
             onClose={() => setViewer(null)}
             onOpenProfile={() => setViewer(null)}
+            // Swipe through the whole shelf, starting on the tapped win (rotated to
+            // index 0). Same polished paged layout as the gallery — the bar reserve
+            // keeps the frame from being cut by the nod/meta bar.
+            photos={winPhotos}
+            initialIndex={0}
           />
         )}
       </Modal>
