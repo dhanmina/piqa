@@ -80,6 +80,7 @@ function RootNavigator() {
         <Stack.Screen name="search" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="u/[id]" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="following" options={{ animation: 'simple_push' }} />
+        <Stack.Screen name="activity" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="settings" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="admin" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="admin-library" options={{ animation: 'simple_push' }} />

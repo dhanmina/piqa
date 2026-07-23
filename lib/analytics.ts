@@ -49,7 +49,8 @@ export type AnalyticsEvent =
   | "curate_set_completed" // finished a set of 10 picks
   | "reveal_seen" // opened the morning gallery reveal
   | "result_seen" // saw own result on Today
-  | "gallery_opened"; // opened the Gallery tab
+  | "gallery_opened" // opened the Gallery tab
+  | "activity_opened"; // opened the activity inbox from the Today bell
 
 /** Record a product event. No-op until a PostHog key is configured. */
 export function capture(event: AnalyticsEvent, props?: Record<string, unknown>) {
@@ -76,5 +77,6 @@ export const analyticsEnabled = client !== null;
 //   reveal_seen          ✓ src/app/(tabs)/gallery.tsx (fresh morning reveal)
 //   result_seen          ✓ src/app/(tabs)/today.tsx (result card focused)
 //   gallery_opened       ✓ src/app/(tabs)/gallery.tsx (tab focus, both sub-tabs)
+//   activity_opened      ✓ src/app/activity.tsx (inbox opened from the Today bell)
 //   identify/reset       ✓ lib/session.tsx (login / sign-out)
 // ---------------------------------------------------------------------------

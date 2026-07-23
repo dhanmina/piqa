@@ -8,12 +8,13 @@
  */
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { CloudOff, RefreshCw } from 'lucide-react-native';
+import { Bell, CloudOff, RefreshCw } from 'lucide-react-native';
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getPendingItemForDrop, retryBlocked, subscribeQueue, type QueueItem } from '@lib/captureQueue';
+import { useActivityUnread } from '@lib/activity';
 import { getConfig } from '@lib/config';
 import { useFrameForDate } from '@lib/frames';
 import { capture } from '@lib/analytics';
@@ -48,6 +49,7 @@ export default function TodayScreen() {
   const { data, loading, error, refresh } = useHomeState();
   const hint = useTodayHint();
   const golden = useTodayGolden();
+  const activityUnread = useActivityUnread();
   const [toast, setToast] = useState<string | null>(null);
   const [showStreakInfo, setShowStreakInfo] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -437,23 +439,36 @@ export default function TodayScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerRow}>
+            <View style={styles.headerLeft}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="How your streak works"
+                hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+                onPress={() => setShowStreakInfo(true)}
+                style={({ pressed }) => pressed && { opacity: 0.6 }}
+              >
+                <StreakFlame
+                  days={streakDays}
+                  last7={last7}
+                  alive={flameAlive}
+                  shields={streak?.shields ?? 0}
+                />
+              </Pressable>
+              <Mono size={typeScale.caption} color={colors.paper60} numberOfLines={1}>
+                {dateLine}
+              </Mono>
+            </View>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="How your streak works"
-              hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
-              onPress={() => setShowStreakInfo(true)}
-              style={({ pressed }) => pressed && { opacity: 0.6 }}
+              accessibilityLabel="Activity"
+              hitSlop={10}
+              onPress={() => router.push('/activity')}
+              style={({ pressed }) => [styles.bell, pressed && { opacity: 0.6 }]}
             >
-              <StreakFlame
-                days={streakDays}
-                last7={last7}
-                alive={flameAlive}
-                shields={streak?.shields ?? 0}
-              />
+              <Bell size={22} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+              {/* Calm unread signal — the same safelight dot as the tab bar, never a count. */}
+              {activityUnread && <View style={styles.bellDot} />}
             </Pressable>
-            <Mono size={typeScale.caption} color={colors.paper60} numberOfLines={1}>
-              {dateLine}
-            </Mono>
           </View>
           {streakCaption && <Text style={styles.dayZero}>{streakCaption}</Text>}
         </View>
@@ -539,10 +554,22 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12,
     minHeight: 32,
+  },
+  headerLeft: { gap: 6 },
+  // Nudge the glyph down so it optically centers on the flame beside it.
+  bell: { paddingTop: 2 },
+  bellDot: {
+    position: 'absolute',
+    top: 0,
+    right: -2,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.safelight,
   },
   dayZero: {
     fontFamily: fonts.sans,
