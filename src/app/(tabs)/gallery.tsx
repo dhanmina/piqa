@@ -191,11 +191,41 @@ export default function GalleryScreen() {
 
   // Open the shot in-place (fullscreen modal on this tab) rather than routing to
   // /photo/[id] — the gallery zooms into the print, like the archive viewer.
+  const [viewerIndex, setViewerIndex] = useState(0);
   const openPhoto = (p: GalleryPhoto) => {
     const full = (data?.photos.find((x) => x.id === p.id) ??
       followingPhotos.find((x) => x.id === p.id)) as GalleryDetailPhoto | undefined;
     setViewer(full ?? { ...p });
+    const idx = activePhotos.findIndex((x) => x.id === p.id);
+    setViewerIndex(idx >= 0 ? idx : 0);
   };
+
+  // Rotate the list so the tapped shot is FIRST — you open on what you tapped and
+  // swipe forward through the rest, wrapping past the end back to the ones before
+  // it (so nothing is unreachable). Starting at 0 also sidesteps FlatList's flaky
+  // initialScrollIndex entirely.
+  const orderedPhotos = useMemo(
+    () =>
+      viewerIndex > 0
+        ? [...activePhotos.slice(viewerIndex), ...activePhotos.slice(0, viewerIndex)]
+        : activePhotos,
+    [activePhotos, viewerIndex],
+  );
+
+  // Map ordered photos to PhotoDetailData for the viewer's paging list.
+  const viewerPhotos = useMemo(() => orderedPhotos.map((p) => ({
+    id: p.id,
+    path: (p as GalleryDetailPhoto).imagePath ?? (p as GalleryDetailPhoto).thumbPath ?? null,
+    shooter: p.shooter,
+    hearts: p.hearts,
+    userId: p.userId,
+    day: p.dayNumber,
+    status: p.status,
+    frame: p.frameId,
+    nods: (p as GalleryDetailPhoto).nods ?? null,
+    placeholderUri: p.uri,
+    category: tab === 'world' ? data?.drop?.category : undefined,
+  })), [orderedPhotos, tab, data?.drop?.category]);
 
   // In-place fullscreen viewer — press a shot and the gallery zooms into the
   // print (no route), the same feel as the archive. Shared by both tabs, so it
@@ -237,6 +267,15 @@ export default function GalleryScreen() {
           onOpenProfile={(uid) => {
             setViewer(null);
             router.push({ pathname: '/u/[id]', params: { id: uid } });
+          }}
+          // Paging: the list is already rotated to start on the tapped shot, so the
+          // viewer always opens at 0 and pages forward. Map the page back through the
+          // rotated order to keep the heart controller bound to the visible photo.
+          photos={viewerPhotos}
+          initialIndex={0}
+          onPageChange={(idx) => {
+            const p = orderedPhotos[idx];
+            if (p) setViewer(p as GalleryDetailPhoto);
           }}
         />
       )}

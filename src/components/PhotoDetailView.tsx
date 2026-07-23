@@ -11,24 +11,31 @@
  * route just pushes; the gallery modal must close itself first (an RN Modal sits
  * above the navigator, so a bare push would land behind it).
  */
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { MoreHorizontal, Share, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ListRenderItemInfo } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
+  Extrapolation,
+  interpolate,
+  interpolateColor,
   runOnJS,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withSequence,
   withSpring,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { signThumb } from '@lib/cache';
 import { asFrameId, asStatus } from '@lib/frames';
 import { useSignedThumb } from '@lib/gallery';
 import { nodLabel, nodsFor, submitNod, topNod, type NodCounts, type NodTag } from '@lib/nods';
@@ -50,6 +57,51 @@ import { colors, fade, fonts, frame, icons, space, typeScale } from '@/component
 
 // The heart that blooms at a double-tap and flies into the heart control.
 const FLY_HEART = 64;
+
+// Instagram-style pager dots, driven by the live scroll offset (not the settled
+// page): the pip under you is full-size and the app's accent, and it grows/shrinks
+// continuously as you drag between frames. A sliding window of at most DOT_MAX pips
+// tracks the scroll — the strip translates to keep the current pip centred (clamped
+// at the ends), and pips past the window taper to nothing, so even a long gallery
+// stays a compact, positioned strip.
+const DOT_MAX = 7;
+const DOT_BASE = 8; // active/base diameter; every other pip scales down from this
+const DOT_SLOT = 14; // per-pip horizontal slot (diameter + gap)
+const DOT_HALF = Math.floor(DOT_MAX / 2);
+
+function Dot({ index, scrollX, pageW }: { index: number; scrollX: SharedValue<number>; pageW: number }) {
+  const style = useAnimatedStyle(() => {
+    const d = Math.abs(scrollX.value / pageW - index); // distance from the live position
+    return {
+      transform: [{ scale: interpolate(d, [0, 1, 2, 3, 4, 5], [1, 0.75, 0.75, 0.56, 0.38, 0], Extrapolation.CLAMP) }],
+      backgroundColor: interpolateColor(d, [0, 0.9], [colors.safelight, colors.paper40]),
+    };
+  });
+  return (
+    <View style={styles.dotSlot}>
+      <Animated.View style={[styles.dotCircle, style]} />
+    </View>
+  );
+}
+
+function PagerDots({ scrollX, total, pageW }: { scrollX: SharedValue<number>; total: number; pageW: number }) {
+  const visible = Math.min(total, DOT_MAX);
+  const trackStyle = useAnimatedStyle(() => {
+    if (total <= DOT_MAX) return { transform: [{ translateX: 0 }] };
+    const progress = scrollX.value / pageW;
+    const center = Math.min(Math.max(progress, DOT_HALF), total - 1 - DOT_HALF);
+    return { transform: [{ translateX: (DOT_HALF - center) * DOT_SLOT }] };
+  });
+  return (
+    <View style={[styles.dotsViewport, { width: visible * DOT_SLOT }]}>
+      <Animated.View style={[styles.dotsTrack, trackStyle]}>
+        {Array.from({ length: total }, (_, i) => (
+          <Dot key={i} index={i} scrollX={scrollX} pageW={pageW} />
+        ))}
+      </Animated.View>
+    </View>
+  );
+}
 
 type Reactor = { id: string; username: string; avatar_url: string | null };
 
@@ -95,6 +147,14 @@ type Props = PhotoDetailData & {
   heartCount?: number;
   hearted?: boolean;
   onToggleHeart?: () => void;
+  /** When provided, the viewer pages horizontally through the list (swipe left/right).
+   *  Each item is a PhotoDetailData. The single-photo props (id, path, etc.) are
+   *  used for the initial render; paging overrides them per-page. */
+  photos?: PhotoDetailData[];
+  /** Index in `photos` to start on. Defaults to 0. */
+  initialIndex?: number;
+  /** Called when the page changes (swipe). The host can update heart state. */
+  onPageChange?: (index: number) => void;
 };
 
 export function PhotoDetailView({
@@ -116,6 +176,9 @@ export function PhotoDetailView({
   heartCount,
   hearted,
   onToggleHeart,
+  photos,
+  initialIndex = 0,
+  onPageChange,
 }: Props) {
   // Controlled heart mode: the gallery drives this fullscreen off the SAME
   // useGalleryHearts state as its grid, so both show one number and toggle
@@ -124,19 +187,92 @@ export function PhotoDetailView({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
-  // Lightbox print: full width minus a gutter, capped so it stays a centered card
-  // with backdrop showing around it. Route mode fills the screen (width undefined).
-  const printW = lightbox ? Math.min(winW - space.gutter * 2, winH * 0.52) : undefined;
+  // Lightbox print: make the framed print the hero — as large as the viewport
+  // allows while the WHOLE 3:4 frame (rail included) stays visible. Bounded by a
+  // slim side margin AND by the height left between the top chrome (close/report)
+  // and the bottom identity bar, whichever binds first. On phones the width binds
+  // (near edge-to-edge); on tablets the height binds, so the print never overruns
+  // the bar. Route mode fills the screen (width undefined).
+  const fsChromeV = insets.top + 48 + insets.bottom + 104;
+  const printW = lightbox
+    ? Math.min(winW - space.gutter, (winH - fsChromeV) * frame.aspect)
+    : undefined;
   const { session } = useSession();
   const myId = session?.user.id;
 
-  const uri = useSignedThumb(path || null);
   const baseHearts = hearts;
 
+  // --- Paging (gallery modal) ---
+  const hasPaging = Boolean(photos && photos.length > 1);
+  const [page, setPage] = useState(initialIndex);
+  // Measured height of the paging stage (the area above the bottom bar). The bar
+  // grows with the nods chips / "why it won" note, so the print MUST be sized to
+  // the real remaining space — a winH-based estimate clipped the frame's bottom
+  // rail whenever the bar was taller than assumed.
+  const [stageH, setStageH] = useState(0);
+  const listRef = useRef<FlatList<PhotoDetailData>>(null);
+  // Live horizontal scroll offset — drives the pager dots continuously (UI thread).
+  const scrollX = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler((e) => {
+    scrollX.value = e.contentOffset.x;
+  });
+
+  // Vertical pan-to-dismiss (StarredLightbox pattern).
+  const DISMISS_DISTANCE = 130;
+  const ty = useSharedValue(0);
+  const pan = Gesture.Pan()
+    .activeOffsetY([-16, 16])
+    .failOffsetX([-16, 16])
+    .onUpdate((e) => {
+      ty.value = Math.max(0, e.translationY);
+    })
+    .onEnd((e) => {
+      if (e.translationY > DISMISS_DISTANCE || e.velocityY > 900) {
+        runOnJS(onClose)();
+      } else {
+        ty.value = withTiming(0, { duration: 160 });
+      }
+    });
+  const contentStyle = useAnimatedStyle(() => ({ transform: [{ translateY: ty.value }] }));
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: 1 - Math.min(ty.value / (winH * 0.6), 0.75),
+  }));
+
+  // Pre-sign all photo paths for paging, so each page opens instantly.
+  const [signedUris, setSignedUris] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    if (!hasPaging || !photos) return;
+    let alive = true;
+    const paths = photos.map((p) => p.path).filter((p): p is string => !!p);
+    if (paths.length === 0) return;
+    Promise.all(paths.map((p) => signThumb(p))).then((results) => {
+      if (!alive) return;
+      const m = new Map<string, string>();
+      paths.forEach((p, i) => { const u = results[i]; if (u) m.set(p, u); });
+      setSignedUris(m);
+    });
+    return () => { alive = false; };
+  }, [hasPaging, photos]);
+
+  // Resolve the active photo for paging — falls back to the single-photo props.
+  const active = hasPaging && photos ? photos[page] : null;
+  const activeId = active?.id ?? id;
+  const activePath = active?.path ?? path;
+  // Always call useSignedThumb (React rules of hooks); only used in single-photo mode.
+  const singleUri = useSignedThumb(path || null);
+  const activeUri = activePath ? (signedUris.get(activePath) ?? null) : singleUri;
+  const activeShooter = active?.shooter ?? shooter;
+  const activeUserId = active?.userId ?? userId;
+  const activeDay = active?.day ?? day;
+  const activeStatus = active?.status ?? statusRaw;
+  const activeFrame = active?.frame ?? frameRaw;
+  const activeNods = active?.nods ?? nods;
+  const activePlaceholder = active?.placeholderUri ?? placeholderUri;
+  const activeCategory = active?.category ?? category;
+
   // This is the one view that says the frame's marks out loud — the print shows
-  // the glyph, and here it's spelled out in words.
-  const status = asStatus(statusRaw);
-  const frameId = asFrameId(frameRaw);
+  // the glyph, and here it's spelled out in words. Derive from active photo in paging mode.
+  const status = asStatus(activeStatus);
   const statusWords = status === 'crown' ? 'Photo of the Day' : status === 'top10' ? 'Top 10' : null;
 
   const [liked, setLiked] = useState(false);
@@ -150,7 +286,7 @@ export function PhotoDetailView({
   // Off-screen card, snapshotted on Share — no preview sheet (the OS share sheet
   // already previews the image; a second preview was a redundant extra tap).
   const shareCardRef = useRef<View>(null);
-  const isOwn = Boolean(myId && userId && myId === userId);
+  const isOwn = Boolean(myId && activeUserId && myId === activeUserId);
 
   const openProfile = (uid: string) => {
     if (onOpenProfile) onOpenProfile(uid);
@@ -178,8 +314,8 @@ export function PhotoDetailView({
 
   // Signed reactors only (votes stay anonymous) — spec §8.
   const loadReactors = useCallback(async () => {
-    if (!id) return;
-    const { data: rx } = await supabase.from('reactions').select('user_id').eq('submission_id', id);
+    if (!activeId) return;
+    const { data: rx } = await supabase.from('reactions').select('user_id').eq('submission_id', activeId);
     const ids = (rx ?? []).map((r) => r.user_id);
     if (ids.length === 0) {
       setReactors([]);
@@ -187,10 +323,10 @@ export function PhotoDetailView({
     }
     const { data: profs } = await supabase.from('profiles').select('id, username, avatar_url').in('id', ids);
     setReactors(profs ?? []);
-  }, [id]);
+  }, [activeId]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!activeId) return;
     // Controlled mode: count + liked come from the host (useGalleryHearts); we
     // only still need the signed-reactor list for the sheet.
     if (heartControlled) {
@@ -202,9 +338,9 @@ export function PhotoDetailView({
       const [{ data: sub }, { data: mine }] = await Promise.all([
         // Likes only — the heart never counts anonymous blind votes (reaction_count
         // is the signed-heart tally; vote_count is the hidden ranking signal).
-        supabase.from('submissions').select('reaction_count').eq('id', id).maybeSingle(),
+        supabase.from('submissions').select('reaction_count').eq('id', activeId).maybeSingle(),
         myId
-          ? supabase.from('reactions').select('user_id').eq('user_id', myId).eq('submission_id', id).maybeSingle()
+          ? supabase.from('reactions').select('user_id').eq('user_id', myId).eq('submission_id', activeId).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
       if (!alive) return;
@@ -215,21 +351,21 @@ export function PhotoDetailView({
     return () => {
       alive = false;
     };
-  }, [myId, id, loadReactors, heartControlled]);
+  }, [myId, activeId, loadReactors, heartControlled]);
 
   const toggle = async () => {
-    if (!myId || !id) return;
+    if (!myId || !activeId) return;
     const next = !liked;
     setLiked(next);
     setDelta((d) => d + (next ? 1 : -1));
     if (next) {
-      const { error } = await supabase.from('reactions').insert({ user_id: myId, submission_id: id, emoji: 'heart' });
+      const { error } = await supabase.from('reactions').insert({ user_id: myId, submission_id: activeId, emoji: 'heart' });
       if (error) {
         setLiked(false);
         setDelta((d) => d - 1);
       }
     } else {
-      const { error } = await supabase.from('reactions').delete().eq('user_id', myId).eq('submission_id', id);
+      const { error } = await supabase.from('reactions').delete().eq('user_id', myId).eq('submission_id', activeId);
       if (error) {
         setLiked(true);
         setDelta((d) => d + 1);
@@ -321,7 +457,7 @@ export function PhotoDetailView({
   // plus a one-tap picker on others' photos (optimistic via myNod). Attaches after
   // the reveal, when the photo is named — never on the blind voting pairs.
   const [myNod, setMyNod] = useState<NodTag | null>(null);
-  const displayNods: NodCounts = { ...(nods ?? {}) };
+  const displayNods: NodCounts = { ...(activeNods ?? {}) };
   if (myNod) displayNods[myNod] = (displayNods[myNod] ?? 0) + 1;
   const topTag = topNod(displayNods);
   const nodsBlock =
@@ -339,14 +475,14 @@ export function PhotoDetailView({
             </Mono>
           ) : (
             <View style={styles.nodChips}>
-              {nodsFor(category).map((t) => (
+              {nodsFor(activeCategory).map((t) => (
                 <Pressable
                   key={t.id}
                   accessibilityRole="button"
                   style={styles.nodChip}
                   onPress={() => {
                     setMyNod(t.id);
-                    void submitNod(id, t.id);
+                    void submitNod(activeId!, t.id);
                   }}
                 >
                   <Text style={styles.nodChipText}>{t.label}</Text>
@@ -361,7 +497,7 @@ export function PhotoDetailView({
   // (public-gallery RLS), only for the crowned photo — off the get_gallery path.
   const [potdNote, setPotdNote] = useState<string | null>(null);
   useEffect(() => {
-    if (status !== 'crown' || !id) {
+    if (activeStatus !== 'crown' || !activeId) {
       setPotdNote(null);
       return;
     }
@@ -369,7 +505,7 @@ export function PhotoDetailView({
     void supabase
       .from('submissions')
       .select('potd_note')
-      .eq('id', id)
+      .eq('id', activeId)
       .maybeSingle()
       .then(({ data }) => {
         if (alive) setPotdNote((data as { potd_note?: string | null } | null)?.potd_note ?? null);
@@ -377,7 +513,7 @@ export function PhotoDetailView({
     return () => {
       alive = false;
     };
-  }, [status, id]);
+  }, [activeStatus, activeId]);
 
   // The signed-appreciation pair — shooter (→ profile) + heart. Shared by the
   // route's on-cover overlay and the lightbox's bottom bar.
@@ -387,11 +523,11 @@ export function PhotoDetailView({
         accessibilityRole="button"
         accessibilityLabel="View shooter profile"
         style={styles.nameLeft}
-        disabled={!userId}
-        onPress={() => userId && openProfile(userId)}
+        disabled={!activeUserId}
+        onPress={() => activeUserId && openProfile(activeUserId)}
       >
         <Text style={styles.shooter} numberOfLines={1}>
-          {shooter || 'shooter'}
+          {activeShooter || 'shooter'}
         </Text>
       </Pressable>
       {statusWords && (
@@ -444,6 +580,78 @@ export function PhotoDetailView({
     </View>
   );
 
+  // In paging mode, render each photo in a full-width page so the FlatList can
+  // scroll horizontally with pagingEnabled. The FramedPhoto sits centered inside.
+  // The floating chrome (close / report) occupies the top of the stage — reserve
+  // it so the print centers in the space BELOW the header and its top corners are
+  // never tucked under the buttons.
+  const headroom = insets.top + 48;
+  // Fit the whole 3:4 print inside the measured stage (minus the headroom), then
+  // let width bound it too. `* 0.96` leaves a hair of breathing room top/bottom so
+  // the rail never kisses the bar. Before the first layout pass (stageH 0) fall
+  // back to the component estimate.
+  const availH = Math.max(stageH - headroom, 0);
+  const pagePrintW =
+    stageH > 0 ? Math.min(winW - space.gutter, availH * frame.aspect * 0.96) : printW;
+
+  const renderPagingItem = ({ item }: ListRenderItemInfo<PhotoDetailData>) => {
+    const itemUri = item.path ? (signedUris.get(item.path) ?? null) : null;
+    const itemFrame = asFrameId(item.frame);
+    const itemStatus = asStatus(item.status);
+    // A FRESH tap gesture per page — a single shared Gesture instance attached to
+    // several mounted pages at once makes Reanimated warn about re-tagging one
+    // worklet object. Each detector must own its instance.
+    const tap = Gesture.Tap()
+      .numberOfTaps(2)
+      .maxDuration(280)
+      .onEnd((e) => {
+        runOnJS(likeFromDoubleTap)(e.absoluteX, e.absoluteY);
+      });
+    return (
+      // Definite pixel height (the measured stage), NOT '100%': in a horizontal
+      // list a percentage height is unreliable, which left the absoluteFill close
+      // target collapsed to the print's band — so only the strip level with the
+      // frame exited. A concrete height makes the backdrop span the whole stage.
+      <View style={{ width: winW, height: stageH > 0 ? stageH : '100%' }}>
+        {/* Tap ANY dark area around the print to exit. A Pressable claims the touch
+            HERE so it can never fall through the transparent modal to the gallery
+            behind it, and the print's own GestureDetector swallows single taps, so
+            tapping the photo itself never dismisses (only double-tap-to-like). */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close photo" />
+        <View
+          pointerEvents="box-none"
+          style={{ flex: 1, paddingTop: headroom, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <GestureDetector gesture={tap}>
+          <View>
+            <FramedPhoto
+              photoUri={itemUri}
+              placeholderUri={item.placeholderUri}
+              dayNumber={item.day ?? 0}
+              frameId={itemFrame}
+              status={itemStatus}
+              width={pagePrintW}
+            />
+          </View>
+          </GestureDetector>
+        </View>
+      </View>
+    );
+  };
+
+  // Track page for identity bar + counter. A light selection tick on each new
+  // page gives the swipe a tactile detent, the way a filmstrip clicks between
+  // frames — fired only on a genuine page change (not the settle back onto the
+  // same page after a short drag).
+  const onScroll = (e: any) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / winW);
+    if (idx !== page) {
+      setPage(idx);
+      onPageChange?.(idx);
+      void Haptics.selectionAsync();
+    }
+  };
+
   return (
     <GestureHandlerRootView style={styles.ghRoot}>
     <View ref={rootRef} onLayout={measureRoot} style={[styles.root, lightbox && styles.lightboxRoot]}>
@@ -452,45 +660,105 @@ export function PhotoDetailView({
       {lightbox && (
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close photo" />
       )}
-      <View style={[styles.stage, lightbox && styles.stageCentered]} pointerEvents="box-none">
-        {/* Double-tap the print to like it. The detector also stops a single tap on
-            the print from reaching the lightbox backdrop, so the photo never
-            dismisses by accident. */}
-        <GestureDetector gesture={doubleTap}>
-        <View>
-          <FramedPhoto
-            photoUri={uri}
-            placeholderUri={placeholderUri}
-            dayNumber={day}
-            frameId={frameId}
-            status={status}
-            width={printW}
-          />
 
-          {/* Route mode signs the print on its cover — name + heart over a scrim. The
-              lightbox keeps the photo clean and moves them to a bottom bar (the archive
-              pattern), so the floating print reads unobstructed. */}
-          {!lightbox && (
-            <>
-              <LinearGradient pointerEvents="none" colors={fade} locations={[0, 1]} style={styles.fade} />
-              <View pointerEvents="box-none" style={styles.overlay}>
+      {hasPaging ? (
+        /* Paging mode: full-width FlatList pages through photos, vertical
+           pan-to-dismiss wraps the content, identity/heart/actions pinned below. */
+        <>
+          <Animated.View style={[StyleSheet.absoluteFill, styles.pagingBackdrop, backdropStyle]} />
+          <Animated.View style={[{ flex: 1 }, contentStyle]}>
+            <GestureDetector gesture={pan}>
+            <View
+              style={{ flex: 1 }}
+              pointerEvents="box-none"
+              onLayout={(e) => setStageH(e.nativeEvent.layout.height)}
+            >
+              <Animated.FlatList
+                ref={listRef as any}
+                data={photos}
+                keyExtractor={(it: PhotoDetailData) => it.id}
+                renderItem={renderPagingItem}
+                onScroll={scrollHandler}
+                scrollEventThrottle={16}
+                // Re-render cells when the print is sized (stage measured) AND on
+                // each page change, so the visible page's tap targets the active
+                // photo rather than a stale closure from the initial render.
+                extraData={`${pagePrintW}:${page}`}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                initialScrollIndex={initialIndex}
+                getItemLayout={(_, i) => ({ length: winW, offset: winW * i, index: i })}
+                // Guarantee the tapped photo is the one that opens: if the target
+                // cell wasn't laid out in time, initialScrollIndex silently gives up
+                // and the viewer sticks at index 0 — jump straight to its offset.
+                onScrollToIndexFailed={(info) =>
+                  listRef.current?.scrollToOffset({ offset: info.index * winW, animated: false })
+                }
+                onMomentumScrollEnd={onScroll}
+                // Snappier snap between frames, and keep the immediate neighbours
+                // mounted (windowSize 3 = current ± 1) so a swipe reveals the next
+                // print already drawn instead of flashing the thumb placeholder.
+                decelerationRate="fast"
+                windowSize={3}
+              />
+            </View>
+            </GestureDetector>
+            <SafeAreaView edges={['bottom']} style={styles.pagingBarSafe} pointerEvents="box-none">
+              {/* The bar's blank space (right of the name / status, around the heart
+                  and share) exits too — a Pressable owns the background, and the real
+                  controls (name → profile, nod chips, heart, share) sit on top and win
+                  the touch, so only the empty gaps and plain text dismiss. */}
+              <Pressable style={styles.pagingBar} onPress={onClose} accessibilityLabel="Close photo">
+                <View style={styles.pagingBarRow}>
+                  {identityBlock}
+                  {actionsBlock}
+                </View>
+                {photos && photos.length > 1 && <PagerDots scrollX={scrollX} total={photos.length} pageW={winW} />}
+              </Pressable>
+            </SafeAreaView>
+          </Animated.View>
+        </>
+      ) : (
+        /* Single-photo mode: original behavior. */
+        <>
+          <View style={[styles.stage, lightbox && styles.stageCentered]} pointerEvents="box-none">
+            <GestureDetector gesture={doubleTap}>
+            <View>
+              <FramedPhoto
+                photoUri={activeUri}
+                placeholderUri={activePlaceholder}
+                dayNumber={activeDay}
+                frameId={asFrameId(activeFrame)}
+                status={asStatus(activeStatus)}
+                width={printW}
+              />
+
+              {/* Route mode signs the print on its cover — name + heart over a scrim. The
+                  lightbox keeps the photo clean and moves them to a bottom bar (the archive
+                  pattern), so the floating print reads unobstructed. */}
+              {!lightbox && (
+                <>
+                  <LinearGradient pointerEvents="none" colors={fade} locations={[0, 1]} style={styles.fade} />
+                  <View pointerEvents="box-none" style={styles.overlay}>
+                    {identityBlock}
+                    {actionsBlock}
+                  </View>
+                </>
+              )}
+            </View>
+            </GestureDetector>
+          </View>
+
+          {lightbox && (
+            <SafeAreaView edges={['bottom']} style={styles.lightboxBarSafe} pointerEvents="box-none">
+              <View style={styles.lightboxBar}>
                 {identityBlock}
                 {actionsBlock}
               </View>
-            </>
+            </SafeAreaView>
           )}
-        </View>
-        </GestureDetector>
-      </View>
-
-      {lightbox && (
-        <View
-          style={[styles.lightboxBar, { paddingBottom: insets.bottom + space.gutter }]}
-          pointerEvents="box-none"
-        >
-          {identityBlock}
-          {actionsBlock}
-        </View>
+        </>
       )}
 
       {/* Chrome floats over the print as scrim chips. */}
@@ -532,16 +800,16 @@ export function PhotoDetailView({
       <View style={styles.shareStage} pointerEvents="none">
         <ShareCard
           ref={shareCardRef}
-          photoUri={uri}
-          dayNumber={day}
-          frameId={frameId}
-          status={status}
-          shooter={shooter || 'shooter'}
+          photoUri={activeUri}
+          dayNumber={activeDay}
+          frameId={asFrameId(activeFrame)}
+          status={asStatus(activeStatus)}
+          shooter={activeShooter || 'shooter'}
           theme={theme}
         />
       </View>
 
-      <ReportSheet visible={showReport} submissionId={id ?? null} onClose={() => setShowReport(false)} onReported={onReported} />
+      <ReportSheet visible={showReport} submissionId={activeId ?? null} onClose={() => setShowReport(false)} onReported={onReported} />
 
       <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} />
 
@@ -564,15 +832,12 @@ const styles = StyleSheet.create({
   stageCentered: { alignItems: 'center' }, // center the fixed-width print in lightbox mode
   // Lightbox meta bar, pinned to the screen bottom (archive pattern): shooter left,
   // heart right, on the name/eyebrow baseline. Sits in the dim below the floating print.
+  lightboxBarSafe: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   lightboxBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+    padding: space.gutter,
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     gap: 12,
-    paddingHorizontal: space.gutter,
   },
   // Both overlays stop at the top of the frame's rail (the bottom 9.6% of the
   // print), so PIQA, the day counter and the dot are never covered.
@@ -591,8 +856,11 @@ const styles = StyleSheet.create({
   },
   headerFloat: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 8,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -616,11 +884,35 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   nodChipText: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper },
-  nameLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  // alignSelf flex-start so the tap target hugs the name text — the identity block
+  // is a column (default cross-axis stretch), which otherwise widened this Pressable
+  // to the full bar so blank space right of the name opened the profile by mistake.
+  nameLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, alignSelf: 'flex-start' },
   shooter: { fontFamily: displayFamily, fontSize: typeScale.title, color: colors.paper, flexShrink: 1 },
   statusEyebrow: { letterSpacing: 1.5 },
   emptyReactors: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
   reactorScroll: { maxHeight: 320 },
   reactorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   reactorName: { flexShrink: 1, fontFamily: displayFamily, fontSize: typeScale.body, color: colors.paper },
+  // Fullscreen paging stage: a true near-black so the framed print reads as a
+  // hero object and the ink2 rail/border separates from the ground (the shared
+  // lightbox dim sits only ~one step off ink2, which made the frame edge vanish).
+  pagingBackdrop: { backgroundColor: '#080706' },
+  // Paging mode bar — sits in the flex layout below the FlatList.
+  pagingBarSafe: { backgroundColor: 'rgba(8,7,6,0.92)' },
+  pagingBar: {
+    padding: space.gutter,
+    gap: 4,
+  },
+  pagingBarRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  // Position pips (PagerDots): a fixed-width, clipped viewport centered under the
+  // identity/actions row; the track slides inside it and each pip scales in place.
+  dotsViewport: { alignSelf: 'center', height: DOT_BASE, marginTop: 4, overflow: 'hidden', flexDirection: 'row', alignItems: 'center' },
+  dotsTrack: { flexDirection: 'row', alignItems: 'center' },
+  dotSlot: { width: DOT_SLOT, alignItems: 'center', justifyContent: 'center' },
+  dotCircle: { width: DOT_BASE, height: DOT_BASE, borderRadius: DOT_BASE / 2 },
 });
