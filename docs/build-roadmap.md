@@ -24,27 +24,43 @@ Monetization is **post-retention** (spec §17 + monetization plan). Build the fe
 
 ---
 
+## Status — 2026-07-23
+
+**Phase 0 and Phase 1 are effectively DONE. Live in closed testing (Play, build 6 · versionCode 6 · runtime `b166691a`).** Real users are shooting the daily Subject (Day 1 = 2026-07-23). Now in the **bake** window: run the closed test, watch retention, then decide Phase 2.
+
+- **Shipped since the last roadmap:** PostHog analytics (+ build/OTA tracking) · schema align (prompts→subjects) · data export · full **Nods** (8 natural tags, category-tailored picker) · learning loop (hint / "Why this won" / journey stats) · Golden Shot · admin content + Subject-library calendar (66 Subjects) · **push notifications** (FCM, verified delivering — pulled forward from a later phase) · hearts = likes-only fix · ghost-submission guard · in-app **update prompt** · clean version display.
+- **Pulled forward:** push notifications now work end-to-end (was P2/growth) — the FCM native build is done, so it's OTA-forever from here.
+- **Deferred (native, need a build):** save-to-device (`expo-media-library` removed for Play policy) · **enable** social sign-in (modules baked into build 6, shipped disabled → flip on via OTA + credentials) · Sentry DSN (module native, inert until `EXPO_PUBLIC_SENTRY_DSN` set — OTA-class).
+- **Play gate ahead:** personal Play accounts need closed testing with ≥12 opted-in testers running ≥14 continuous days before you can apply for production access. Track that 14-day clock — start it during the bake, not after.
+
+**Next move:** let it bake / grow the closed test to 12+ testers, then **Phase 2 (Studios)** — or wire Sentry's DSN and enable social sign-in as quick launch-hardening while retention data accrues.
+
+---
+
 ## Phases
 
-### Phase 0 — Prep & launch hardening *(do first; some are compliance)*
+### Phase 0 — Prep & launch hardening *(DONE, except deferred natives)*
 **Goal:** measurable, reliable, compliant before feature work lands.
-- [ ] **Instrument** (PostHog funnels + retention dashboard) and **baseline** the alpha — the measuring stick for every exit gate. *(build-steps §0A)*
-- [ ] **Align the schema** — rename `prompts`→`subjects`, `prompt_drops`→`subject_drops`, and `votes.voter_id`→`curator_id` while the DB is tiny. *(build-steps §0B)*
-- [ ] **Crash & error monitoring** (Sentry) — nothing catches crashes today; critical on budget Android + the offline queue.
-- [ ] **Save your Shot to device** (`expo-media-library`) — basic photo-app expectation, currently missing.
-- [ ] **Data export ("Download my data")** — the privacy-right companion to the existing Delete Account (§12).
-- [ ] **Finish social sign-in** (Apple/Google) — in progress on `oauth-social-login`; Apple Sign-In becomes mandatory once iOS ships.
+- [x] **Instrument** (PostHog) + baseline — live; also tags every event with `app_build` / `ota_update_id` for OTA-rollout visibility. *(build-steps §0A)*
+- [x] **Align the schema** — `prompts`→`subjects`, `prompt_drops`→`subject_drops` shipped (0B). *(columns like `prompt_id` intentionally kept.)*
+- [~] **Crash & error monitoring** (Sentry) — native module IS in the binary; **inert until `EXPO_PUBLIC_SENTRY_DSN` is set** (wire via OTA env, no build).
+- [~] **Save your Shot to device** — **deferred**: `expo-media-library` was removed to satisfy Play's Photo & Video policy; re-add write-only when actually built.
+- [x] **Data export ("Download my data")** — shipped (§12 companion to Delete Account).
+- [~] **Finish social sign-in** (Apple/Google) — native modules **baked into build 6, shipped DISABLED**; enable later via OTA + Google/Apple credentials.
 
-**Exit gate:** analytics live · schema aligned · crash reporting on · export/delete both work.
+**Exit gate:** ✅ analytics live · schema aligned · export/delete work. (Sentry DSN + save-to-device deferred, not blocking.)
 
-### Phase 1 — Content & recognition *(retention core; cheap, high impact)*
+### Phase 1 — Content & recognition *(DONE)*
 **Goal:** beat the BeReal boredom curve and reclaim the feedback payoff users love.
-- [ ] **Subject library** to 60+, categorized; weekly **Golden Shot** + event scaffolding (event dates/labels already exist for event frames).
-- [ ] **Curator Nods** — fixed positive-tag set, attached when a curator picks; aggregate shown on the photo. Schema: `nods(curator_id, submission_id, tag)` (or extend `reactions`).
-- [ ] **Learning loop** — a technique hint per Subject · a "Why this won" line on the PotD · a private "your growth" view (best finishes over time, from existing data).
-- [ ] **Subject editorial calendar (admin)** — schedule Subjects, the weekly Golden Shot, and events. §3 makes the Subject library a first-class editorial product, so it needs an admin surface, not ad-hoc rows — and it's what keeps the anti-boredom bet fed.
+- [x] **Subject library** — **66 Subjects**, categorized (light/object/color/pov/absurd/emotion); weekly **Golden Shot** live.
+- [x] **Curator Nods** — shipped, then upgraded: **8 natural tags**, universal vocabulary, picker tailored per Subject category (`nods` table + `submit_nod` + aggregate on `decorate_photos`). See [[nods-design]].
+- [x] **Learning loop** — technique hint per Subject · "Why this won" PotD note · private "Your journey" stats. All live.
+- [x] **Subject editorial calendar (admin)** — `/admin` (daily hint / Golden / PotD note) + `/admin-library` (Subject CRUD + scheduling). No more hand-run SQL.
 
-**Exit gate:** D7/D30 + submissions/drop trending up on the alpha cohort.
+**Exit gate:** D7/D30 + submissions/drop trending up on the alpha cohort — **now being measured** (Day 1 = 2026-07-23).
+
+### Notifications — *(DONE this session, pulled forward from P2/growth)*
+- [x] **Push delivery** — FCM configured, `push` edge function + server-side triggers (drop-live / reveal / PotD / follow) via a 2-min `notify_pending` sweep + `send_push` (Vault-keyed). **Verified delivering** to real devices. Per-type preferences + quiet mode still TODO (a settings surface, OTA-class).
 
 ### Phase 2 — Studios *(belonging + virality; biggest new social subsystem)*
 **Goal:** friend-group retention + an invite-loop growth engine. Fair by design — reads global results, never a separate judged contest. Full spec in `feature-research.md` §4b.
@@ -83,5 +99,5 @@ Monetization is **post-retention** (spec §17 + monetization plan). Build the fe
 - **Nods (1)** and **studio standing (2b)** both read voting/results data — build the Nods schema first and reuse the pattern.
 - Every phase is **independently shippable to the closed test** — don't batch them into one big release.
 
-## Recommended first move
-Start with **Curator Nods + the PotD "Why this won"** (Phase 1). Smallest surface, no new infra, directly targets the #1 loved feature and the boredom risk — and it makes the *current* alpha stickier while you watch retention. Studios next, monetization last.
+## Recommended next move *(updated 2026-07-23)*
+Phase 0 + 1 shipped and notifications are live. **The bottleneck is now data, not code:** run the closed test, grow it to the **12+ testers × 14 days** Play requires, and watch whether D7/D30 + submissions/drop hold. While that bakes, the cheap launch-hardening wins are: **wire the Sentry DSN** (OTA env, catch crashes on real devices) and **enable social sign-in** (modules already baked in). Once retention shows signs of holding → **Phase 2 (Studios)**. Monetization stays last.
