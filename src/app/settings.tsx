@@ -13,11 +13,12 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useCallback, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useIsAdmin } from '@lib/admin';
 import { equipFrame, type FrameId } from '@lib/frames';
+import { useNotifPrefs } from '@lib/notifPrefs';
 import { deleteAccount, exportMyData, useProfile } from '@lib/profile';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/supabase';
@@ -36,6 +37,24 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
         {title}
       </Mono>
       <View style={styles.card}>{children}</View>
+    </View>
+  );
+}
+
+function ToggleRow({ label, value, onValueChange, disabled }: { label: string; value: boolean; onValueChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <View style={[styles.row, disabled ? styles.rowDisabled : null]}>
+      <Text style={styles.rowLabel} numberOfLines={1}>
+        {label}
+      </Text>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        disabled={disabled}
+        trackColor={{ false: colors.ink2, true: colors.safelight }}
+        thumbColor={colors.paper}
+        ios_backgroundColor={colors.ink2}
+      />
     </View>
   );
 }
@@ -118,6 +137,11 @@ export default function SettingsScreen() {
     }, []),
   );
 
+  // Per-category notification preferences (disabled visually when the OS permission
+  // is off — there's nothing to receive until that's granted).
+  const { prefs, toggle } = useNotifPrefs();
+  const prefsDisabled = notifOn === false;
+
   // Equipping only changes the profile frame (the avatar ring). Move the checkmark
   // optimistically so it's instant, then refresh the profile (stale-while-revalidate,
   // so the list never flashes to a loading state). Revert the optimistic pick on failure.
@@ -168,8 +192,18 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title="NOTIFICATIONS">
+          {prefs && (
+            <>
+              <ToggleRow label="New Subject" value={prefs.daily} disabled={prefsDisabled} onValueChange={() => toggle('daily')} />
+              <ToggleRow label="Results" value={prefs.results} disabled={prefsDisabled} onValueChange={() => toggle('results')} />
+              <ToggleRow label="Your photo did well" value={prefs.wins} disabled={prefsDisabled} onValueChange={() => toggle('wins')} />
+              <ToggleRow label="Appreciation" value={prefs.appreciation} disabled={prefsDisabled} onValueChange={() => toggle('appreciation')} />
+              <ToggleRow label="New follower" value={prefs.social} disabled={prefsDisabled} onValueChange={() => toggle('social')} />
+              <ToggleRow label="Quiet hours (9PM–8AM)" value={prefs.quiet} disabled={prefsDisabled} onValueChange={() => toggle('quiet')} />
+            </>
+          )}
           <Row
-            label="Push notifications"
+            label="System permission"
             value={notifOn === null ? undefined : notifOn ? 'On' : 'Off'}
             chevron
             onPress={() => void Linking.openSettings()}
@@ -253,6 +287,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   rowPressed: { backgroundColor: colors.ink },
+  rowDisabled: { opacity: 0.4 },
   rowLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper, flexShrink: 1 },
   rowDanger: { color: colors.heart },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
