@@ -138,6 +138,10 @@ type Props = PhotoDetailData & {
    *  tap outside it dismisses — the archive-viewer feel, for the in-place gallery
    *  modal. Off (default) = the full opaque screen used by the route. */
   lightbox?: boolean;
+  /** Hide the shooter name/profile link. For contexts where the shot is implicitly
+   *  the viewer's own (the activity inbox), so naming the shooter is redundant. The
+   *  status eyebrow, received nods and hearts still show. */
+  hideShooter?: boolean;
   /** Controlled heart mode. The gallery hosts BOTH the grid and this fullscreen,
    *  so it drives both from the same `useGalleryHearts` controller — passing the
    *  count/liked/toggle in here keeps the two surfaces identical and in sync (a
@@ -173,6 +177,7 @@ export function PhotoDetailView({
   onClose,
   onOpenProfile,
   lightbox = false,
+  hideShooter = false,
   heartCount,
   hearted,
   onToggleHeart,
@@ -548,17 +553,19 @@ export function PhotoDetailView({
   // route's on-cover overlay and the lightbox's bottom bar.
   const identityBlock = (
     <View style={styles.identity}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="View shooter profile"
-        style={styles.nameLeft}
-        disabled={!activeUserId}
-        onPress={() => activeUserId && openProfile(activeUserId)}
-      >
-        <Text style={styles.shooter} numberOfLines={1}>
-          {activeShooter || 'shooter'}
-        </Text>
-      </Pressable>
+      {!hideShooter && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View shooter profile"
+          style={styles.nameLeft}
+          disabled={!activeUserId}
+          onPress={() => activeUserId && openProfile(activeUserId)}
+        >
+          <Text style={styles.shooter} numberOfLines={1}>
+            {activeShooter || 'shooter'}
+          </Text>
+        </Pressable>
+      )}
       {statusWords && (
         <Mono
           size={typeScale.caption}

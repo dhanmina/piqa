@@ -16,26 +16,29 @@ export type ActivityKind = "potd" | "win" | "appreciation" | "follow";
 
 export type ActivityActor = { id: string; username: string; avatar_url: string | null };
 
-/** A row as returned by get_activity, with the private thumb already signed. */
-export type ActivityItem = {
+/** Raw shape as returned by get_activity (thumb_path/image_path are private paths). */
+type RawActivity = {
   id: string;
   kind: ActivityKind;
   created_at: string;
   seen: boolean;
   event_count: number;
   actor: ActivityActor | null;
-  /** The shot this row is about (potd/win/appreciation) — deep-links to /photo/[id]. */
+  /** The shot this row is about (potd/win/appreciation). */
   submission_id: string | null;
-  /** Raw full-res storage path, passed to the photo view (which signs it). */
+  /** Raw full-res storage path (signed on demand by the photo view). */
   image_path: string | null;
-  /** Signed thumb URL for the row's leading print, or null. */
-  thumb: string | null;
+  /** Raw thumb storage path (signed for the row, and a fallback for the view). */
+  thumb_path: string | null;
   /** The Subject text of the shot's drop, or null. */
   subject: string | null;
 };
 
-/** Raw shape before thumb signing (thumb_path is a private storage path). */
-type RawActivity = Omit<ActivityItem, "thumb"> & { thumb_path: string | null };
+/** A feed row with the leading thumb already signed for display. */
+export type ActivityItem = RawActivity & {
+  /** Signed thumb URL for the row's leading print, or null. */
+  thumb: string | null;
+};
 
 const PAGE = 30;
 const UNREAD_KEY = "activity:unread";
@@ -50,9 +53,9 @@ async function loadActivity(before?: string): Promise<ActivityItem[]> {
   const rows = (data as unknown as RawActivity[]) ?? [];
 
   const signed = await signThumbs(rows.map((r) => r.thumb_path).filter((p): p is string => !!p));
-  return rows.map(({ thumb_path, ...rest }) => ({
-    ...rest,
-    thumb: thumb_path ? signed.get(thumb_path) ?? null : null,
+  return rows.map((r) => ({
+    ...r,
+    thumb: r.thumb_path ? signed.get(r.thumb_path) ?? null : null,
   }));
 }
 

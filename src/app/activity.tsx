@@ -11,12 +11,14 @@
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Bell, Crown, Heart, Image as ImageIcon, type LucideIcon } from 'lucide-react-native';
-import { useEffect } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { markActivitySeen, useActivity, type ActivityItem } from '@lib/activity';
 import { capture } from '@lib/analytics';
+import { useSession } from '@lib/session';
+import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { Avatar } from '@/components/atoms/Avatar';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
@@ -106,7 +108,14 @@ function Row({ item, onPress }: { item: ActivityItem; onPress: () => void }) {
 
 export default function ActivityScreen() {
   const router = useRouter();
+  const { session } = useSession();
+  // Every potd/win/appreciation row is about the viewer's OWN shot, so the shot
+  // owner is always the signed-in user. Passing this makes PhotoDetailView's
+  // isOwn true — no nod picker, no hearting your own photo.
+  const myId = session?.user.id ?? null;
   const { items, refreshing, loadingMore, refresh, loadMore } = useActivity();
+  // The shot opened in the in-place fullscreen viewer (potd/win/appreciation rows).
+  const [viewer, setViewer] = useState<ActivityItem | null>(null);
 
   // Open = read. Clears the Today bell dot; measure opens for the retention funnel.
   useEffect(() => {
@@ -120,16 +129,27 @@ export default function ActivityScreen() {
       if (item.actor) router.push({ pathname: '/u/[id]', params: { id: item.actor.id } });
       return;
     }
-    // potd / win / appreciation → the exact shot that earned it.
-    if (item.submission_id) {
-      router.push({
-        pathname: '/photo/[id]',
-        params: { id: item.submission_id, ...(item.image_path ? { path: item.image_path } : {}) },
-      });
-    } else {
-      router.push('/(tabs)/gallery'); // fallback if the shot is somehow gone
-    }
+    // potd / win / appreciation → the exact shot that earned it, opened in place.
+    if (item.submission_id) setViewer(item);
+    else router.push('/(tabs)/gallery'); // fallback if the shot is somehow gone
   };
+
+  // One-item paging list for the viewer — the raw path is signed inside the view,
+  // the already-signed thumb shows instantly underneath. Same shape as the gallery.
+  const viewerPhotos = useMemo(
+    () =>
+      viewer?.submission_id
+        ? [
+            {
+              id: viewer.submission_id,
+              path: viewer.image_path ?? viewer.thumb_path ?? null,
+              placeholderUri: viewer.thumb,
+              userId: myId, // your own shot → isOwn true (no nod picker / self-heart)
+            },
+          ]
+        : [],
+    [viewer, myId],
+  );
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -158,6 +178,35 @@ export default function ActivityScreen() {
           }
         />
       )}
+
+      {/* In-place fullscreen for the shot that earned the row. Hearts/reactors/nods
+          are uncontrolled here, so the view fetches them live from the submission. */}
+      <Modal
+        visible={viewer !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setViewer(null)}
+        statusBarTranslucent
+      >
+        {viewer?.submission_id && (
+          <PhotoDetailView
+            lightbox
+            hideShooter
+            id={viewer.submission_id}
+            path={viewer.image_path ?? viewer.thumb_path ?? ''}
+            placeholderUri={viewer.thumb}
+            userId={myId}
+            theme={viewer.subject ?? undefined}
+            photos={viewerPhotos}
+            initialIndex={0}
+            onClose={() => setViewer(null)}
+            onOpenProfile={(uid) => {
+              setViewer(null);
+              router.push({ pathname: '/u/[id]', params: { id: uid } });
+            }}
+          />
+        )}
+      </Modal>
     </SafeAreaView>
   );
 }
