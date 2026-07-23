@@ -134,6 +134,10 @@ export default function ActivityScreen() {
     else router.push('/(tabs)/gallery'); // fallback if the shot is somehow gone
   };
 
+  // The shot's real standing (source of truth = the submission, not the row kind),
+  // so a Top 10 shot never reads as Photo of the Day.
+  const viewerStatus = viewer?.is_potd ? 'crown' : viewer?.in_gallery ? 'top10' : null;
+
   // One-item paging list for the viewer — the raw path is signed inside the view,
   // the already-signed thumb shows instantly underneath. Same shape as the gallery.
   const viewerPhotos = useMemo(
@@ -146,6 +150,7 @@ export default function ActivityScreen() {
               placeholderUri: viewer.thumb,
               userId: myId, // your own shot → isOwn true (no nod picker / self-heart)
               day: viewer.day_number ?? 0,
+              status: viewer.is_potd ? 'crown' : viewer.in_gallery ? 'top10' : null,
             },
           ]
         : [],
@@ -198,6 +203,7 @@ export default function ActivityScreen() {
             placeholderUri={viewer.thumb}
             userId={myId}
             day={viewer.day_number ?? 0}
+            status={viewerStatus}
             theme={viewer.subject ?? undefined}
             photos={viewerPhotos}
             initialIndex={0}
