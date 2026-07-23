@@ -586,13 +586,18 @@ export function PhotoDetailView({
   // it so the print centers in the space BELOW the header and its top corners are
   // never tucked under the buttons.
   const headroom = insets.top + 48;
-  // Fit the whole 3:4 print inside the measured stage (minus the headroom), then
-  // let width bound it too. `* 0.96` leaves a hair of breathing room top/bottom so
-  // the rail never kisses the bar. Before the first layout pass (stageH 0) fall
-  // back to the component estimate.
-  const availH = Math.max(stageH - headroom, 0);
+  // Reserve a STABLE bottom band for the meta bar. The bar is an overlay (absolute,
+  // below), and its height varies per photo — nod chips on others' shots, none on
+  // your own, a "why it won" note on the crown. Sizing/centering the print against
+  // the live stage therefore made it resize and shift between pages (your own shots
+  // "jumped" down). A fixed reserve gives the print an identical box on every page.
+  const BAR_RESERVE = insets.bottom + 160;
+  // Fit the whole 3:4 print inside the stage minus the header and that reserved band;
+  // width bounds it too. `* 0.98` leaves a hair of breathing room. Before the first
+  // layout pass (stageH 0) fall back to the component estimate.
+  const availH = Math.max(stageH - headroom - BAR_RESERVE, 0);
   const pagePrintW =
-    stageH > 0 ? Math.min(winW - space.gutter, availH * frame.aspect * 0.96) : printW;
+    stageH > 0 ? Math.min(winW - space.gutter, availH * frame.aspect * 0.98) : printW;
 
   const renderPagingItem = ({ item }: ListRenderItemInfo<PhotoDetailData>) => {
     const itemUri = item.path ? (signedUris.get(item.path) ?? null) : null;
@@ -620,7 +625,7 @@ export function PhotoDetailView({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close photo" />
         <View
           pointerEvents="box-none"
-          style={{ flex: 1, paddingTop: headroom, alignItems: 'center', justifyContent: 'center' }}
+          style={{ flex: 1, paddingTop: headroom, paddingBottom: BAR_RESERVE, alignItems: 'center', justifyContent: 'center' }}
         >
           <GestureDetector gesture={tap}>
           <View>
@@ -898,8 +903,9 @@ const styles = StyleSheet.create({
   // hero object and the ink2 rail/border separates from the ground (the shared
   // lightbox dim sits only ~one step off ink2, which made the frame edge vanish).
   pagingBackdrop: { backgroundColor: '#080706' },
-  // Paging mode bar — sits in the flex layout below the FlatList.
-  pagingBarSafe: { backgroundColor: 'rgba(8,7,6,0.92)' },
+  // Paging mode bar — an ABSOLUTE overlay pinned to the bottom, so its per-photo
+  // height (nod chips, "why it won") never resizes the stage and shifts the print.
+  pagingBarSafe: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(8,7,6,0.92)' },
   pagingBar: {
     padding: space.gutter,
     gap: 4,
