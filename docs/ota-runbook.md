@@ -17,6 +17,23 @@ eas update \
 
 Then the app applies it on the **second** relaunch (see "How it reaches phones").
 
+## Order of operations (do NOT reorder)
+
+**Always: commit → migration → OTA → verify.**
+
+1. **Commit first.** `eas update` publishes the working tree (trap #2), so commit
+   your change and get `git status` clean BEFORE publishing. This guarantees what
+   ships == a known commit, and stops WIP / another session's edits leaking to prod.
+2. **Apply DB migrations to prod next** (if the change has any): `supabase db push
+   --linked`. Server before client — a newly OTA'd bundle may read a new column /
+   RPC, so the DB must have it first. Keep migrations backward-compatible so they
+   don't break the OLD bundle still running on phones until they update.
+3. **Then OTA** (`eas update …`) — ships the now-clean tree to phones.
+4. **Verify** (channel/runtime match) and do the two-relaunch check.
+
+Why commit before OTA and not after: if you OTA first and the tree had uncommitted
+junk, it is already in production before anyone reviewed it. Commit is the gate.
+
 ## What can and cannot ship over OTA
 
 - **OTA-able:** JS/TS, React components, screens, copy, styles, images already in
