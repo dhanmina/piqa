@@ -9,7 +9,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { BookImage, CloudOff, Star, Trash2, X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -59,6 +59,9 @@ export default function ArchiveScreen() {
   const [selected, setSelected] = useState<ArchiveItem | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [gridWidth, setGridWidth] = useState(0);
+  const cellWidth = gridWidth > 0 ? Math.floor((gridWidth - space.gridGap) / 2) : undefined;
+  const cellStyle = [styles.cell, cellWidth ? { width: cellWidth } : null];
   // Optimistic star state per item, so the tile fills instantly instead of
   // waiting on the server round-trip + refresh. Cleared once real data lands.
   const [optimisticStars, setOptimisticStars] = useState<Record<string, boolean>>({});
@@ -308,13 +311,16 @@ export default function ArchiveScreen() {
                   {section.items.length}
                 </Mono>
               </View>
-              <View style={styles.grid}>
+              <View style={styles.grid} onLayout={(e: LayoutChangeEvent) => {
+                const w = e.nativeEvent.layout.width;
+                if (w > 0 && w !== gridWidth) setGridWidth(w);
+              }}>
                 {section.items.map((it) => {
                   // A syncing capture: show it now (local image) with the queued mark,
                   // but no tap target and no star — there's no server row to act on yet.
                   if (it.queued) {
                     return (
-                      <View key={`${it.type}:${it.id}`} style={styles.cell}>
+                      <View key={`${it.type}:${it.id}`} style={cellStyle}>
                         <PhotoTile uri={it.uri} badge="queued" aspectRatio={frame.aspect} />
                       </View>
                     );
@@ -324,7 +330,7 @@ export default function ArchiveScreen() {
                     <Pressable
                       key={`${it.type}:${it.id}`}
                       accessibilityRole="button"
-                      style={styles.cell}
+                      style={cellStyle}
                       onPress={() => setSelected({ ...it, starred })}
                     >
                       {/* Daily shots render as the framed print — the rail already
@@ -491,7 +497,7 @@ const styles = StyleSheet.create({
   section: { gap: 10 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  cell: { width: '48.8%' },
+  cell: {},
   skelNum: { width: 56, height: typeScale.display, borderRadius: 4, backgroundColor: colors.ink2 },
   skelChip: { width: 64, height: 34, borderRadius: radius.pill, backgroundColor: colors.ink2 },
   skelChipWide: { width: 104, height: 34, borderRadius: radius.pill, backgroundColor: colors.ink2 },
