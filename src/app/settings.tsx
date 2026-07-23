@@ -5,6 +5,7 @@
  * so "equip a frame" never sits a tap above "delete account" the way it did in the
  * old flat sheet. The frame picker stays a focused sheet launched from here.
  */
+import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import * as Updates from 'expo-updates';
@@ -82,12 +83,16 @@ export default function SettingsScreen() {
   const [busy, setBusy] = useState(false);
   const isAdmin = useIsAdmin();
 
-  const version = Constants.expoConfig?.version ?? '1.0.0';
+  // What every user sees: a clean, standard version string — "1.0.0 (6)" — where
+  // the parenthetical is the store build number (versionCode). No dev jargon.
+  const semver = Constants.expoConfig?.version ?? '1.0.0';
+  const buildNumber = Application.nativeBuildVersion; // "6" on Android, null in dev/web
+  const version = buildNumber ? `${semver} (${buildNumber})` : semver;
 
-  // OTA canary: "embedded" = running the built-in bundle (no update applied yet),
-  // otherwise the short id of the live OTA. Lets us (and alpha reporters) tell at a
-  // glance which build a phone is actually running.
-  const build = Updates.isEmbeddedLaunch ? 'embedded' : (Updates.updateId?.slice(0, 8) ?? 'ota');
+  // OTA canary — ADMIN ONLY. "embedded" = running the built-in bundle (no update
+  // applied yet), else the short id of the live OTA. Meaningless to end users, so
+  // it's gated behind isAdmin; alpha reporters who need it are admins.
+  const otaBuild = Updates.isEmbeddedLaunch ? 'embedded' : (Updates.updateId?.slice(0, 8) ?? 'ota');
 
   // Contact opens the mail app pre-addressed to support. Subject is tagged with the
   // app version so replies arrive with the context we'd otherwise have to ask for.
@@ -184,8 +189,12 @@ export default function SettingsScreen() {
         <Section title="ABOUT">
           <Row label="Version" value={version} />
           <View style={styles.divider} />
-          <Row label="Build" value={build} />
-          <View style={styles.divider} />
+          {isAdmin && (
+            <>
+              <Row label="Build" value={otaBuild} />
+              <View style={styles.divider} />
+            </>
+          )}
           <Row label="Terms of Service" chevron onPress={() => router.push('/legal/terms')} />
           <View style={styles.divider} />
           <Row label="Privacy Policy" chevron onPress={() => router.push('/legal/privacy')} />
