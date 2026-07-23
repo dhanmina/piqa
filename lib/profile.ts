@@ -30,6 +30,7 @@ export type ProfileData = {
   username: string;
   avatarUrl: string | null;
   xp: number;
+  shots: number;
   galleries: number;
   streakWeeks: number;
   hearts: number;
@@ -54,6 +55,7 @@ type RawProfile = {
   username: string;
   avatar_url: string | null;
   xp: number;
+  shots: number;
   galleries: number;
   streak_weeks: number;
   hearts: number;
@@ -146,6 +148,7 @@ export async function fetchProfile(
     username: p.username,
     avatarUrl: p.avatar_url,
     xp: p.xp,
+    shots: p.shots,
     galleries: p.galleries,
     streakWeeks: p.streak_weeks,
     hearts: p.hearts,

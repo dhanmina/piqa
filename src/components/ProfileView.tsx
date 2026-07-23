@@ -163,6 +163,10 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
             </View>
             <View style={styles.tallyRow}>
               <Mono size={typeScale.caption} color={colors.paper60}>
+                {(data?.shots ?? 0)} {plural(data?.shots ?? 0, 'shot', 'shots')}
+              </Mono>
+              <Mono size={typeScale.caption} color={colors.paper40}>·</Mono>
+              <Mono size={typeScale.caption} color={colors.paper60}>
                 {data?.galleries ?? 0} {plural(data?.galleries ?? 0, 'gallery', 'galleries')}
               </Mono>
               <Mono size={typeScale.caption} color={colors.paper40}>·</Mono>
