@@ -144,22 +144,17 @@ export default function CurateScreen() {
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.center}>
-          {hasCurated ? (
-            <>
-              <Text style={styles.bigLine}>You’re all caught up</Text>
-              <Text style={styles.subLine}>
-                You’ve curated every shot in today’s round. More appear as people shoot.
-              </Text>
-              <Button label="Back to Today" fullWidth onPress={close} />
-            </>
-          ) : (
-            <EmptyState
-              icon={Aperture}
-              line="No shots to curate yet. They roll in as people shoot today."
-              ctaLabel="Back to Today"
-              onCta={close}
-            />
-          )}
+          {/* Always an icon + clear line + CTA — never a bare/blank screen. */}
+          <EmptyState
+            icon={Aperture}
+            line={
+              hasCurated
+                ? 'You’re all caught up. You’ve curated every shot in today’s round. More appear as people shoot.'
+                : 'No shots to curate yet. They roll in as people shoot today.'
+            }
+            ctaLabel="Back to Today"
+            onCta={close}
+          />
         </View>
       </SafeAreaView>
     );

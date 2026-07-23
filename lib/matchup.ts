@@ -39,12 +39,17 @@ export async function fetchMatchupSet(): Promise<MatchupSet> {
 
   const signed = paths.length > 0 ? await signThumbs(paths) : new Map<string, string>();
   const uri = (path: string | null) => (path ? (signed.get(path) ?? null) : null);
-  const pairs = raw.pairs.map((p) => ({
-    aId: p.a.id,
-    bId: p.b.id,
-    aUri: uri(p.a.thumb_path),
-    bUri: uri(p.b.thumb_path),
-  }));
+  // A pair must have BOTH images to be judged fairly — drop any whose thumb didn't
+  // sign, so curate never renders a blank pair. If that empties the set, the screen
+  // falls to the clear "all caught up" message instead of showing nothing.
+  const pairs = raw.pairs
+    .map((p) => ({
+      aId: p.a.id,
+      bId: p.b.id,
+      aUri: uri(p.a.thumb_path),
+      bUri: uri(p.b.thumb_path),
+    }))
+    .filter((p): p is { aId: string; bId: string; aUri: string; bUri: string } => !!p.aUri && !!p.bUri);
 
   // Warm the cache for the whole set — upcoming pairs are then instant.
   const all = pairs.flatMap((p) => [p.aUri, p.bUri]).filter((u): u is string => !!u);
