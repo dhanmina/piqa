@@ -200,17 +200,13 @@ export default function GalleryScreen() {
     setViewerIndex(idx >= 0 ? idx : 0);
   };
 
-  // Rotate the list so the tapped shot is FIRST — you open on what you tapped and
-  // swipe forward through the rest, wrapping past the end back to the ones before
-  // it (so nothing is unreachable). Starting at 0 also sidesteps FlatList's flaky
-  // initialScrollIndex entirely.
-  const orderedPhotos = useMemo(
-    () =>
-      viewerIndex > 0
-        ? [...activePhotos.slice(viewerIndex), ...activePhotos.slice(0, viewerIndex)]
-        : activePhotos,
-    [activePhotos, viewerIndex],
-  );
+  // Page in the gallery's own visual order — PotD cover first, then the grid
+  // top-to-bottom — and just open ON the tapped shot (initialIndex below). NOT
+  // rotated: rotating put the ones before the tapped shot (the PotD included)
+  // right after it, so tapping any Top 10 made the PotD read as "next". The
+  // viewer's getItemLayout + onScrollToIndexFailed make initialScrollIndex
+  // reliable, so no rotation is needed to land on the tapped shot.
+  const orderedPhotos = activePhotos;
 
   // Map ordered photos to PhotoDetailData for the viewer's paging list.
   const viewerPhotos = useMemo(() => orderedPhotos.map((p) => ({
@@ -268,11 +264,11 @@ export default function GalleryScreen() {
             setViewer(null);
             router.push({ pathname: '/u/[id]', params: { id: uid } });
           }}
-          // Paging: the list is already rotated to start on the tapped shot, so the
-          // viewer always opens at 0 and pages forward. Map the page back through the
-          // rotated order to keep the heart controller bound to the visible photo.
+          // Paging follows the gallery's visual order; open ON the tapped shot and
+          // page forward from there. onPageChange keeps the heart controller bound
+          // to the visible photo.
           photos={viewerPhotos}
-          initialIndex={0}
+          initialIndex={viewerIndex}
           onPageChange={(idx) => {
             const p = orderedPhotos[idx];
             if (p) setViewer(p as GalleryDetailPhoto);
