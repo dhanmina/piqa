@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
@@ -128,6 +129,14 @@ export function FramedPhoto({
   children,
 }: FramedPhotoProps) {
   const def = useFrameDef(frameId);
+  const [loadError, setLoadError] = useState(false);
+
+  // Reset error state when photoUri changes (e.g. on re-sign after pull-to-refresh).
+  useEffect(() => setLoadError(false), [photoUri]);
+
+  // Hide broken image, show skeleton.
+  const displayPhotoUri = loadError ? null : photoUri;
+  const displayPlaceholderUri = loadError ? null : placeholderUri;
 
   // Zero-pad to three while the counter still fits three; after that let it grow.
   // The rail is laid out so nothing shifts up to five digits.
@@ -137,19 +146,20 @@ export function FramedPhoto({
     <View style={[styles.print, width !== undefined && { width }, style]}>
       {children ? (
         <View style={[styles.window, styles.windowClip]}>{children}</View>
-      ) : photoUri || placeholderUri ? (
+      ) : displayPhotoUri || displayPlaceholderUri ? (
         <Image
           // Progressive, no blink: the cached thumb sits in `placeholder` and holds
           // the frame; `source` (full-res) is the ONLY thing that loads, crossfading
           // in on top. Keeping source stable — never thumb→full-res — avoids a reload.
           // cacheKey pins the disk cache to the object (not the rotating signed URL),
           // so a restart reuses saved bytes instead of re-downloading on mobile data.
-          source={photoUri ? { uri: photoUri, cacheKey: imageCacheKey(photoUri) } : undefined}
-          placeholder={placeholderUri ? { uri: placeholderUri, cacheKey: imageCacheKey(placeholderUri) } : undefined}
+          source={displayPhotoUri ? { uri: displayPhotoUri, cacheKey: imageCacheKey(displayPhotoUri) } : undefined}
+          placeholder={displayPlaceholderUri ? { uri: displayPlaceholderUri, cacheKey: imageCacheKey(displayPlaceholderUri) } : undefined}
           placeholderContentFit="cover"
           style={styles.window}
           contentFit="cover"
           transition={100}
+          onError={() => setLoadError(true)}
         />
       ) : (
         <View style={[styles.window, styles.skeleton]} />

@@ -91,7 +91,7 @@ export default function ArchiveScreen() {
     let alive = true;
     void signThumbs(paths).then((m) => {
       if (alive) void Image.prefetch([...m.values()]);
-    });
+    }).catch(() => {});
     return () => {
       alive = false;
     };

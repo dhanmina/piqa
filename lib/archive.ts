@@ -112,6 +112,7 @@ export async function fetchArchive(): Promise<Archive> {
       .from("free_shots")
       .select("id, image_path, thumb_path, captured_at, starred, starred_at")
       .eq("user_id", uid)
+      .not("thumb_path", "is", null)
       .order("captured_at", { ascending: false }),
     supabase
       .from("submissions")
