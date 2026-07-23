@@ -136,12 +136,15 @@ export default function CurateScreen() {
 
   if (phase === 'empty') {
     // Two very different empties: you judged everything available (a real
-    // completion — expected early when only a few shots exist), or nothing is
-    // in yet. Reframe the first as done, not as a dead-end.
+    // completion, expected early when only a few shots exist), or nothing is
+    // in yet. Reframe the first as done, not as a dead-end. `remaining < cap`
+    // means you've voted on this drop before (even in an earlier session), so
+    // "caught up" is right even when this session made no picks yet.
+    const hasCurated = sessionPicks > 0 || remaining < cap;
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.center}>
-          {sessionPicks > 0 ? (
+          {hasCurated ? (
             <>
               <Text style={styles.bigLine}>You’re all caught up</Text>
               <Text style={styles.subLine}>
