@@ -62,6 +62,31 @@ Monetization is **post-retention** (spec §17 + monetization plan). Build the fe
 ### Notifications — *(DONE this session, pulled forward from P2/growth)*
 - [x] **Push delivery** — FCM configured, `push` edge function + server-side triggers (drop-live / reveal / PotD / follow) via a 2-min `notify_pending` sweep + `send_push` (Vault-keyed). **Verified delivering** to real devices. Per-type preferences + quiet mode still TODO (a settings surface, OTA-class).
 
+### Phase 1.5 — Safety, Settings & Experience polish *(threads during the bake; the safety items GATE production access)*
+**Goal:** close the two store-compliance gaps that block public release, round out the Settings surface a photography app is expected to have, and sharpen the daily reveal into the ceremony that actually drives return. Sourced from the 2026-07-24 design audit (settings + wow/retention pass). Every wow item stays inside the Darkroom laws: no new colors, no gradients, no sound, prints not bubbles.
+
+**A — Safety & compliance *(do FIRST; a UGC photo app cannot pass Play/App Store review without these)***
+- [ ] **Block & mute** — a block action on every profile (`/u/[id]` overflow) and every photo detail, plus a managed "Blocked accounts" list in Settings. Blocking hides both directions (their work leaves your galleries/curation pool, yours leaves theirs).
+- [ ] **Report content & report account** — a report flow on every photo and profile, routed to the existing `/admin` content panel for triage. Store policy requires an in-app report path for user content.
+- [ ] **Mature-content control** — a "Blur sensitive content" toggle now (manual report → hide covers the gap), wired to the NSFWJS classifier when it lands (it's on [[piqa-not-yet-built]]).
+
+**B — Settings surface *(photography-app table stakes)***
+- [ ] **Camera & Capture section** — save originals to camera roll (off by default), viewfinder grid/level overlay, mirror front camera. (Save-to-device is still blocked on the deferred `expo-media-library` re-add — Play policy.)
+- [ ] **Data & Storage** — "Upload over Wi-Fi only" (rides the existing offline capture queue) + "Clear cache" with size shown.
+- [ ] **Account management** — change email / change password / connected sign-in methods (email is display-only today).
+- [ ] **How Piqa works / Help** — a short, on-brand explainer of blind curation, the 4-of-7 streak, and why there are no follower counts. Turns the fairness firewall (a real differentiator most users never discover) into a trust-and-wow surface, not a boring FAQ.
+- [ ] **Hide the OTA "Build" row from non-admins** — it reads as broken to normal users; keep it admin-only. (Already flagged `TODO(launch)` in `settings.tsx`; PostHog keeps the signal.)
+- [ ] **Drop-time reminder toggle** in Notifications ("remind me before the drop") — feeds the retention loop below.
+
+**C — Experience wow *(retention; the moments you already own, dramatized)***
+- [ ] **Sequenced morning reveal** — open on a black frame → PotD crown animates in first (the one crown-gold moment of the day) → your own result → then the gallery staggers in (`revealStaggerMs` already exists). Make opening the push feel like developing a print, not loading a screen. This is the daily "Wrapped moment" and the single highest-leverage retention change.
+- [ ] **Streak relight moment** — on a dead→alive transition today, a brief flame flare + haptic so recovering a streak *feels* earned. Never a full-screen interstitial (violates the calm).
+- [ ] **Make earned recognition push-worthy** — a Nod on your shot and a gallery/PotD placement should be openable, emotional push moments ("A curator noticed your light"). Recognition-you-earned-blind is the payoff that makes the next submission worth it.
+- [ ] **First-run "aha"** — end onboarding by having the user take one practice shot and watch it become a framed print (the core magic in ~30s, no waiting for a drop). Fixes the cold-start bounce when someone arrives between drops.
+- [ ] **Weekly "prints" recap** — a beautiful, shareable print-card of the week's best frame + Nods + streak + galleries. *(Already listed under Growth loops as "your week in photos" — this is its wow-bearing, exportable sibling; build once, serve both.)*
+
+**Exit gate:** block + report + mature filter shipped and verified (**production access unblocked**); the new Settings sections live; the morning reveal reads as a ceremony on device.
+
 ### Phase 2 — Studios *(belonging + virality; biggest new social subsystem)*
 **Goal:** friend-group retention + an invite-loop growth engine. Fair by design — reads global results, never a separate judged contest. Full spec in `feature-research.md` §4b.
 - [ ] **2a — Group model:** `studios`, `studio_members`, invites/links; create → name → invite → join. Ship first with only a **shared studio streak** ("play together"). No scoring yet.
@@ -100,4 +125,4 @@ Monetization is **post-retention** (spec §17 + monetization plan). Build the fe
 - Every phase is **independently shippable to the closed test** — don't batch them into one big release.
 
 ## Recommended next move *(updated 2026-07-23)*
-Phase 0 + 1 shipped and notifications are live. **The bottleneck is now data, not code:** run the closed test, grow it to the **12+ testers × 14 days** Play requires, and watch whether D7/D30 + submissions/drop hold. While that bakes, the cheap launch-hardening wins are: **wire the Sentry DSN** (OTA env, catch crashes on real devices) and **enable social sign-in** (modules already baked in). Once retention shows signs of holding → **Phase 2 (Studios)**. Monetization stays last.
+Phase 0 + 1 shipped and notifications are live. **The bottleneck is now data, not code:** run the closed test, grow it to the **12+ testers × 14 days** Play requires, and watch whether D7/D30 + submissions/drop hold. While that bakes, the highest-value work is **Phase 1.5**: ship **Safety (block + report + mature filter)** because it *gates production access* on Play/App Store, then the **sequenced morning reveal** because it's the biggest retention lever you already own. The cheap launch-hardening wins alongside it: **wire the Sentry DSN** (OTA env, catch crashes on real devices) and **enable social sign-in** (modules already baked in). Once retention shows signs of holding → **Phase 2 (Studios)**. Monetization stays last.

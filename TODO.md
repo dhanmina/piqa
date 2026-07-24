@@ -2,6 +2,16 @@
 
 Things that must not silently ship. Check items off only when done on-device.
 
+## Safety & store compliance (GATES production access)
+
+- [ ] **Block & report** — a UGC photo app cannot pass Play/App Store review
+      without an in-app **block/mute** and a **report content + report account**
+      flow. Add block on every profile (`/u/[id]` overflow) and photo detail,
+      a managed "Blocked accounts" list in Settings, and route reports to the
+      existing `/admin` panel. See `docs/build-roadmap.md` → Phase 1.5A.
+- [ ] **Mature-content control** — a "Blur sensitive content" toggle (manual
+      report → hide covers the gap until the NSFWJS classifier lands).
+
 ## Brand assets
 
 - [ ] **Custom asymmetric heart SVG** — `src/components/atoms/HeartGlyph.tsx`
