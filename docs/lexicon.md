@@ -61,6 +61,28 @@ Legend: ✅ say this · 🔧 internal/code · 🚫 never say (and why)
 ## Locked
 User = **Photographer** ("you" in-app) · daily theme = **Subject** (context-framed) · entry status = **Locked in** · friend group = **Studio** · studio creator = **Director** · members = **the Studio / studio member** · craft recognition = **Nods** (shown as "Curators nodded: Great light ×38"). Together: *a **Studio** of **Photographers**, run by a **Director**, shooting the daily **Subject**.*
 
+---
+
+## Admin vocabulary
+
+The admin section is an in-app editorial and operations panel. Vocabulary stays in the photography world — no SaaS jargon ("dashboard," "metrics," "KPIs").
+
+| Concept | ✅ User-facing (admin) | 🔧 Internal / code | 🚫 Never say |
+|---|---|---|---|
+| The admin entry point | **Admin panel** | `/admin` | dashboard, console, CMS |
+| Daily editorial screen | **Content panel** | `/admin-content` | editor, settings, config |
+| Subject queue manager | **Subject library** | `/admin-library` | prompt library, calendar, queue |
+| User management | **Members** | `/admin-members` | users, user list, member management |
+| Flagged content review | **Moderation** | `/admin-moderation` | reports, flagging, review queue |
+| Admin action log | **Audit feed** | `/admin-audit` | audit log, history, changelog |
+| Pre-launch signup list | **Waitlist** | `/admin-waitlist` | signup list, queue |
+| Platform stats | **stats** (as in "Photographers," "Submissions") | `admin_analytics` | metrics, KPIs, analytics dashboard |
+| Engagement metrics | **Engagement** (as in "participation rate") | `admin_engagement` | DAU, MAU, retention |
+| Flagged submission | **report** / "pending report" | `reports` | flag, ticket, issue |
+| Quarantined photo | **Quarantined** | `quarantined` | blocked, hidden, removed |
+| Weekly best photo | **Golden Shot** | `is_golden` | featured, spotlight |
+| Technique tip | **hint** / "technique hint" | `hint` | tip, advice, prompt hint |
+
 ## Open naming decisions
 - Whether to soften "Photo of the Day" to a shorter spoken form ("the Crown"?) in casual UI.
 - Event names once the events calendar exists (Golden Shot + seasonal themes).

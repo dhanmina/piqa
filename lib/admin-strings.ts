@@ -1,0 +1,132 @@
+/**
+ * Admin UI strings — single source of truth for every user-facing label in the
+ * admin section. Follows docs/lexicon.md vocabulary: "Subject" (not prompt),
+ * "Curator" (not voter), "pick" (not vote), photography-native language.
+ *
+ * Keys are dot-organised by screen. When adding a new admin screen, add its
+ * strings here first — components consume from this file, never inline.
+ */
+export const S = {
+  // ── Shared ──────────────────────────────────────────────────────────────
+  notAuthorized: 'Not authorized.',
+
+  // ── Settings entry ──────────────────────────────────────────────────────
+  settingsAdmin: 'Admin panel',
+
+  // ── Admin hub (dashboard) ───────────────────────────────────────────────
+  hubTitle: 'Admin',
+  hubStatsPhotographers: 'Photographers',
+  hubStatsSubmissions: 'Submissions',
+  hubStatsActiveStreaks: 'Active streaks',
+  hubStatsPro: 'Piqa Pro',
+  hubTodayTitle: "TODAY'S DROP",
+  hubTodayEmpty: 'No drop scheduled for {region} yet.',
+  hubQuickActions: 'QUICK ACTIONS',
+  hubActionContent: 'Content panel',
+  hubActionLibrary: 'Subject library',
+  hubActionMembers: 'Members',
+  hubActionModeration: 'Moderation',
+  hubActionAudit: 'Audit feed',
+  hubActionWaitlist: 'Waitlist',
+  hubEngagement: 'ENGAGEMENT',
+  hubEngagementSubmitters: 'Submitters',
+  hubEngagementVoters: 'Voters',
+  hubEngagementRate: 'Participation',
+  hubRecentCrowns: 'RECENT CROWNS',
+  hubCrownNoWinner: 'No PotD yet',
+
+  // ── Content panel (daily editorial) ─────────────────────────────────────
+  contentTitle: 'Admin · Content',
+  contentLibraryCta: 'Subject library →',
+  contentToday: 'TODAY',
+  contentClosesIn: 'CLOSES IN',
+  contentGoldenShot: 'GOLDEN SHOT',
+  contentGoldenActive: 'This drop is a Golden Shot — the Shot card shows gold brackets.',
+  contentGoldenInactive: 'Mark this drop as the weekly Golden Shot.',
+  contentGoldenMake: 'Make it Golden',
+  contentGoldenRemove: 'Remove Golden',
+  contentHintTitle: 'TECHNIQUE HINT',
+  contentHintHelp: 'A one-line tip shown under the prompt on the live Shot.',
+  contentHintPlaceholder: 'e.g. Shoot toward the light; expose for the highlights.',
+  contentHintSave: 'Save hint',
+  contentNoteTitle: 'WHY THIS WON',
+  contentNoteHelp: 'PotD by @{shooter}. A one-line note shown on the winning photo.',
+  contentNotePlaceholder: 'e.g. The reflection turns a puddle into a second sky.',
+  contentNoteSave: 'Save note',
+  contentNoteNoPotd: 'No Photo of the Day for this drop.',
+  contentNoteLocked: 'Available after the drop is revealed.',
+  contentSaved: 'Saved',
+  contentError: 'Could not save',
+
+  // ── Subject library ─────────────────────────────────────────────────────
+  libraryTitle: 'Admin · Subjects',
+  libraryAddTitle: 'ADD SUBJECT',
+  libraryAddPlaceholder: 'e.g. The oldest thing you own',
+  libraryAddCta: 'Add to queue',
+  librarySection: 'LIBRARY',
+  libraryQueued: 'QUEUED',
+  libraryTotal: 'TOTAL',
+  libraryHintPlaceholder: 'Technique hint (optional)',
+  libraryQueueLabel: 'QUEUE #',
+  libraryDelete: 'Delete',
+  librarySave: 'Save',
+  libraryDeleteConfirm: 'Delete Subject?',
+  libraryDeleteInUse: 'This Subject is tied to a drop and keeps history.',
+  libraryCouldNotSave: 'Could not save',
+  libraryCouldNotDelete: 'Could not delete',
+  libraryCouldNotAdd: 'Could not add',
+  libraryEmpty: 'No subjects yet. Add your first Subject above.',
+  libraryAdded: 'Subject added',
+  libraryDeleted: 'Subject deleted',
+  librarySearchPlaceholder: 'Search subjects…',
+  libraryFilterAll: 'ALL',
+  libraryFilterQueued: 'QUEUED',
+  libraryFilterScheduled: 'SCHEDULED',
+  libraryFilterDropped: 'DROPPED',
+  libraryStatusQueued: 'QUEUED',
+  libraryStatusScheduled: 'SCHEDULED',
+  libraryStatusDropped: 'DROPPED',
+  libraryHintIndicator: 'hint',
+  libraryDuplicateSeq: 'Queue position {seq} is already taken.',
+
+  // ── Members ─────────────────────────────────────────────────────────────
+  membersTitle: 'Admin · Members',
+  membersSearch: 'Search photographers…',
+  membersSubmissions: 'shots',
+  membersCrowns: 'crowns',
+  membersStreak: 'wk streak',
+  membersPremium: 'PRO',
+  membersAdmin: 'ADMIN',
+  membersEmpty: 'No photographers found.',
+  membersGrantPro: 'Grant Piqa Pro',
+  membersRevokePro: 'Revoke Piqa Pro',
+  membersGrantAdmin: 'Grant Admin',
+  membersRevokeAdmin: 'Revoke Admin',
+  membersPromoted: 'Updated',
+  membersError: 'Could not update member',
+
+  // ── Moderation ──────────────────────────────────────────────────────────
+  moderationTitle: 'Admin · Moderation',
+  moderationReporters: '{count} report{s}',
+  moderationQuarantined: 'QUARANTINED',
+  moderationInGallery: 'In Gallery',
+  moderationEmpty: 'No pending reports. All clear.',
+  moderationReasons: 'Reasons',
+  moderationDismiss: 'Dismiss',
+  moderationQuarantine: 'Quarantine',
+  moderationActioned: 'Report actioned',
+  moderationError: 'Could not action report',
+
+  // ── Audit feed ──────────────────────────────────────────────────────────
+  auditTitle: 'Admin · Audit',
+  auditEmpty: 'No admin actions recorded yet.',
+  auditBy: 'by',
+  auditSystem: 'system',
+
+  // ── Waitlist ────────────────────────────────────────────────────────────
+  waitlistTitle: 'Admin · Waitlist',
+  waitlistEmpty: 'Waitlist is empty.',
+  waitlistDelete: 'Remove',
+  waitlistRemoved: 'Removed from waitlist',
+  waitlistError: 'Could not remove',
+} as const;

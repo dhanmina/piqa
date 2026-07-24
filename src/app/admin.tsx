@@ -1,209 +1,336 @@
 /**
- * /admin — the content editorial panel (admin-only). Replaces the daily hand-run
- * SQL for the three things the editor touches every cycle: the technique hint, the
- * Golden Shot flag, and (after reveal) the "why this won" PotD note. Every action
- * hits an is_admin-guarded RPC, so the server is the real gate; the Settings entry
- * only appears for admins as a convenience.
+ * /admin — the admin dashboard hub. Entry point for all admin operations.
+ * Shows platform stats at a glance, quick links to sub-screens, engagement
+ * metrics, and recent PotD crowns. Replaces the old content-only panel
+ * (now at /admin-content).
  */
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  AlertTriangle,
+  Camera,
+  ChevronRight,
+  ClipboardList,
+  Crown,
+  Hourglass,
+  LayoutGrid,
+  Users,
+} from 'lucide-react-native';
 
-import { setGolden, setHint, setPotdNote, useAdminToday } from '@lib/admin';
-import { Button } from '@/components/atoms/Button';
-import { Countdown } from '@/components/atoms/Countdown';
+import { useAdminToday, useAnalytics, useEngagement } from '@lib/admin';
+import { S } from '@lib/admin-strings';
 import { Mono } from '@/components/atoms/Mono';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
-import { colors, fonts, radius, space, typeScale } from '@/components/tokens';
+import { colors, fonts, iconStroke, icons, radius, space, typeScale } from '@/components/tokens';
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+// ─── Stat card ───────────────────────────────────────────────────────────────
+
+function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <View style={styles.section}>
-      <Mono size={typeScale.caption} color={colors.paper60} style={styles.sectionTitle}>
-        {title}
+    <View style={styles.statCard}>
+      <Mono size={typeScale.title} color={colors.paper} style={styles.statValue}>
+        {value}
       </Mono>
-      <View style={styles.card}>{children}</View>
+      <Mono size={10} color={colors.paper60} style={styles.statLabel}>
+        {label.toUpperCase()}
+      </Mono>
     </View>
   );
 }
 
+// ─── Action row ──────────────────────────────────────────────────────────────
+
+function ActionRow({
+  icon: Icon,
+  label,
+  badge,
+  onPress,
+}: {
+  icon: typeof Users;
+  label: string;
+  badge?: number;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
+      onPress={onPress}
+    >
+      <View style={styles.actionLeft}>
+        <Icon size={18} strokeWidth={iconStroke(18)} color={colors.paper60} />
+        <Text style={styles.actionLabel}>{label}</Text>
+      </View>
+      <View style={styles.actionRight}>
+        {badge != null && badge > 0 ? (
+          <View style={styles.badge}>
+            <Mono size={10} color={colors.ink}>{badge}</Mono>
+          </View>
+        ) : null}
+        <ChevronRight size={16} strokeWidth={icons.strokeWidth} color={colors.paper40} />
+      </View>
+    </Pressable>
+  );
+}
+
+// ─── Engagement row ──────────────────────────────────────────────────────────
+
+function EngRow({ label, value }: { label: string; value: string | number }) {
+  return (
+    <View style={styles.engRow}>
+      <Mono size={typeScale.caption} color={colors.paper60}>{label}</Mono>
+      <Mono size={typeScale.caption} color={colors.paper}>{value}</Mono>
+    </View>
+  );
+}
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
+
 export default function AdminScreen() {
   const router = useRouter();
-  const { data, loading, error, refresh } = useAdminToday();
-  const drop = data?.drop ?? null;
+  const { data: today, loading: todayLoading, error: todayError, refresh: refreshToday } = useAdminToday();
+  const { data: analytics, loading: analyticsLoading } = useAnalytics();
+  const { data: engagement, loading: engLoading } = useEngagement();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [hint, setHintText] = useState('');
-  const [note, setNoteText] = useState('');
-  const [savingHint, setSavingHint] = useState(false);
-  const [savingNote, setSavingNote] = useState(false);
-  const [togglingGold, setTogglingGold] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshToday();
+    setRefreshing(false);
+  }, [refreshToday]);
 
-  // Reflect the server values whenever a fresh drop arrives.
-  useEffect(() => {
-    setHintText(drop?.hint ?? '');
-    setNoteText(drop?.potd?.note ?? '');
-  }, [drop?.id, drop?.hint, drop?.potd?.note]);
-
-  const onToggleGold = async () => {
-    if (!drop) return;
-    setTogglingGold(true);
-    try {
-      await setGolden(drop.id, !drop.is_golden);
-      await refresh();
-    } finally {
-      setTogglingGold(false);
-    }
-  };
-
-  const onSaveHint = async () => {
-    if (!drop) return;
-    setSavingHint(true);
-    try {
-      await setHint(drop.subject_id, hint);
-      await refresh();
-    } finally {
-      setSavingHint(false);
-    }
-  };
-
-  const onSaveNote = async () => {
-    if (!drop?.potd) return;
-    setSavingNote(true);
-    try {
-      await setPotdNote(drop.potd.submission_id, note);
-      await refresh();
-    } finally {
-      setSavingNote(false);
-    }
-  };
+  const drop = today?.drop ?? null;
+  const totals = analytics?.totals;
+  const latestEng = engagement?.totals;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader onBack={() => router.back()} title="Admin · Content" />
+      <ScreenHeader onBack={() => router.back()} title={S.hubTitle} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Button label="Subject library →" variant="ghost" onPress={() => router.push('/admin-library')} fullWidth />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.paper60} />}
+      >
+        {/* ── Stats strip ─────────────────────────────────────────────── */}
+        {analyticsLoading ? (
+          <ActivityIndicator color={colors.paper60} style={{ marginTop: 24 }} />
+        ) : totals ? (
+          <View style={styles.statsStrip}>
+            <StatCard label={S.hubStatsPhotographers} value={totals.users} />
+            <StatCard label={S.hubStatsSubmissions} value={totals.submissions} />
+            <StatCard label={S.hubStatsActiveStreaks} value={latestEng?.active_streaks ?? '—'} />
+            <StatCard label={S.hubStatsPro} value={latestEng?.total_premium ?? '—'} />
+          </View>
+        ) : null}
 
-        {loading && !drop ? (
-          <ActivityIndicator color={colors.paper60} style={{ marginTop: 40 }} />
-        ) : error ? (
-          <Text style={styles.error}>{error === 'not_authorized' ? 'Not authorized.' : error}</Text>
-        ) : !drop ? (
-          <Text style={styles.muted}>No drop scheduled for {data?.region ?? 'your region'} yet.</Text>
-        ) : (
-          <>
-            <Card title={`TODAY · ${data?.region ?? ''} · ${drop.status.toUpperCase()}`}>
-              <View style={styles.rowPad}>
-                <Text style={styles.subject}>{drop.subject_text}</Text>
-                <View style={styles.metaRow}>
-                  {drop.status === 'live' ? (
-                    <>
-                      <Mono size={typeScale.caption} color={colors.paper60}>CLOSES IN </Mono>
-                      <Countdown until={drop.submit_closes_at} size={typeScale.caption} />
-                    </>
-                  ) : (
-                    <Mono size={typeScale.caption} color={colors.paper60}>{drop.drop_date}</Mono>
-                  )}
+        {/* ── Today's drop (compact) ──────────────────────────────────── */}
+        <View style={styles.section}>
+          <Mono size={typeScale.caption} color={colors.paper60} style={styles.sectionTitle}>
+            {S.hubTodayTitle}
+          </Mono>
+          <View style={styles.card}>
+            {todayLoading && !drop ? (
+              <ActivityIndicator color={colors.paper60} style={{ padding: 20 }} />
+            ) : todayError ? (
+              <Text style={styles.muted}>{todayError === 'not_authorized' ? S.notAuthorized : todayError}</Text>
+            ) : drop ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${S.contentToday} — ${drop.subject_text}`}
+                style={({ pressed }) => [styles.todayInner, pressed && styles.todayInnerPressed]}
+                onPress={() => router.push('/admin-content')}
+              >
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.todaySubject}>{drop.subject_text}</Text>
+                  <View style={styles.todayMeta}>
+                    <Mono size={10} color={drop.status === 'live' ? colors.safelight : colors.paper40}>
+                      {drop.status.toUpperCase()}
+                    </Mono>
+                    <Mono size={10} color={colors.paper40}>· {today?.region}</Mono>
+                    {drop.is_golden ? (
+                      <Mono size={10} color={colors.crown}>· GOLDEN</Mono>
+                    ) : null}
+                  </View>
                 </View>
-              </View>
-            </Card>
+                <ChevronRight size={16} strokeWidth={icons.strokeWidth} color={colors.paper40} />
+              </Pressable>
+            ) : (
+              <Text style={styles.muted}>{S.hubTodayEmpty.replace('{region}', today?.region ?? 'your region')}</Text>
+            )}
+          </View>
+        </View>
 
-            <Card title="GOLDEN SHOT">
-              <View style={styles.rowPad}>
-                <Text style={styles.help}>
-                  {drop.is_golden
-                    ? 'This drop is a Golden Shot — the Shot card shows gold brackets.'
-                    : 'Mark this drop as the weekly Golden Shot.'}
-                </Text>
-                <Button
-                  label={drop.is_golden ? 'Remove Golden' : 'Make it Golden'}
-                  variant={drop.is_golden ? 'ghost' : 'primary'}
-                  onPress={onToggleGold}
-                  loading={togglingGold}
-                  fullWidth
-                />
-              </View>
-            </Card>
+        {/* ── Quick actions ───────────────────────────────────────────── */}
+        <View style={styles.section}>
+          <Mono size={typeScale.caption} color={colors.paper60} style={styles.sectionTitle}>
+            {S.hubQuickActions}
+          </Mono>
+          <View style={styles.card}>
+            <ActionRow icon={Camera} label={S.hubActionContent} onPress={() => router.push('/admin-content')} />
+            <View style={styles.divider} />
+            <ActionRow icon={LayoutGrid} label={S.hubActionLibrary} onPress={() => router.push('/admin-library')} />
+            <View style={styles.divider} />
+            <ActionRow icon={Users} label={S.hubActionMembers} onPress={() => router.push('/admin-members')} />
+            <View style={styles.divider} />
+            <ActionRow
+              icon={AlertTriangle}
+              label={S.hubActionModeration}
+              badge={totals?.pending_reports}
+              onPress={() => router.push('/admin-moderation')}
+            />
+            <View style={styles.divider} />
+            <ActionRow icon={ClipboardList} label={S.hubActionAudit} onPress={() => router.push('/admin-audit')} />
+            <View style={styles.divider} />
+            <ActionRow icon={Hourglass} label={S.hubActionWaitlist} onPress={() => router.push('/admin-waitlist')} />
+          </View>
+        </View>
 
-            <Card title="TECHNIQUE HINT">
-              <View style={styles.rowPad}>
-                <Text style={styles.help}>A one-line tip shown under the prompt on the live Shot.</Text>
-                <TextInput
-                  style={styles.input}
-                  value={hint}
-                  onChangeText={setHintText}
-                  placeholder="e.g. Shoot toward the light; expose for the highlights."
-                  placeholderTextColor={colors.paper40}
-                  multiline
-                />
-                <Button
-                  label="Save hint"
-                  onPress={onSaveHint}
-                  loading={savingHint}
-                  disabled={hint === (drop.hint ?? '')}
-                  fullWidth
-                />
+        {/* ── Engagement ──────────────────────────────────────────────── */}
+        {engagement && engagement.daily.length > 0 ? (
+          <View style={styles.section}>
+            <Mono size={typeScale.caption} color={colors.paper60} style={styles.sectionTitle}>
+              {S.hubEngagement}
+            </Mono>
+            <View style={styles.card}>
+              <View style={styles.engBody}>
+                <EngRow label={S.hubEngagementSubmitters} value={latestEng?.active_streaks ?? 0} />
+                <EngRow label={S.hubEngagementVoters} value={latestEng?.total_reactions ?? 0} />
+                <EngRow label={S.hubEngagementRate} value={`${latestEng?.avg_streak_weeks ?? 0} wk avg`} />
+                <View style={styles.engDivider} />
+                {engagement.daily.slice(-7).reverse().map((d) => (
+                  <View key={d.date} style={styles.engDayRow}>
+                    <Mono size={11} color={colors.paper40}>{d.date.slice(5)}</Mono>
+                    <View style={styles.engBarWrap}>
+                      <View
+                        style={[
+                          styles.engBar,
+                          {
+                            width: `${Math.min(100, d.unique_submitters > 0
+                              ? (d.unique_voters / d.unique_submitters) * 100
+                              : 0)}%`,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Mono size={11} color={colors.paper60}>
+                      {d.unique_submitters}/{d.unique_voters}
+                    </Mono>
+                  </View>
+                ))}
               </View>
-            </Card>
+            </View>
+          </View>
+        ) : engLoading ? null : null}
 
-            <Card title="WHY THIS WON">
-              <View style={styles.rowPad}>
-                {drop.potd ? (
-                  <>
-                    <Text style={styles.help}>
-                      PotD by @{drop.potd.shooter}. A one-line note shown on the winning photo.
-                    </Text>
-                    <TextInput
-                      style={styles.input}
-                      value={note}
-                      onChangeText={setNoteText}
-                      placeholder="e.g. The reflection turns a puddle into a second sky."
-                      placeholderTextColor={colors.paper40}
-                      multiline
-                    />
-                    <Button
-                      label="Save note"
-                      onPress={onSaveNote}
-                      loading={savingNote}
-                      disabled={note === (drop.potd.note ?? '')}
-                      fullWidth
-                    />
-                  </>
-                ) : (
-                  <Text style={styles.muted}>
-                    {drop.revealed ? 'No Photo of the Day for this drop.' : 'Available after the drop is revealed.'}
-                  </Text>
-                )}
-              </View>
-            </Card>
-          </>
-        )}
+        {/* ── Recent crowns ───────────────────────────────────────────── */}
+        {analytics && analytics.crowns.length > 0 ? (
+          <View style={styles.section}>
+            <Mono size={typeScale.caption} color={colors.paper60} style={styles.sectionTitle}>
+              {S.hubRecentCrowns}
+            </Mono>
+            <View style={styles.card}>
+              {analytics.crowns.map((c, i) => (
+                <View key={`${c.date}-${c.region}`}>
+                  {i > 0 && <View style={styles.divider} />}
+                  <View style={styles.crownRow}>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Mono size={typeScale.caption} color={colors.paper}>
+                        {c.shooter ? `@${c.shooter}` : S.hubCrownNoWinner}
+                      </Mono>
+                      <Mono size={10} color={colors.paper40}>{c.region} · {c.date}</Mono>
+                    </View>
+                    <View style={styles.crownRight}>
+                      <Crown size={12} strokeWidth={iconStroke(12)} color={colors.crown} />
+                      <Mono size={typeScale.caption} color={colors.paper60}>{c.votes}</Mono>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        <View style={{ height: 48 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   content: { padding: space.gutter, paddingBottom: 48, gap: 26 },
+
+  // Stats strip
+  statsStrip: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.ink2,
+    borderRadius: radius.card,
+    padding: 12,
+    alignItems: 'center',
+    gap: 4,
+  },
+  statValue: { fontFamily: 'IBMPlexMono_500Medium' },
+  statLabel: { letterSpacing: 0.8, textAlign: 'center' },
+
+  // Sections
   section: { gap: 8 },
   sectionTitle: { letterSpacing: 1.5, paddingHorizontal: 4 },
   card: { backgroundColor: colors.ink2, borderRadius: radius.card, overflow: 'hidden' },
-  rowPad: { padding: 16, gap: 14 },
-  subject: { fontFamily: fonts.sansMedium, fontSize: typeScale.title, color: colors.paper, lineHeight: 26 },
-  metaRow: { flexDirection: 'row', alignItems: 'center' },
-  help: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60, lineHeight: typeScale.caption * 1.4 },
-  input: {
-    fontFamily: fonts.sans,
-    fontSize: typeScale.sub,
-    color: colors.paper,
-    backgroundColor: colors.ink,
-    borderRadius: radius.card,
-    padding: 12,
-    minHeight: 64,
-    textAlignVertical: 'top',
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30 },
+
+  // Today
+  todayInner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  todayInnerPressed: { backgroundColor: colors.ink },
+  todaySubject: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper },
+  todayMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+
+  // Actions
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: space.target,
+    paddingHorizontal: 14,
   },
-  muted: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center', marginTop: 24 },
-  error: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.safelight, textAlign: 'center', marginTop: 24 },
+  actionRowPressed: { backgroundColor: colors.ink },
+  actionLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  actionLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper },
+  actionRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  badge: {
+    backgroundColor: colors.safelight,
+    borderRadius: radius.pill,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+
+  // Engagement
+  engBody: { padding: 14, gap: 10 },
+  engRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  engDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginVertical: 4 },
+  engDayRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  engBarWrap: { flex: 1, height: 4, backgroundColor: colors.ink, borderRadius: 2, overflow: 'hidden' },
+  engBar: { height: 4, backgroundColor: colors.safelight, borderRadius: 2 },
+
+  // Crowns
+  crownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+  },
+  crownRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+
+  muted: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center', padding: 20 },
 });

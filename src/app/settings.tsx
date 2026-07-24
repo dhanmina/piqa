@@ -17,6 +17,7 @@ import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View }
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useIsAdmin } from '@lib/admin';
+import { S } from '@lib/admin-strings';
 import { equipFrame, type FrameId } from '@lib/frames';
 import { useNotifPrefs } from '@lib/notifPrefs';
 import { deleteAccount, exportMyData, useProfile } from '@lib/profile';
@@ -181,7 +182,7 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {isAdmin ? (
           <Section title="ADMIN">
-            <Row label="Content panel" chevron onPress={() => router.push('/admin')} />
+            <Row label={S.settingsAdmin} chevron onPress={() => router.push('/admin')} />
           </Section>
         ) : null}
 
