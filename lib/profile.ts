@@ -242,6 +242,24 @@ export async function fetchFollowing(): Promise<FollowedUser[]> {
   return (profs ?? []) as FollowedUser[];
 }
 
+/**
+ * A small, cached preview of who you follow — the faces for the profile's face
+ * pile. Reuses fetchFollowing (self-only by construction) but caches it so the
+ * pile doesn't hit the DB on every profile open. Gated by `enabled` so it never
+ * fires on someone else's profile.
+ */
+export function useFollowingPreview(enabled: boolean): FollowedUser[] {
+  const { data } = useCached<FollowedUser[]>(
+    "following:preview",
+    useCallback(
+      () => (enabled ? fetchFollowing() : Promise.resolve([])),
+      [enabled],
+    ),
+    5 * 60_000,
+  );
+  return data ?? [];
+}
+
 /** Permanent account deletion (spec §12) — purges storage + cascades all rows. */
 export async function deleteAccount(): Promise<boolean> {
   const { data, error } = await supabase.rpc("delete_account");

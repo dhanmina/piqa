@@ -1,12 +1,14 @@
 /**
  * Profile — same layout own/others (spec §11c). Identity-first: a left-aligned
- * crest (avatar+frame · name+streak · title·level · galleries·crowns) over a
- * quiet XP hairline, then the work — a Wins/Starred segment above a 2-column
- * print grid. Metrics are whispered, not a headline; follower/following counts
- * are never shown, to anyone (spec §9).
+ * crest (avatar+frame · name · title·level · hearts·crowns·galleries) over a
+ * quiet XP hairline, then a warm Following face pile (self only), then the work —
+ * a Wins/Starred segment above a 2-column print grid. Every crest number is
+ * something you EARNED by shooting (hearts/crowns/galleries), never audience
+ * size: follower/following counts are never shown, to anyone (spec §9). The pile
+ * shows faces, not a number.
  */
 import { Image } from 'expo-image';
-import { ChevronRight, CloudOff, Crown, Flame, MoreHorizontal, Settings, Trophy, Users } from 'lucide-react-native';
+import { CloudOff, Crown, Heart, MoreHorizontal, Settings, Trophy } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +17,7 @@ import { imageCacheKey, signThumbs } from '@lib/cache';
 import { titleForLevel } from '@lib/cosmetics';
 import { plural } from '@lib/format';
 import { useNodsReceived } from '@lib/nods';
-import { bestFinishLabel, useMyStats, type ProfileData, type ProfileWin } from '@lib/profile';
+import { useFollowingPreview, type ProfileData, type ProfileWin } from '@lib/profile';
 import { levelProgress } from '@lib/xp';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { FramedAvatar } from '@/components/molecules/FramedAvatar';
@@ -23,6 +25,7 @@ import { Button } from '@/components/atoms/Button';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
+import { FacePile } from '@/components/molecules/FacePile';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { StarredLightbox } from '@/components/molecules/StarredLightbox';
@@ -93,9 +96,9 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
   // Nods a shooter's work has earned, by tag — the craft signal ("known for
   // your light"). Closes the Nods loop: the shooter sees what curators notice.
   const craftNods = useNodsReceived(profileId);
-  // Private "your journey" stats — own profile only (never a comparison).
-  const stats = useMyStats(!!data?.isSelf);
-  const bestFinish = bestFinishLabel(stats);
+  // Faces for the Following pile — self only, cached so it doesn't refetch on
+  // every profile open. Count-free by design (spec §9): the faces are the signal.
+  const following = useFollowingPreview(!!data?.isSelf);
   useEffect(() => {
     if (!data) return;
     setTab(data.isSelf && data.wins.length === 0 && data.starred.length > 0 ? 'starred' : 'wins');
@@ -129,9 +132,14 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
     }
   }, [starred]);
 
+  // Own profile has no back and no title, so a full header band would be dead
+  // space with a lone gear — pushing the crest down. In that case we skip the band
+  // and put the gear in the crest's top-right instead, letting the crest rise up.
+  const gearInCrest = !!onSettings && !onBack && !onMore;
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      {(onBack || onMore || onSettings) && (
+      {(onBack || onMore) && (
         <ScreenHeader
           onBack={onBack}
           right={
@@ -169,38 +177,41 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
               <Text style={styles.username} numberOfLines={1}>
                 {data?.username ?? ' '}
               </Text>
-              {/* Self only: a streak is a private motivational metric, like the
-                  hidden follower counts — never surfaced on someone else's crest. */}
-              {data?.isSelf && (data?.streakWeeks ?? 0) > 0 && (
-                <View style={styles.flame}>
-                  <Flame size={13} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
-                  {/* streakWeeks now carries days-alive (see 20260716000005). */}
-                  <Mono size={typeScale.caption} color={colors.safelight}>
-                    {data!.streakWeeks}d
-                  </Mono>
-                </View>
-              )}
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.title}>{title}</Text>
               <Mono size={typeScale.caption} color={colors.paper40}>·</Mono>
               <Mono size={typeScale.caption} color={colors.paper60}>LV {prog.level}</Mono>
             </View>
+            {/* Earned-recognition strip: every number here is something you won by
+                shooting (likes/crowns/galleries) — never audience size. */}
             <View style={styles.tallyRow}>
-              <Mono size={typeScale.caption} color={colors.paper60}>
-                {(data?.shots ?? 0)} {plural(data?.shots ?? 0, 'shot', 'shots')}
-              </Mono>
+              <View style={styles.tallyItem}>
+                <Heart size={11} strokeWidth={icons.strokeWidth} color={colors.heart} fill={colors.heart} />
+                <Mono size={typeScale.caption} color={colors.paper60}>{data?.hearts ?? 0}</Mono>
+              </View>
+              <Mono size={typeScale.caption} color={colors.paper40}>·</Mono>
+              <View style={styles.tallyItem}>
+                <Crown size={11} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
+                <Mono size={typeScale.caption} color={colors.paper60}>{data?.crowns ?? 0}</Mono>
+              </View>
               <Mono size={typeScale.caption} color={colors.paper40}>·</Mono>
               <Mono size={typeScale.caption} color={colors.paper60}>
                 {data?.galleries ?? 0} {plural(data?.galleries ?? 0, 'gallery', 'galleries')}
               </Mono>
-              <Mono size={typeScale.caption} color={colors.paper40}>·</Mono>
-              <View style={styles.tallyCrown}>
-                <Crown size={11} strokeWidth={icons.strokeWidth} color={colors.crown} fill={colors.crown} />
-                <Mono size={typeScale.caption} color={colors.paper60}>{data?.crowns ?? 0}</Mono>
-              </View>
             </View>
           </View>
+          {/* Own profile's settings gear — in-flow, pinned to the top-right of the
+              crest (aligned with the avatar's top). In-flow so it always renders,
+              and there's no empty header band pushing the crest down. */}
+          {gearInCrest && (
+            <IconButton
+              icon={Settings}
+              accessibilityLabel="Settings"
+              onPress={onSettings}
+              style={styles.crestGear}
+            />
+          )}
         </View>
 
         {/* XP — a quiet hairline, self only. */}
@@ -215,15 +226,9 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
           </View>
         )}
 
-        {/* Following — a quiet, count-free entry to the list of who you follow (self
-            only; spec §9 forbids the number, so there isn't one). */}
-        {data?.isSelf && onOpenFollowing && (
-          <Pressable accessibilityRole="button" style={styles.followingRow} onPress={onOpenFollowing}>
-            <Users size={18} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-            <Text style={styles.followingLabel}>Following</Text>
-            <ChevronRight size={18} strokeWidth={icons.strokeWidth} color={colors.paper40} />
-          </Pressable>
-        )}
+        {/* Following — the FACES you follow, not a settings-style row and never a
+            count (spec §9). Self only. Empty state invites you into discovery. */}
+        {data?.isSelf && onOpenFollowing && <FacePile faces={following} onPress={onOpenFollowing} />}
 
         {!data?.isSelf && onFollowToggle && (
           <Button
@@ -242,18 +247,6 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
             </Mono>
             <Text style={styles.craftLine}>
               {craftNods.slice(0, 3).map((n) => `${n.label} ×${n.count}`).join('   ·   ')}
-            </Text>
-          </View>
-        )}
-
-        {data?.isSelf && stats && stats.shots > 0 && (
-          <View style={styles.craft}>
-            <Mono size={typeScale.caption} color={colors.paper40} style={styles.craftLabel}>
-              YOUR JOURNEY
-            </Mono>
-            <Text style={styles.craftLine}>
-              {`${stats.shots} ${plural(stats.shots, 'shot', 'shots')} · ${stats.galleries} ${plural(stats.galleries, 'gallery', 'galleries')}`}
-              {bestFinish ? ` · Best finish: ${bestFinish}` : ''}
             </Text>
           </View>
         )}
@@ -394,29 +387,20 @@ const styles = StyleSheet.create({
   content: { padding: space.gutter, gap: space.gutter },
   // Crest: avatar left, identity block right.
   crest: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingTop: 4 },
+  // Own profile's gear: pinned to the crest's top edge, so it sits top-right and
+  // aligns with the avatar's top rather than the vertical centre.
+  crestGear: { alignSelf: 'flex-start', marginTop: -2 },
   crestText: { flex: 1, gap: 3 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   username: { flexShrink: 1, fontFamily: fonts.sansSemiBold, fontSize: typeScale.title, color: colors.paper },
-  flame: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   title: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
   tallyRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 1 },
-  tallyCrown: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  tallyItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   // XP hairline, full width and thin.
   xpWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   xpTrack: { flex: 1, height: 3, borderRadius: 2, backgroundColor: colors.ink2, overflow: 'hidden' },
   xpFill: { height: 3, borderRadius: 2, backgroundColor: colors.safelight },
-  // Quiet menu-style row: icon · label (fills) · chevron, hairline-separated so it
-  // reads as an entry, not a headline metric.
-  followingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.paper30,
-  },
-  followingLabel: { flex: 1, fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper },
   // Segment (Wins/Starred) — mirrors the gallery's segmented control.
   craft: { gap: 6, marginTop: 4 },
   craftLabel: { letterSpacing: 1.5 },
