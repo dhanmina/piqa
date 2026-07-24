@@ -10,7 +10,7 @@
 import { Image } from 'expo-image';
 import { CloudOff, Crown, Heart, MoreHorizontal, Settings, Trophy } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { imageCacheKey, signThumbs } from '@lib/cache';
@@ -90,6 +90,16 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
   // only appears when there's something on it; everyone else just sees the wins.
   const [tab, setTab] = useState<'wins' | 'starred'>('wins');
   const showSegment = !!data?.isSelf && (data?.starred.length ?? 0) > 0;
+
+  // Measure the grid container so two columns + the gap never overflow into one.
+  // Percentage widths ('48.8%') round up on high-density devices and push the
+  // second cell onto a new row — measured pixel widths avoid that.
+  const [gridWidth, setGridWidth] = useState(0);
+  const cellWidth = gridWidth > 0 ? Math.floor((gridWidth - space.gridGap) / 2) : undefined;
+  const onGridLayout = (e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0 && w !== gridWidth) setGridWidth(w);
+  };
 
   // Open on whichever surface has content: gallery placements take time (and PotD
   // is one a day), so a shooter with no wins yet but a starred shelf should land on
@@ -266,9 +276,9 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
         )}
 
         {showSegment && tab === 'starred' ? (
-          <View style={styles.grid}>
+          <View style={styles.grid} onLayout={onGridLayout}>
             {data?.starred.map((s, i) => (
-              <Pressable key={s.key} accessibilityRole="button" style={styles.starCell} onPress={() => setStarIndex(i)}>
+              <Pressable key={s.key} accessibilityRole="button" style={cellWidth ? { width: cellWidth, aspectRatio: frame.aspect, backgroundColor: colors.ink2 } : styles.starCell} onPress={() => setStarIndex(i)}>
                 {s.fullUri || s.uri ? (
                   <Image
                     // Full-res over the warmed thumb placeholder — the starred wall
@@ -287,9 +297,9 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
             ))}
           </View>
         ) : loading ? (
-          <View style={styles.grid}>
+          <View style={styles.grid} onLayout={onGridLayout}>
             {[0, 1, 2, 3].map((i) => (
-              <View key={i} style={[styles.winCell, styles.winSkel, styles.skeleton]} />
+              <View key={i} style={[cellWidth ? { width: cellWidth } : styles.winCell, styles.winSkel, styles.skeleton]} />
             ))}
           </View>
         ) : (data?.wins.length ?? 0) === 0 ? (
@@ -303,12 +313,12 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
             </Text>
           </View>
         ) : (
-          <View style={styles.grid}>
+          <View style={styles.grid} onLayout={onGridLayout}>
             {data?.wins.map((w) => (
               <Pressable
                 key={w.id}
                 accessibilityRole="button"
-                style={styles.winCell}
+                style={cellWidth ? { width: cellWidth } : styles.winCell}
                 onPress={() => openWin(w)}
               >
                 {/* No crown badge: the print carries its own status glyph. Full-res
