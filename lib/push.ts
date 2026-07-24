@@ -11,7 +11,7 @@ import { supabase } from "./supabase";
  * deep-link to a specific shot/person. Kept in sync with the server sender.
  */
 export type PushData = {
-  type?: "drop" | "reveal" | "gallery" | "result" | "potd" | "follow" | "streak";
+  type?: "drop" | "reveal" | "gallery" | "result" | "potd" | "follow" | "streak" | "curate";
   photoId?: string;
   userId?: string;
 };
@@ -94,6 +94,9 @@ export function useNotificationRouting(): void {
         case "reveal":
         case "gallery":
           router.push("/(tabs)/gallery");
+          break;
+        case "curate":
+          router.push("/curate");
           break;
         case "potd":
           if (data.photoId) router.push({ pathname: "/photo/[id]", params: { id: data.photoId } });
