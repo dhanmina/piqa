@@ -45,3 +45,26 @@ export async function unblockUser(target: string): Promise<boolean> {
   if (!error) refreshPublicSurfaces();
   return !error;
 }
+
+export type BlockedUser = { id: string; username: string; avatar_url: string | null };
+
+/**
+ * The accounts I've blocked, for the Settings management list. A block is my own
+ * row (blocks RLS lets me read blocker_id = me), so this is a plain two-step read
+ * mirroring fetchFollowing — no definer RPC needed. Newest block first.
+ */
+export async function fetchBlocked(): Promise<BlockedUser[]> {
+  const me = await myId();
+  if (!me) return [];
+  const { data: rows } = await supabase
+    .from("blocks")
+    .select("blocked_id, created_at")
+    .eq("blocker_id", me)
+    .order("created_at", { ascending: false });
+  const ids = (rows ?? []).map((r) => r.blocked_id);
+  if (ids.length === 0) return [];
+  const { data: profs } = await supabase.from("profiles").select("id, username, avatar_url").in("id", ids);
+  // Preserve the blocks' newest-first order (the .in() above returns arbitrary order).
+  const byId = new Map((profs ?? []).map((p) => [p.id, p as BlockedUser]));
+  return ids.map((id) => byId.get(id)).filter((u): u is BlockedUser => !!u);
+}

@@ -4,13 +4,14 @@ Things that must not silently ship. Check items off only when done on-device.
 
 ## Safety & store compliance (GATES production access)
 
-- [ ] **Block & report** — a UGC photo app cannot pass Play/App Store review
-      without an in-app **block/mute** and a **report content + report account**
-      flow. Add block on every profile (`/u/[id]` overflow) and photo detail,
-      a managed "Blocked accounts" list in Settings, and route reports to the
-      existing `/admin` panel. See `docs/build-roadmap.md` → Phase 1.5A.
-- [ ] **Mature-content control** — a "Blur sensitive content" toggle (manual
-      report → hide covers the gap until the NSFWJS classifier lands).
+- [x] **Block + report** — already shipped: block on every profile, report on
+      every fullscreen photo + curation matchup, mutual-invisibility filtering
+      in `get_matchup`/`get_gallery`, 3-reporter auto-quarantine, `/admin` triage.
+- [x] **Manage/unblock** — Settings → SAFETY → Blocked accounts (`/blocked`),
+      so a mistaken block can be undone. Built 2026-07-24.
+- [ ] **Mature-content control** — the one open safety item: a "Blur sensitive
+      content" toggle (manual report → hide covers the gap until the NSFWJS
+      classifier lands). See `docs/build-roadmap.md` → Phase 1.5A.
 
 ## Brand assets
 

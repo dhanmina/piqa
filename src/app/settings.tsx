@@ -222,6 +222,10 @@ export default function SettingsScreen() {
           <Row label="Sign out" onPress={() => setConfirmSignOut(true)} />
         </Section>
 
+        <Section title="SAFETY">
+          <Row label="Blocked accounts" chevron onPress={() => router.push('/blocked')} />
+        </Section>
+
         <Section title="ABOUT">
           <Row label="Version" value={version} />
           <View style={styles.divider} />

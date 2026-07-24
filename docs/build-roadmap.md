@@ -66,9 +66,11 @@ Monetization is **post-retention** (spec §17 + monetization plan). Build the fe
 **Goal:** close the two store-compliance gaps that block public release, round out the Settings surface a photography app is expected to have, and sharpen the daily reveal into the ceremony that actually drives return. Sourced from the 2026-07-24 design audit (settings + wow/retention pass). Every wow item stays inside the Darkroom laws: no new colors, no gradients, no sound, prints not bubbles.
 
 **A — Safety & compliance *(do FIRST; a UGC photo app cannot pass Play/App Store review without these)***
-- [ ] **Block & mute** — a block action on every profile (`/u/[id]` overflow) and every photo detail, plus a managed "Blocked accounts" list in Settings. Blocking hides both directions (their work leaves your galleries/curation pool, yours leaves theirs).
-- [ ] **Report content & report account** — a report flow on every photo and profile, routed to the existing `/admin` content panel for triage. Store policy requires an in-app report path for user content.
-- [ ] **Mature-content control** — a "Blur sensitive content" toggle now (manual report → hide covers the gap), wired to the NSFWJS classifier when it lands (it's on [[piqa-not-yet-built]]).
+- [x] **Block** — block action on every profile (`/u/[id]` overflow); mutual invisibility filters `get_matchup` + `get_gallery` both directions (already shipped, `20260712000007_moderation.sql`).
+- [x] **Report content** — `ReportSheet` on every fullscreen photo (`PhotoDetailView`) and every curation matchup; 3 distinct reporters auto-quarantine; admin triage in `/admin` (already shipped).
+- [x] **Manage blocks (unblock)** — the missing surface: a **Blocked accounts** list in a new Settings **SAFETY** section (`/blocked`) so a mistaken block is never permanent. Client-only (blocks RLS reads own rows), no migration. *(built 2026-07-24)*
+- [ ] **Mature-content control** — a "Blur sensitive content" toggle (manual report → hide covers the gap today), wired to the NSFWJS classifier when it lands (it's on [[piqa-not-yet-built]]). **The one open safety item.**
+- [ ] **Report an account** (optional) — today you report photos and block accounts; a profile-level report is a nice-to-have, not a store gate.
 
 **B — Settings surface *(photography-app table stakes)***
 - [ ] **Camera & Capture section** — save originals to camera roll (off by default), viewfinder grid/level overlay, mirror front camera. (Save-to-device is still blocked on the deferred `expo-media-library` re-add — Play policy.)
