@@ -141,12 +141,15 @@ export const FramedPhoto = React.memo(function FramedPhoto({
         <View style={[styles.window, styles.windowClip]}>{children}</View>
       ) : photoUri || placeholderUri ? (
         <Image
-          // Progressive, no blink: the cached thumb sits in `placeholder` and holds
-          // the frame; `source` (full-res) is the ONLY thing that loads, crossfading
-          // in on top. Keeping source stable — never thumb→full-res — avoids a reload.
-          // cacheKey pins the disk cache to the object (not the rotating signed URL),
-          // so a restart reuses saved bytes instead of re-downloading on mobile data.
-          source={photoUri ? { uri: photoUri, cacheKey: imageCacheKey(photoUri) } : undefined}
+          // Progressive, no blink: use the placeholder as the INITIAL source so
+          // there is always a stable image on screen. When photoUri resolves, the
+          // source change triggers expo-image's crossfade — no "undefined → URI"
+          // gap that causes a flash. cacheKey pins the disk cache to the object
+          // (not the rotating signed URL), so a restart reuses saved bytes.
+          source={{
+            uri: photoUri || placeholderUri!,
+            cacheKey: imageCacheKey(photoUri || placeholderUri!),
+          }}
           placeholder={placeholderUri ? { uri: placeholderUri, cacheKey: imageCacheKey(placeholderUri) } : undefined}
           placeholderContentFit="cover"
           style={styles.window}

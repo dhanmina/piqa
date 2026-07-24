@@ -411,11 +411,15 @@ export default function ArchiveScreen() {
                 />
               ) : selected.uri || viewerFull ? (
                 <Image
-                  source={viewerFull ? { uri: viewerFull, cacheKey: imageCacheKey(viewerFull) } : undefined}
+                  source={{
+                    uri: viewerFull || selected.uri!,
+                    cacheKey: imageCacheKey(viewerFull || selected.uri!),
+                  }}
                   placeholder={selected.uri ? { uri: selected.uri, cacheKey: imageCacheKey(selected.uri) } : undefined}
                   placeholderContentFit="contain"
                   style={{ width: Math.min(SCREEN_W - GUTTER * 2, STAGE_MAX_H * photo.aspect), aspectRatio: photo.aspect }}
                   contentFit="contain"
+                  transition={100}
                 />
               ) : (
                 <View style={[styles.skelTile, { width: Math.min(SCREEN_W - GUTTER * 2, STAGE_MAX_H * photo.aspect) }]} />

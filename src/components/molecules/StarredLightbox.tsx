@@ -67,7 +67,10 @@ export function StarredLightbox({
   const renderItem = ({ item }: ListRenderItemInfo<StarItem>) => (
     <View style={{ width, height }}>
       <Image
-        source={item.fullUri ? { uri: item.fullUri, cacheKey: imageCacheKey(item.fullUri) } : undefined}
+        source={{
+          uri: item.fullUri || item.uri!,
+          cacheKey: imageCacheKey(item.fullUri || item.uri!),
+        }}
         placeholder={item.uri ? { uri: item.uri, cacheKey: imageCacheKey(item.uri) } : undefined}
         style={StyleSheet.absoluteFill}
         contentFit="contain"
