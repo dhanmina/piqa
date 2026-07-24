@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { fetchKey } from "./cache";
 import { supabase } from "./services/supabase";
 
 /**
@@ -22,16 +23,20 @@ const DEFAULTS: NotifPrefs = {
 };
 
 export function useNotifPrefs() {
+  // fetchKey deduplicates concurrent callers — multiple components mounting
+  // simultaneously collapse into ONE RPC call.
   const [prefs, setPrefs] = useState<NotifPrefs | null>(null);
 
+  // Initial load (runs once, deduped across instances)
   useEffect(() => {
     let alive = true;
-    void supabase.rpc("get_notification_prefs" as never).then(({ data }) => {
-      if (alive) setPrefs((data as unknown as NotifPrefs) ?? DEFAULTS);
+    void fetchKey<NotifPrefs>("notif_prefs", async () => {
+      const { data } = await supabase.rpc("get_notification_prefs" as never);
+      return ((data as unknown as NotifPrefs) ?? DEFAULTS);
+    }).then((p) => {
+      if (alive) setPrefs(p);
     });
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
   const persist = useCallback(async (next: NotifPrefs) => {

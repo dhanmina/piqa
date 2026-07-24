@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 
 import { useCached } from "../cache";
-import { supabase } from "../services/supabase";
 import {
   fetchProfile,
   fetchFollowing,
@@ -10,6 +9,7 @@ import {
   type FollowedUser,
   type MyStats,
 } from "../services/profile";
+import { supabase } from "../services/supabase";
 
 export type { ProfileData, FollowedUser, MyStats };
 
@@ -35,19 +35,17 @@ export function useFollowingPreview(enabled: boolean): FollowedUser[] {
 }
 
 export function useMyStats(enabled: boolean): MyStats | null {
-  const [stats, setStats] = useState<MyStats | null>(null);
-  useEffect(() => {
-    if (!enabled) {
-      setStats(null);
-      return;
-    }
-    let alive = true;
-    void supabase.rpc("get_my_stats" as never).then(({ data }) => {
-      if (alive && data) setStats(data as MyStats);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [enabled]);
-  return stats;
+  const { data } = useCached<MyStats | null>(
+    "my_stats",
+    useCallback(
+      async () => {
+        if (!enabled) return null;
+        const { data } = await supabase.rpc("get_my_stats" as never);
+        return (data as unknown as MyStats) ?? null;
+      },
+      [enabled],
+    ),
+    5 * 60_000,
+  );
+  return data ?? null;
 }

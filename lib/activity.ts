@@ -81,16 +81,8 @@ export function useActivity() {
   }, []);
 
   useEffect(() => {
-    let alive = true;
-    void loadActivity().then((first) => {
-      if (!alive) return;
-      setItems(first);
-      setAtEnd(first.length < PAGE);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
+    void load();
+  }, [load]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);

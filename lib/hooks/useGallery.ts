@@ -26,8 +26,20 @@ export function useFollowingGallery() {
   return { photos: data ?? [], loading, error, refresh };
 }
 
+const MAX_GLOBAL_HEARTS = 200;
 const globalBaseHearts: Record<string, boolean> = {};
 const globalOptimisticHearts: Record<string, boolean> = {};
+
+function capGlobalMaps() {
+  const baseKeys = Object.keys(globalBaseHearts);
+  if (baseKeys.length > MAX_GLOBAL_HEARTS) {
+    const evict = baseKeys.slice(0, baseKeys.length - MAX_GLOBAL_HEARTS + 50);
+    for (const k of evict) {
+      delete globalBaseHearts[k];
+      delete globalOptimisticHearts[k];
+    }
+  }
+}
 
 export function useGalleryHearts(photos: { id: string; hearts: number }[]) {
   const { session } = useSession();
@@ -53,6 +65,7 @@ export function useGalleryHearts(photos: { id: string; hearts: number }[]) {
           idsKey.split(",").forEach(id => {
             globalBaseHearts[id] = fetchedSet.has(id);
           });
+          capGlobalMaps();
           if (alive) setLiked(fetchedSet);
         },
         (e) => console.warn('Failed to fetch gallery hearts:', e)

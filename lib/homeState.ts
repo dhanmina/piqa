@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 
 import { subscribeQueue } from "./services/captureQueue";
 import { fetchKey, revalidate, useCached } from "./cache";
@@ -7,34 +7,28 @@ import { supabase } from "./services/supabase";
 
 /** The photography tip for the user's current Subject, or null (learning loop). */
 export function useTodayHint(): string | null {
-  const [hint, setHint] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    // Cast until `supabase gen types` re-runs after the subject_hints migration.
-    void supabase.rpc("get_today_hint" as never).then(({ data }) => {
-      if (alive) setHint((data as string | null) ?? null);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return hint;
+  const { data } = useCached<string | null>(
+    "today_hint",
+    useCallback(async () => {
+      const { data } = await supabase.rpc("get_today_hint" as never);
+      return (data as string | null) ?? null;
+    }, []),
+    60_000,
+  );
+  return data ?? null;
 }
 
 /** Whether the user's current Subject is a Golden Shot (weekly special event). */
 export function useTodayGolden(): boolean {
-  const [golden, setGolden] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    // Cast until `supabase gen types` re-runs after the golden_shot migration.
-    void supabase.rpc("get_today_golden" as never).then(({ data }) => {
-      if (alive) setGolden(data === true);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return golden;
+  const { data } = useCached<boolean>(
+    "today_golden",
+    useCallback(async () => {
+      const { data } = await supabase.rpc("get_today_golden" as never);
+      return data === true;
+    }, []),
+    60_000,
+  );
+  return data ?? false;
 }
 
 export type HomeDrop = {

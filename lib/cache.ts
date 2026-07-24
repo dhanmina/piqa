@@ -60,19 +60,22 @@ export async function hydrateCache(): Promise<void> {
   try {
     const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith(PERSIST_PREFIX));
     if (keys.length === 0) return;
-    const raws = await Promise.all(keys.map((k) => AsyncStorage.getItem(k).catch(() => null)));
-    keys.forEach((pk, i) => {
-      const raw = raws[i];
-      if (!raw) return;
+    // Batch into a single native bridge call (multiGet) instead of N individual
+    // getItem calls. On Android each getItem is a separate SQLite query, so this
+    // is a meaningful startup-speed win at scale.
+    const pairs = await AsyncStorage.multiGet(keys);
+    if (__DEV__) console.log(`[cache] hydrate: ${pairs.length} keys from disk`);
+    for (const [pk, raw] of pairs) {
+      if (!raw || !pk) continue;
       const key = pk.slice(PERSIST_PREFIX.length);
-      if (store.has(key)) return; // a live fetch already won this session
+      if (store.has(key)) continue; // a live fetch already won this session
       try {
         store.set(key, JSON.parse(raw) as Entry);
         emit(key);
       } catch {
         /* corrupt entry — skip it */
       }
-    });
+    }
   } catch {
     /* storage unavailable — run memory-only */
   }
@@ -235,14 +238,21 @@ export async function signThumbs(paths: string[]): Promise<Map<string, string>> 
 
   if (need.length > 0) {
     if (__DEV__) console.log(`[cache] sign ${need.length} thumb(s) (${paths.length - need.length} cached)`);
-    const { data } = await supabase.storage.from("submissions").createSignedUrls(need, SIGN_TTL);
-    const exp = Date.now() + SIGN_REUSE_MS;
-    data?.forEach((u) => {
-      if (u.path && u.signedUrl) {
-        signed.set(u.path, { url: u.signedUrl, exp });
-        out.set(u.path, u.signedUrl);
-      }
-    });
+    try {
+      const { data } = await supabase.storage.from("submissions").createSignedUrls(need, SIGN_TTL);
+      const exp = Date.now() + SIGN_REUSE_MS;
+      data?.forEach((u) => {
+        if (u.path && u.signedUrl) {
+          signed.set(u.path, { url: u.signedUrl, exp });
+          out.set(u.path, u.signedUrl);
+        }
+      });
+    } catch (err) {
+      // Partial success > total crash: return whatever we already had cached
+      // rather than letting a single failed signing batch take down the entire
+      // gallery/profile load.
+      if (__DEV__) console.warn(`[cache] signThumbs batch failed — returning partial cached results`, err);
+    }
   }
   return out;
 }

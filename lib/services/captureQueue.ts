@@ -365,18 +365,27 @@ async function processItem(item: QueueItem): Promise<void> {
     }
 
     const paths = storagePaths(item, userId);
-    if (!item.thumbUploaded) {
-      await uploadFile(item.thumbUri, paths.thumb); // thumb first (spec §4)
-      item.thumbUploaded = true;
-      item.lastErrorKind = null;
-      await persist();
-      emit({ type: "progress", item });
-    }
-    if (!item.fullUploaded) {
-      await uploadFile(item.fullUri, paths.full);
-      item.fullUploaded = true;
-      await persist();
-      emit({ type: "progress", item });
+    if (!item.thumbUploaded || !item.fullUploaded) {
+      if (__DEV__) console.log(`[capture] parallel upload: thumb=${!item.thumbUploaded} full=${!item.fullUploaded}`);
+      // Upload thumb + full in parallel — they are independent writes to
+      // different paths with upsert, so no ordering constraint. On fast
+      // connections this halves upload time; on slow connections the network
+      // serializes them anyway.
+      await Promise.all([
+        item.thumbUploaded
+          ? Promise.resolve()
+          : uploadFile(item.thumbUri, paths.thumb).then(() => {
+              item.thumbUploaded = true;
+              item.lastErrorKind = null;
+              return persist();
+            }).then(() => emit({ type: "progress", item })),
+        item.fullUploaded
+          ? Promise.resolve()
+          : uploadFile(item.fullUri, paths.full).then(() => {
+              item.fullUploaded = true;
+              return persist();
+            }).then(() => emit({ type: "progress", item })),
+      ]);
     }
     if (!item.rowInserted) {
       const outcome = await insertRow(item, userId);

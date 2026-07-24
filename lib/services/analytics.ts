@@ -23,6 +23,12 @@ let client: PostHog | null = null;
 if (KEY) {
   try {
     client = new PostHog(KEY, { host: HOST });
+    // Suppress noisy PostHog network errors when offline — the SDK throws on
+    // every failed flush, which clutters logs with no actionable information.
+    const origFlush = client.flush.bind(client);
+    client.flush = async () => {
+      try { await origFlush(); } catch { /* offline — ignore */ }
+    };
     // Super-properties attached to EVERY event:
     // - app_env: exclude your own dev/testing traffic (filter `app_env = prod`).
     // - app_build / ota_update_id / runtime_version: which native build + OTA a
