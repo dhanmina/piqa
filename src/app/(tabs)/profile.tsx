@@ -4,7 +4,7 @@
  */
 import { useRouter } from 'expo-router';
 
-import { useProfile } from '@lib/profile';
+import { useProfile } from '@lib/hooks/useProfile';
 import { ProfileView } from '@/components/ProfileView';
 
 export default function ProfileScreen() {

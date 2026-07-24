@@ -30,7 +30,7 @@ import { AppState } from "react-native";
 
 import { capture } from "./analytics";
 import { getConfig } from "./config";
-import { classifyImage, NSFW_REJECTION_COPY } from "./nsfw";
+import { classifyImage, NSFW_REJECTION_COPY } from "../utils/nsfw";
 import { supabase } from "./supabase";
 
 // Image pipeline. Piqa is a photos app, so the full-res is sized to stay sharp

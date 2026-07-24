@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
-import { subscribeQueue } from "./captureQueue";
+import { subscribeQueue } from "./services/captureQueue";
 import { fetchKey, revalidate, useCached } from "./cache";
 import type { FrameId, PhotoStatus } from "./frames";
-import { supabase } from "./supabase";
+import { supabase } from "./services/supabase";
 
 /** The photography tip for the user's current Subject, or null (learning loop). */
 export function useTodayHint(): string | null {

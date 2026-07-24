@@ -15,7 +15,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { enqueueCapture } from '@lib/captureQueue';
+import { enqueueCapture } from '@lib/services/captureQueue';
 import { useHomeState } from '@lib/homeState';
 import { Button } from '@/components/atoms/Button';
 import { IconButton } from '@/components/atoms/IconButton';

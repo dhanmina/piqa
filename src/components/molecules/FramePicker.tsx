@@ -2,7 +2,9 @@ import { Check, Lock } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { frameOwned, useFrameCatalog, type FrameId } from '@lib/frames';
+import { frameOwned } from '@lib/services/frames';
+import { useFrameCatalog } from '@lib/hooks/frames';
+import type { FrameId } from '@lib/services/frames';
 import { Mono } from '@/components/atoms/Mono';
 import { FramedAvatar } from '@/components/molecules/FramedAvatar';
 import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';

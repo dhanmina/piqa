@@ -10,8 +10,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AlertCircle, Camera } from 'lucide-react-native';
 
-import { setGolden, setHint, setPotdNote, useAdminToday } from '@lib/admin';
-import { S } from '@lib/admin-strings';
+import { setGolden, setHint, setPotdNote } from '@lib/services/admin';
+import { useAdminToday } from '@lib/hooks/useAdmin';
+import { S } from '@lib/utils/admin-strings';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
 import { Mono } from '@/components/atoms/Mono';

@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { getPendingItemForDrop, subscribeQueue } from '@lib/captureQueue';
-import { isResultSeen, isRevealSeen } from '@lib/gallery';
+import { getPendingItemForDrop, subscribeQueue } from '@lib/services/captureQueue';
+import { isResultSeen, isRevealSeen } from '@lib/services/gallery';
 import { useHomeState } from '@lib/homeState';
 import { Shutter, type ShutterState } from '@/components/moments/Shutter';
 import { colors, fonts, iconStroke, typeScale } from '@/components/tokens';

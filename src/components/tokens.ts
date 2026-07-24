@@ -76,6 +76,18 @@ export const control = {
 } as const;
 
 /**
+ * Shared card/surface style — the single source for the darkroom surface color
+ * and radius. Eliminates the 10+ identical `{ backgroundColor: colors.ink2,
+ * borderRadius: radius.card }` style definitions scattered across admin,
+ * settings, gallery, and activity screens.
+ */
+export const card = {
+  backgroundColor: colors.ink2,
+  borderRadius: radius.card,
+  overflow: 'hidden' as const,
+} as const;
+
+/**
  * Every Piqa photo is 4:5 portrait — one uniform frame. This is the single
  * source of truth: capture preview, the baked upload crop, and every grid/tile
  * use it, so what you frame is exactly what gets stored and shown everywhere.

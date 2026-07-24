@@ -1,4 +1,4 @@
-import { getConfig } from "./config";
+import { getConfig } from "../services/config";
 
 /**
  * On-device NSFW pre-upload gate (spec §12). This is the PLUGGABLE INTERFACE:

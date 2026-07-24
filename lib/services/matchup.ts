@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 
-import { signThumbs } from "./cache";
+import { signThumbs } from "../cache";
 import { getConfig } from "./config";
 import { supabase } from "./supabase";
 

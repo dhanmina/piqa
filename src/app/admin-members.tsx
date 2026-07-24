@@ -8,8 +8,10 @@ import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleS
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Users } from 'lucide-react-native';
 
-import { setAdmin, setPremium, useMembers, type Member } from '@lib/admin';
-import { S } from '@lib/admin-strings';
+import { setAdmin, setPremium } from '@lib/services/admin';
+import { useMembers } from '@lib/hooks/useAdmin';
+import type { Member } from '@lib/services/admin';
+import { S } from '@lib/utils/admin-strings';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';

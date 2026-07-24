@@ -1,3 +1,4 @@
+import React from 'react';
 import { Image } from 'expo-image';
 import { Crown, RefreshCw } from 'lucide-react-native';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -34,7 +35,7 @@ function BracketMini({ color }: { color: string }) {
  * may NOT — they render in a mono caption row under the tile.
  * "queued ↻" is a first-class state — offline never looks like an error.
  */
-export function PhotoTile({ uri, hearts, badge, aspectRatio = photo.aspect, style }: PhotoTileProps) {
+export const PhotoTile = React.memo(function PhotoTile({ uri, hearts, badge, aspectRatio = photo.aspect, style }: PhotoTileProps) {
   return (
     <View style={style}>
       <View style={[styles.photoBox, { aspectRatio }]}>
@@ -79,7 +80,7 @@ export function PhotoTile({ uri, hearts, badge, aspectRatio = photo.aspect, styl
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   photoBox: {

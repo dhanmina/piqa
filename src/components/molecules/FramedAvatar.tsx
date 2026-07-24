@@ -1,8 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, SvgXml } from 'react-native-svg';
 
-import { avatarRing } from '@lib/cosmetics';
-import { useFrameDef } from '@lib/frames';
+import { avatarRing } from '@lib/utils/cosmetics';
+import { useFrameDef } from '@lib/hooks/frames';
 import { Avatar } from '@/components/atoms/Avatar';
 import { colors } from '@/components/tokens';
 

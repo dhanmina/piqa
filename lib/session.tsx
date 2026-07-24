@@ -1,10 +1,10 @@
 import type { Session } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
 
-import { identify, resetAnalytics } from "./analytics";
-import { getRememberMe } from "./authPrefs";
+import { identify, resetAnalytics } from "./services/analytics";
+import { getRememberMe } from "./utils/authPrefs";
 import { clearPersistedCache, hydrateCache } from "./cache";
-import { supabase } from "./supabase";
+import { supabase } from "./services/supabase";
 
 type SessionState = {
   session: Session | null;

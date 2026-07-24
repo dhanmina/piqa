@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { invalidate, signThumbs, useCached } from "./cache";
-import { supabase } from "./supabase";
+import { supabase } from "./services/supabase";
 
 /**
  * The activity inbox — the persisted, personal half of the push pipeline (see

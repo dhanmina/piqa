@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { supabase } from "./supabase";
+import { supabase } from "./services/supabase";
 
 export type UsernameStatus = "idle" | "short" | "checking" | "available" | "taken";
 

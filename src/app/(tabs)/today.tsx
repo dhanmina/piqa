@@ -13,12 +13,13 @@ import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getPendingItemForDrop, retryBlocked, subscribeQueue, type QueueItem } from '@lib/captureQueue';
+import { getPendingItemForDrop, retryBlocked, subscribeQueue, type QueueItem } from '@lib/services/captureQueue';
 import { useActivityUnread } from '@lib/activity';
-import { getConfig } from '@lib/config';
-import { useFrameForDate } from '@lib/frames';
-import { capture } from '@lib/analytics';
-import { markResultSeen, useSignedThumb } from '@lib/gallery';
+import { getConfig } from '@lib/services/config';
+import { useFrameForDate } from '@lib/hooks/frames';
+import { capture } from '@lib/services/analytics';
+import { markResultSeen } from '@lib/services/gallery';
+import { useSignedThumb } from '@lib/hooks/useCache';
 import { useHomeState, useTodayHint, useTodayGolden } from '@lib/homeState';
 import { useLast7Pattern } from '@lib/streak';
 import { Button } from '@/components/atoms/Button';
@@ -149,11 +150,11 @@ export default function TodayScreen() {
     ? new Date(Date.parse(drop.drops_at) + quickDrawMinutes * 60_000)
     : undefined;
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
-  };
+  }, [refresh]);
 
   // Compact, single-line date (matches the gallery's mono date). The streak flame
   // is wide and can't shrink, so a long "Wed, Jul 16" would overflow and clip.
@@ -434,7 +435,7 @@ export default function TodayScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={colors.paper60} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.paper60} />
         }
       >
         <View style={styles.header}>

@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { fetchBlocked, unblockUser, type BlockedUser } from '@lib/moderation';
+import { fetchBlocked, unblockUser, type BlockedUser } from '@lib/services/moderation';
 import { Button } from '@/components/atoms/Button';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';

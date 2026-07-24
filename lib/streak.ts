@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 
 import { fetchKey, invalidate, useCached } from "./cache";
-import { subscribeQueue } from "./captureQueue";
+import { subscribeQueue } from "./services/captureQueue";
 import { useSession } from "./session";
-import { supabase } from "./supabase";
+import { supabase } from "./services/supabase";
 
 const DAY = 86_400_000;
 

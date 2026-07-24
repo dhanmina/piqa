@@ -16,7 +16,7 @@ import { useEffect, useState } from 'react';
 import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, SlideInRight, SlideOutLeft } from 'react-native-reanimated';
 
-import { setOnboardingComplete } from '@lib/onboarding';
+import { setOnboardingComplete } from '@lib/utils/onboarding';
 import { Brandmark } from '@/components/atoms/Brandmark';
 import { Button } from '@/components/atoms/Button';
 import { displayFamily } from '@/components/fonts';

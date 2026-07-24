@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
@@ -28,7 +29,7 @@ type HeartButtonProps = {
  * icons (heart/flame/crown), stroke weight matched to Lucide 2.25.
  * (Glyph lives in HeartGlyph.tsx; tracked in TODO.md.)
  */
-export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, disabled = false, readOnly = false, onPhoto = false }: HeartButtonProps) {
+export const HeartButton = React.memo(function HeartButton({ liked, count, onToggle, onCountPress, size = 24, disabled = false, readOnly = false, onPhoto = false }: HeartButtonProps) {
   const scale = useSharedValue(1);
   const restColor = onPhoto ? colors.paper : colors.paper60; // unliked glyph / count
   // Count tracks the glyph so a big heart never gets a tiny number beside it.
@@ -90,7 +91,7 @@ export function HeartButton({ liked, count, onToggle, onCountPress, size = 24, d
         ))}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: {

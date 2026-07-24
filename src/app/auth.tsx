@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { getRememberedEmail, getRememberMe, setRememberedEmail, setRememberMe } from '@lib/authPrefs';
-import { supabase } from '@lib/supabase';
+import { getRememberedEmail, getRememberMe, setRememberedEmail, setRememberMe } from '@lib/utils/authPrefs';
+import { supabase } from '@lib/services/supabase';
 import { useUsernameStatus, usernameStatusMessage } from '@lib/username';
 import { Brandmark } from '@/components/atoms/Brandmark';
 import { Button } from '@/components/atoms/Button';

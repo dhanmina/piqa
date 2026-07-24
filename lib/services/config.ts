@@ -40,12 +40,12 @@ let inflight: Promise<Record<string, unknown>> | null = null;
 async function loadConfig(): Promise<Record<string, unknown>> {
   if (cache) return cache;
   if (!inflight) {
-    inflight = (async () => {
+    inflight = (async (): Promise<Record<string, unknown>> => {
       const { data, error } = await supabase.from("config").select("key,value");
       inflight = null;
       if (error || !data) return { ...FALLBACKS };
       cache = Object.fromEntries(data.map((row) => [row.key, row.value]));
-      return cache;
+      return cache!;
     })();
   }
   return inflight;

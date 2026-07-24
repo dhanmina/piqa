@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import type { FrameId, PhotoStatus } from '@lib/frames';
+import type { FrameId, PhotoStatus } from '@lib/services/frames';
 import { Brandmark } from '@/components/atoms/Brandmark';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';

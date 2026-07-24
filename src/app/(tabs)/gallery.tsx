@@ -9,7 +9,6 @@
  * until Profile/Follow lands in Phase 4.
  */
 import * as Haptics from 'expo-haptics';
-import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import { ArrowLeft, Calendar, ChevronRight, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
@@ -22,14 +21,17 @@ import confettiSource from '@/assets/lottie/confetti.json';
 import {
   isRevealSeen,
   markRevealSeen,
+  type GalleryDetailPhoto,
+} from '@lib/services/gallery';
+import {
   useFollowingGallery,
   useGallery,
   useGalleryHearts,
-  type GalleryDetailPhoto,
-} from '@lib/gallery';
-import { imageCacheKey, signThumbs } from '@lib/cache';
+} from '@lib/hooks/useGallery';
+import { signThumbs } from '@lib/cache';
+import { warmImage } from '@lib/utils/warmImage';
 import { useSession } from '@lib/session';
-import { capture } from '@lib/analytics';
+import { capture } from '@lib/services/analytics';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
@@ -105,9 +107,7 @@ export default function GalleryScreen() {
     let alive = true;
     void signThumbs(paths).then((m) => {
       if (!alive) return;
-      for (const url of m.values()) {
-        void Image.loadAsync({ uri: url, cacheKey: imageCacheKey(url) }).catch(() => {});
-      }
+      for (const url of m.values()) warmImage(url);
     });
     return () => {
       alive = false;

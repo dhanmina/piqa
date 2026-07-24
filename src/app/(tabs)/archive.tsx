@@ -8,15 +8,18 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { BookImage, CloudOff, Star, Trash2, X } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useCallback, useMemo, useState } from 'react';
 import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { deleteFreeShot, toggleStar, useArchive, type ArchiveItem } from '@lib/archive';
-import { frameForDate, useFrameCatalog } from '@lib/frames';
-import { isOffline } from '@lib/net';
-import { imageCacheKey, signThumbs, useSignedThumb } from '@lib/cache';
+import { deleteFreeShot, toggleStar, type ArchiveItem } from '@lib/services/archive';
+import { useArchive } from '@lib/hooks/archive';
+import { frameForDate } from '@lib/services/frames';
+import { useFrameCatalog } from '@lib/hooks/frames';
+import { isOffline } from '@lib/utils/net';
+import { imageCacheKey, signThumbs } from '@lib/cache';
+import { useSignedThumb } from '@lib/hooks/useCache';
 import { Chip } from '@/components/atoms/Chip';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
@@ -132,7 +135,7 @@ export default function ArchiveScreen() {
   // `announce`: confirm the full-resolution guarantee via a toast on a successful
   // star. It's the fullscreen viewer's replacement for the old inline note — a
   // transient channel that can't shift layout. Off for the grid tile.
-  const onToggleStar = async (item: ArchiveItem, announce = false) => {
+  const onToggleStar = useCallback(async (item: ArchiveItem, announce = false) => {
     const key = starKey(item);
     const next = !(optimisticStars[key] ?? item.starred);
     setOptimisticStars((m) => ({ ...m, [key]: next })); // flip instantly
@@ -149,7 +152,7 @@ export default function ArchiveScreen() {
       // Offline isn't an error — it's a state. A real failure (the star cap) still
       // gets a plain toast; no signal just says you're offline.
       if (res.reason === 'cap') setToast(`That's all ${res.cap ?? data?.starsCap} stars this month`);
-      else setToast((await isOffline()) ? 'You’re offline' : 'Could not update the star');
+      else setToast((await isOffline()) ? 'You\'re offline' : 'Could not update the star');
       return;
     }
     if (announce && next) setToast('Starred · kept at full resolution');
@@ -161,7 +164,7 @@ export default function ArchiveScreen() {
       delete copy[key];
       return copy;
     });
-  };
+  }, [optimisticStars, data?.starsCap, refresh]);
 
   // Fullscreen star tap: spring + haptic (matching HeartButton) on the frame the
   // tap lands, then the shared optimistic toggle. `announce` fires the full-res toast.
@@ -186,7 +189,7 @@ export default function ArchiveScreen() {
       return copy;
     });
 
-  const onDelete = (item: ArchiveItem) => {
+  const onDelete = useCallback((item: ArchiveItem) => {
     const key = starKey(item);
     // Optimistic: the shot disappears and the viewer closes now; the actual
     // storage + row delete runs in the background. The vanish IS the confirmation
@@ -200,10 +203,10 @@ export default function ArchiveScreen() {
         dropDeleted(key);
       } else {
         dropDeleted(key); // bring it back
-        setToast((await isOffline()) ? 'You’re offline' : 'Could not delete the shot');
+        setToast((await isOffline()) ? 'You\'re offline' : 'Could not delete the shot');
       }
     })();
-  };
+  }, [refresh]);
 
   // Fetch failed with nothing to show → a recoverable error, not an endless skeleton.
   if (error && !data) {

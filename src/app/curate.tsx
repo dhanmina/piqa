@@ -12,9 +12,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { capture } from '@lib/analytics';
-import { getConfig } from '@lib/config';
-import { createVoteSender, fetchMatchupSet, type MatchupSet } from '@lib/matchup';
+import { capture } from '@lib/services/analytics';
+import { getConfig } from '@lib/services/config';
+import { createVoteSender, fetchMatchupSet, type MatchupSet } from '@lib/services/matchup';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';

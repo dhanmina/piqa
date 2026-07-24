@@ -11,6 +11,15 @@
       ],
       "@lib/*": [
         "./lib/*"
+      ],
+      "@lib/utils/*": [
+        "./lib/utils/*"
+      ],
+      "@lib/services/*": [
+        "./lib/services/*"
+      ],
+      "@lib/hooks/*": [
+        "./lib/hooks/*"
       ]
     }
   },

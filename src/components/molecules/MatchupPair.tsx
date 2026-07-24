@@ -1,5 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
+import React from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Flag, X } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -39,7 +40,7 @@ const EDGE = 20; // generous corner clearance so no chip kisses a rounded corner
  * report lives at each photo's outer-right corner. Everything shares one chip
  * language and keeps EDGE clearance from the screen edges.
  */
-export function MatchupPair({ topUri, bottomUri, index, total, theme, onPick, onSkip, onReport, onClose }: MatchupPairProps) {
+export const MatchupPair = React.memo(function MatchupPair({ topUri, bottomUri, index, total, theme, onPick, onSkip, onReport, onClose }: MatchupPairProps) {
   const insets = useSafeAreaInsets();
 
   const topSel = useSharedValue(0);
@@ -158,7 +159,7 @@ export function MatchupPair({ topUri, bottomUri, index, total, theme, onPick, on
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.ink },

@@ -16,7 +16,7 @@ import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View }
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { markActivitySeen, useActivity, type ActivityItem } from '@lib/activity';
-import { capture } from '@lib/analytics';
+import { capture } from '@lib/services/analytics';
 import { useSession } from '@lib/session';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { Avatar } from '@/components/atoms/Avatar';

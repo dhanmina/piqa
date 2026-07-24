@@ -1,8 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
 
-import { supabase } from "./supabase";
+import { supabase } from "./services/supabase";
 
 /**
  * Tiny client cache so screens don't refetch the world on every focus (tab
@@ -24,8 +22,8 @@ type Entry = { value: unknown; at: number };
 
 const store = new Map<string, Entry>();
 const inflight = new Map<string, Promise<unknown>>();
-const errors = new Map<string, boolean>(); // last fetch for a key failed
-const subscribers = new Map<string, Set<() => void>>();
+export const errors = new Map<string, boolean>(); // last fetch for a key failed
+export const subscribers = new Map<string, Set<() => void>>();
 // Bumped every time a key is invalidated. A fetch captures the generation at its
 // start and only commits its result if the generation still matches — so a fetch
 // that was already in flight when a write invalidated the key (its data is now
@@ -36,7 +34,7 @@ function bumpGeneration(key: string) {
   generation.set(key, (generation.get(key) ?? 0) + 1);
 }
 
-function emit(key: string) {
+export function emit(key: string) {
   subscribers.get(key)?.forEach((fn) => fn());
 }
 
@@ -98,7 +96,7 @@ export async function clearPersistedCache(): Promise<void> {
   }
 }
 
-function peek<T>(key: string): { value: T; at: number } | undefined {
+export function peek<T>(key: string): { value: T; at: number } | undefined {
   return store.get(key) as { value: T; at: number } | undefined;
 }
 
@@ -180,68 +178,6 @@ export async function fetchKey<T>(key: string, fetcher: () => Promise<T>): Promi
   return p as Promise<T>;
 }
 
-export type Cached<T> = {
-  data: T | null;
-  loading: boolean;
-  /** True only when a fetch failed AND there's nothing cached to show. If stale
-   *  data exists, we keep showing it and never surface an error. */
-  error: boolean;
-  refresh: () => Promise<void>;
-};
-
-/**
- * Read a cached RPC value. Serves the cached value instantly, and only hits the
- * network when the entry is missing or older than `ttlMs`. Re-validates on
- * focus (if stale) and shares one fetch across every hook using the same key.
- * `refresh()` forces a fetch regardless of TTL (pull-to-refresh, countdown end).
- */
-export function useCached<T>(key: string, fetcher: () => Promise<T>, ttlMs: number): Cached<T> {
-  const [, setTick] = useState(0);
-  const rerender = useCallback(() => setTick((n) => n + 1), []);
-
-  // Share updates with every other hook instance on this key.
-  useEffect(() => {
-    let set = subscribers.get(key);
-    if (!set) {
-      set = new Set();
-      subscribers.set(key, set);
-    }
-    set.add(rerender);
-    return () => {
-      set.delete(rerender);
-      if (set.size === 0) subscribers.delete(key);
-    };
-  }, [key, rerender]);
-
-  // Mount + focus: fetch only when there's nothing fresh to show.
-  useFocusEffect(
-    useCallback(() => {
-      const entry = peek<T>(key);
-      if (!entry || Date.now() - entry.at > ttlMs) void fetchKey(key, fetcher);
-      // fetcher intentionally omitted: keying is by `key`, and an unstable
-      // fetcher closure must not retrigger the effect.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [key, ttlMs]),
-  );
-
-  const refresh = useCallback(async () => {
-    errors.delete(key); // clear the error → back to loading while we retry
-    emit(key);
-    // Never reject: pull-to-refresh handlers await this; the failure is already
-    // recorded in `errors` and surfaced on the next render.
-    try {
-      await fetchKey(key, fetcher);
-    } catch {
-      /* surfaced via errors map */
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-
-  const entry = peek<T>(key);
-  const failed = errors.get(key) === true && !entry; // only error when nothing to show
-  return { data: (entry?.value as T) ?? null, loading: !entry && !failed, error: failed, refresh };
-}
-
 // ---------------------------------------------------------------------------
 // 2. Signed-URL cache
 // ---------------------------------------------------------------------------
@@ -286,11 +222,15 @@ export async function signThumb(path: string): Promise<string | null> {
 /** Batch-sign paths, requesting only the ones without a fresh cached URL. */
 export async function signThumbs(paths: string[]): Promise<Map<string, string>> {
   const out = new Map<string, string>();
+  const needSet = new Set<string>();
   const need: string[] = [];
   for (const path of paths) {
     const fresh = peekSigned(path);
     if (fresh) out.set(path, fresh);
-    else if (!need.includes(path)) need.push(path);
+    else if (!needSet.has(path)) {
+      needSet.add(path);
+      need.push(path);
+    }
   }
 
   if (need.length > 0) {
@@ -307,32 +247,6 @@ export async function signThumbs(paths: string[]): Promise<Map<string, string>> 
   return out;
 }
 
-/** Sign a single private thumb for display, cached across screens. */
-export function useSignedThumb(path: string | null | undefined) {
-  const [uri, setUri] = useState<string | null>(() => (path ? peekSigned(path) : null));
-
-  useEffect(() => {
-    let alive = true;
-    if (!path) {
-      setUri(null);
-      return;
-    }
-    const fresh = peekSigned(path);
-    if (fresh) {
-      setUri(fresh);
-      return; // already signed and fresh — no network
-    }
-    void signThumb(path).then((u) => {
-      if (alive) setUri(u);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [path]);
-
-  return uri;
-}
-
 /**
  * Stable disk-cache key for a signed storage URL. Supabase signed URLs carry a
  * rotating `?token=`, so expo-image's default (URL-keyed) disk cache misses once
@@ -347,3 +261,7 @@ export function imageCacheKey(uri: string | null | undefined): string | undefine
   const q = uri.indexOf("?");
   return q === -1 ? uri : uri.slice(0, q);
 }
+
+// ─── Barrel re-exports (hooks live in lib/hooks/useCache.ts) ─────────────────
+export { useCached, useSignedThumb } from "./hooks/useCache";
+export type { Cached } from "./hooks/useCache";

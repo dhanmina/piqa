@@ -12,7 +12,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { updateAvatar, updateUsername, useProfile } from '@lib/profile';
+import { updateAvatar, updateUsername } from '@lib/services/profile';
+import { useProfile } from '@lib/hooks/useProfile';
 import { useUsernameStatus, usernameStatusMessage } from '@lib/username';
 import { Button } from '@/components/atoms/Button';
 import { Field } from '@/components/atoms/Field';

@@ -288,6 +288,107 @@ export type Database = {
           },
         ]
       }
+      nods: {
+        Row: {
+          created_at: string
+          curator_id: string
+          submission_id: string
+          tag: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          submission_id: string
+          tag: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          submission_id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nods_curator_id_fkey"
+            columns: ["curator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nods_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          drop_id: string | null
+          event_count: number
+          id: string
+          kind: string
+          seen_at: string | null
+          submission_id: string | null
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          drop_id?: string | null
+          event_count?: number
+          id?: string
+          kind: string
+          seen_at?: string | null
+          submission_id?: string | null
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          drop_id?: string | null
+          event_count?: number
+          id?: string
+          kind?: string
+          seen_at?: string | null
+          submission_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_drop_id_fkey"
+            columns: ["drop_id"]
+            isOneToOne: false
+            referencedRelation: "subject_drops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -296,7 +397,14 @@ export type Database = {
           id: string
           is_admin: boolean
           is_premium: boolean
+          notif_appreciation: boolean
+          notif_daily: boolean
+          notif_results: boolean
+          notif_social: boolean
+          notif_wins: boolean
           push_token: string | null
+          quiet_end: string | null
+          quiet_start: string | null
           region: string
           timezone: string
           username: string
@@ -309,7 +417,14 @@ export type Database = {
           id: string
           is_admin?: boolean
           is_premium?: boolean
+          notif_appreciation?: boolean
+          notif_daily?: boolean
+          notif_results?: boolean
+          notif_social?: boolean
+          notif_wins?: boolean
           push_token?: string | null
+          quiet_end?: string | null
+          quiet_start?: string | null
           region?: string
           timezone?: string
           username: string
@@ -322,7 +437,14 @@ export type Database = {
           id?: string
           is_admin?: boolean
           is_premium?: boolean
+          notif_appreciation?: boolean
+          notif_daily?: boolean
+          notif_results?: boolean
+          notif_social?: boolean
+          notif_wins?: boolean
           push_token?: string | null
+          quiet_end?: string | null
+          quiet_start?: string | null
           region?: string
           timezone?: string
           username?: string
@@ -473,8 +595,11 @@ export type Database = {
           drop_date: string
           drops_at: string
           id: string
+          is_golden: boolean
+          live_notified_at: string | null
           prompt_id: string
           region: string
+          reveal_notified_at: string | null
           status: string
           submit_closes_at: string
           voting_closes_at: string
@@ -485,8 +610,11 @@ export type Database = {
           drop_date: string
           drops_at: string
           id?: string
+          is_golden?: boolean
+          live_notified_at?: string | null
           prompt_id: string
           region: string
+          reveal_notified_at?: string | null
           status?: string
           submit_closes_at: string
           voting_closes_at: string
@@ -497,8 +625,11 @@ export type Database = {
           drop_date?: string
           drops_at?: string
           id?: string
+          is_golden?: boolean
+          live_notified_at?: string | null
           prompt_id?: string
           region?: string
+          reveal_notified_at?: string | null
           status?: string
           submit_closes_at?: string
           voting_closes_at?: string
@@ -517,6 +648,7 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          hint: string | null
           id: string
           is_sponsored: boolean
           seq: number | null
@@ -526,6 +658,7 @@ export type Database = {
         Insert: {
           category?: string
           created_at?: string
+          hint?: string | null
           id?: string
           is_sponsored?: boolean
           seq?: number | null
@@ -535,6 +668,7 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          hint?: string | null
           id?: string
           is_sponsored?: boolean
           seq?: number | null
@@ -554,6 +688,7 @@ export type Database = {
           image_path: string | null
           in_gallery: boolean
           is_potd: boolean
+          potd_note: string | null
           quarantined: boolean
           quick_draw: boolean
           rating: number
@@ -575,6 +710,7 @@ export type Database = {
           image_path?: string | null
           in_gallery?: boolean
           is_potd?: boolean
+          potd_note?: string | null
           quarantined?: boolean
           quick_draw?: boolean
           rating?: number
@@ -596,6 +732,7 @@ export type Database = {
           image_path?: string | null
           in_gallery?: boolean
           is_potd?: boolean
+          potd_note?: string | null
           quarantined?: boolean
           quick_draw?: boolean
           rating?: number
@@ -810,15 +947,28 @@ export type Database = {
         Args: { p_key: string; p_value: Json }
         Returns: Json
       }
+      admin_set_golden: {
+        Args: { p_drop: string; p_golden: boolean }
+        Returns: undefined
+      }
+      admin_set_potd_note: {
+        Args: { p_note: string; p_submission: string }
+        Returns: undefined
+      }
       admin_set_premium: {
         Args: { p_user: string; p_value: boolean }
         Returns: Json
+      }
+      admin_set_subject_hint: {
+        Args: { p_hint: string; p_subject: string }
+        Returns: undefined
       }
       admin_set_user_admin: {
         Args: { p_user: string; p_value: boolean }
         Returns: Json
       }
       admin_start_drop: { Args: { p_drop: string }; Returns: Json }
+      admin_today: { Args: { p_region?: string }; Returns: Json }
       admin_update_drop_times: {
         Args: {
           p_drop: string
@@ -890,33 +1040,80 @@ export type Database = {
         Args: { p_photos: Json; p_viewer: string }
         Returns: Json
       }
+      get_activity: {
+        Args: { p_before?: string; p_limit?: number }
+        Returns: Json
+      }
+      get_activity_unread: { Args: never; Returns: boolean }
       get_following_gallery: { Args: never; Returns: Json }
       get_gallery: { Args: { p_drop?: string }; Returns: Json }
       get_home_state: { Args: never; Returns: Json }
       get_latest_gallery: { Args: never; Returns: Json }
       get_matchup: { Args: never; Returns: Json }
+      get_my_stats: { Args: never; Returns: Json }
+      get_nods_received: { Args: { p_user?: string }; Returns: Json }
+      get_notification_prefs: { Args: never; Returns: Json }
       get_profile: { Args: { p_user?: string }; Returns: Json }
+      get_today_golden: { Args: never; Returns: boolean }
+      get_today_hint: { Args: never; Returns: string }
       get_user_badges: { Args: { p_user: string }; Returns: Json }
       has_badge: { Args: { p_badge: string; p_user: string }; Returns: boolean }
+      in_quiet_hours: {
+        Args: { p_qe: string; p_qs: string; p_tz: string }
+        Returns: boolean
+      }
       is_admin: { Args: { p_uid?: string }; Returns: boolean }
       is_live_drop_thumb: { Args: { object_name: string }; Returns: boolean }
+      mark_activity_seen: { Args: never; Returns: undefined }
+      notify_appreciation: { Args: never; Returns: Json }
+      notify_pending: { Args: never; Returns: Json }
       photo_frame: { Args: { p_date: string }; Returns: string }
       photo_status: {
         Args: { p_is_potd: boolean; p_rank: number }
         Returns: string
+      }
+      record_appreciation: {
+        Args: { p_actor: string; p_submission: string }
+        Returns: undefined
       }
       report_submission: {
         Args: { p_reason: string; p_submission: string }
         Returns: Json
       }
       search_users: { Args: { p_query: string }; Returns: Json }
+      send_push: {
+        Args: {
+          p_body: string
+          p_category?: string
+          p_data?: Json
+          p_region?: string
+          p_title: string
+          p_user_ids?: string[]
+        }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       streak_window_start: {
         Args: { p_as_of: string; p_uid: string }
         Returns: string
       }
+      submit_nod: {
+        Args: { p_submission: string; p_tag: string }
+        Returns: undefined
+      }
       toggle_star: { Args: { p_id: string; p_type: string }; Returns: Json }
+      update_notification_prefs: {
+        Args: {
+          p_appreciation: boolean
+          p_daily: boolean
+          p_quiet: boolean
+          p_results: boolean
+          p_social: boolean
+          p_wins: boolean
+        }
+        Returns: undefined
+      }
       username_available: { Args: { p_username: string }; Returns: boolean }
     }
     Enums: {

@@ -19,8 +19,8 @@ import {
   Users,
 } from 'lucide-react-native';
 
-import { useAdminToday, useAnalytics, useEngagement } from '@lib/admin';
-import { S } from '@lib/admin-strings';
+import { useAdminToday, useAnalytics, useEngagement } from '@lib/hooks/useAdmin';
+import { S } from '@lib/utils/admin-strings';
 import { Mono } from '@/components/atoms/Mono';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { colors, fonts, iconStroke, icons, radius, space, typeScale } from '@/components/tokens';

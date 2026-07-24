@@ -6,12 +6,13 @@ import { useEffect, useRef, useState } from 'react';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
 import { useAppUpdate } from '@lib/appUpdate';
-import { initCaptureQueue } from '@lib/captureQueue';
-import { FrameCatalogProvider } from '@lib/frames';
-import { wrapRoot } from '@lib/sentry';
-import { prefetchEssentials } from '@lib/prefetch';
+import { initCaptureQueue } from '@lib/services/captureQueue';
+import { FrameCatalogProvider } from '@lib/hooks/frames';
+import { wrapRoot } from '@lib/services/sentry';
+import { prefetchEssentials } from '@lib/services/prefetch';
 import { registerForPush, useNotificationRouting } from '@lib/push';
 import { SessionProvider, useSession } from '@lib/session';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { UpdatePrompt } from '@/components/molecules/UpdatePrompt';
 import { useAppFonts } from '@/components/fonts';
 import { colors, fonts } from '@/components/tokens';
@@ -134,8 +135,10 @@ function RootLayout() {
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <SessionProvider>
         <FrameCatalogProvider>
-          <StatusBar style="light" />
-          <RootNavigator />
+          <ErrorBoundary>
+            <StatusBar style="light" />
+            <RootNavigator />
+          </ErrorBoundary>
         </FrameCatalogProvider>
       </SessionProvider>
     </SafeAreaProvider>

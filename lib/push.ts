@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Platform } from "react-native";
 
-import { supabase } from "./supabase";
+import { supabase } from "./services/supabase";
 
 /**
  * The payload every piqa push carries. `type` decides where a tap lands; the ids
@@ -47,8 +47,8 @@ export async function registerForPush(): Promise<void> {
     }
 
     const current = await Notifications.getPermissionsAsync();
-    let granted = current.granted;
-    if (!granted && current.canAskAgain) {
+    let granted = (current as { granted?: boolean }).granted ?? current.status === 'granted';
+    if (!granted && ((current as { canAskAgain?: boolean }).canAskAgain ?? current.canAskAgain)) {
       const req = await Notifications.requestPermissionsAsync();
       granted = req.granted;
     }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { supabase } from "./supabase";
+import { supabase } from "./services/supabase";
 
 /**
  * Per-user notification preferences (see docs/notification-plan.md). Five

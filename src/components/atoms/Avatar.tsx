@@ -1,3 +1,4 @@
+import React from "react";
 import { Image } from "expo-image";
 import { StyleSheet, View } from "react-native";
 
@@ -16,7 +17,7 @@ type AvatarProps = {
 
 const RING_PAD = 2;
 
-export function Avatar({ uri, username, size = 40, ringColor, ringWidth = 2 }: AvatarProps) {
+export const Avatar = React.memo(function Avatar({ uri, username, size = 40, ringColor, ringWidth = 2 }: AvatarProps) {
   const initials = username.slice(0, 2).toUpperCase();
   // Border-box sizing: width/height include padding + border, so the outer box
   // is size + the ring's padding and stroke on both sides. Radius = outer / 2
@@ -50,7 +51,7 @@ export function Avatar({ uri, username, size = 40, ringColor, ringWidth = 2 }: A
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   ring: {

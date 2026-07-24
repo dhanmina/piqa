@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { plural } from '@lib/format';
-import { follow, unfollow } from '@lib/profile';
-import { searchUsers, type SearchUser } from '@lib/search';
+import { plural } from '@lib/utils/format';
+import { follow, unfollow } from '@lib/services/profile';
+import { searchUsers, type SearchUser } from '@lib/services/search';
 import { useSession } from '@lib/session';
 import { Avatar } from '@/components/atoms/Avatar';
 import { Button } from '@/components/atoms/Button';

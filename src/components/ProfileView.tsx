@@ -14,11 +14,13 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { imageCacheKey, signThumbs } from '@lib/cache';
-import { titleForLevel } from '@lib/cosmetics';
-import { plural } from '@lib/format';
-import { useNodsReceived } from '@lib/nods';
-import { useFollowingPreview, type ProfileData, type ProfileWin } from '@lib/profile';
-import { levelProgress } from '@lib/xp';
+import { titleForLevel } from '@lib/utils/cosmetics';
+import { plural } from '@lib/utils/format';
+import { useNodsReceived } from '@lib/hooks/nods';
+import { useFollowingPreview } from '@lib/hooks/useProfile';
+import type { ProfileData, ProfileWin } from '@lib/services/profile';
+import { warmImage } from '@lib/utils/warmImage';
+import { levelProgress } from '@lib/utils/xp';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { FramedAvatar } from '@/components/molecules/FramedAvatar';
 import { Button } from '@/components/atoms/Button';
@@ -114,22 +116,16 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
     let alive = true;
     void signThumbs(paths).then((m) => {
       if (!alive) return;
-      for (const url of m.values()) {
-        void Image.loadAsync({ uri: url, cacheKey: imageCacheKey(url) }).catch(() => {});
-      }
+      for (const url of m.values()) warmImage(url);
     });
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [wins]);
 
   // Same warming for starred full-res. These URLs are already signed, so no signing
   // pass — just seed the cache under the render's cacheKey.
   const starred = data?.starred;
   useEffect(() => {
-    for (const s of starred ?? []) {
-      if (s.fullUri) void Image.loadAsync({ uri: s.fullUri, cacheKey: imageCacheKey(s.fullUri) }).catch(() => {});
-    }
+    for (const s of starred ?? []) warmImage(s.fullUri);
   }, [starred]);
 
   // Own profile has no back and no title, so a full header band would be dead

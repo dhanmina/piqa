@@ -2,7 +2,7 @@ import * as Application from "expo-application";
 import { useEffect, useState } from "react";
 import { Linking, Platform } from "react-native";
 
-import { getConfig } from "./config";
+import { getConfig } from "./services/config";
 
 const PACKAGE = "com.joinpiqa.app";
 const MARKET_URL = `market://details?id=${PACKAGE}`;

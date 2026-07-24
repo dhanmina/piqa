@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { REPORT_REASONS, reportSubmission } from '@lib/moderation';
+import { REPORT_REASONS, reportSubmission } from '@lib/services/moderation';
 import { Button } from '@/components/atoms/Button';
 import { Sheet } from '@/components/molecules/Sheet';
 import { colors, fonts, typeScale } from '@/components/tokens';

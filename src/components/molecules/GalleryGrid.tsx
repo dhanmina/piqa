@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
-import type { FrameId, PhotoStatus } from '@lib/frames';
+import type { FrameId, PhotoStatus } from '@lib/services/frames';
 import { HeartButton } from '@/components/atoms/HeartButton';
 import { Mono } from '@/components/atoms/Mono';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';

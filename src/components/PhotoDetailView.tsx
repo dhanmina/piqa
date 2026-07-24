@@ -15,33 +15,26 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { MoreHorizontal, Share, X } from 'lucide-react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ListRenderItemInfo } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
-  Easing,
-  Extrapolation,
-  interpolate,
-  interpolateColor,
   runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
-  withSequence,
-  withSpring,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { signThumb } from '@lib/cache';
-import { asFrameId, asStatus } from '@lib/frames';
-import { useSignedThumb } from '@lib/gallery';
-import { getPhotoNods, nodLabel, nodsFor, submitNod, topNod, type NodCounts, type NodTag } from '@lib/nods';
-import { shareCard } from '@lib/share';
+import { asFrameId, asStatus } from '@lib/services/frames';
+import { useSignedThumb } from '@lib/hooks/useCache';
+import { nodLabel, nodsFor, submitNod, type NodCounts } from '@lib/services/nods';
+import { usePhotoDetail } from '@lib/usePhotoDetail';
+import { usePhotoFlyHeart } from '@lib/hooks/usePhotoFlyHeart';
+import { shareCard } from '@lib/utils/share';
 import { useSession } from '@lib/session';
-import { supabase } from '@lib/supabase';
 import { Avatar } from '@/components/atoms/Avatar';
 import { HeartButton } from '@/components/atoms/HeartButton';
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
@@ -49,61 +42,12 @@ import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
+import { PagerDots } from '@/components/molecules/PagerDots';
 import { ReportSheet } from '@/components/molecules/ReportSheet';
 import { ShareCard } from '@/components/molecules/ShareCard';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fade, fonts, frame, icons, space, typeScale } from '@/components/tokens';
-
-// The heart that blooms at a double-tap and flies into the heart control.
-const FLY_HEART = 64;
-
-// Instagram-style pager dots, driven by the live scroll offset (not the settled
-// page): the pip under you is full-size and the app's accent, and it grows/shrinks
-// continuously as you drag between frames. A sliding window of at most DOT_MAX pips
-// tracks the scroll — the strip translates to keep the current pip centred (clamped
-// at the ends), and pips past the window taper to nothing, so even a long gallery
-// stays a compact, positioned strip.
-const DOT_MAX = 7;
-const DOT_BASE = 8; // active/base diameter; every other pip scales down from this
-const DOT_SLOT = 14; // per-pip horizontal slot (diameter + gap)
-const DOT_HALF = Math.floor(DOT_MAX / 2);
-
-function Dot({ index, scrollX, pageW }: { index: number; scrollX: SharedValue<number>; pageW: number }) {
-  const style = useAnimatedStyle(() => {
-    const d = Math.abs(scrollX.value / pageW - index); // distance from the live position
-    return {
-      transform: [{ scale: interpolate(d, [0, 1, 2, 3, 4, 5], [1, 0.75, 0.75, 0.56, 0.38, 0], Extrapolation.CLAMP) }],
-      backgroundColor: interpolateColor(d, [0, 0.9], [colors.safelight, colors.paper40]),
-    };
-  });
-  return (
-    <View style={styles.dotSlot}>
-      <Animated.View style={[styles.dotCircle, style]} />
-    </View>
-  );
-}
-
-function PagerDots({ scrollX, total, pageW }: { scrollX: SharedValue<number>; total: number; pageW: number }) {
-  const visible = Math.min(total, DOT_MAX);
-  const trackStyle = useAnimatedStyle(() => {
-    if (total <= DOT_MAX) return { transform: [{ translateX: 0 }] };
-    const progress = scrollX.value / pageW;
-    const center = Math.min(Math.max(progress, DOT_HALF), total - 1 - DOT_HALF);
-    return { transform: [{ translateX: (DOT_HALF - center) * DOT_SLOT }] };
-  });
-  return (
-    <View style={[styles.dotsViewport, { width: visible * DOT_SLOT }]}>
-      <Animated.View style={[styles.dotsTrack, trackStyle]}>
-        {Array.from({ length: total }, (_, i) => (
-          <Dot key={i} index={i} scrollX={scrollX} pageW={pageW} />
-        ))}
-      </Animated.View>
-    </View>
-  );
-}
-
-type Reactor = { id: string; username: string; avatar_url: string | null };
 
 export type PhotoDetailData = {
   id: string;
@@ -185,27 +129,16 @@ export function PhotoDetailView({
   initialIndex = 0,
   onPageChange,
 }: Props) {
-  // Controlled heart mode: the gallery drives this fullscreen off the SAME
-  // useGalleryHearts state as its grid, so both show one number and toggle
-  // together. Uncontrolled (route / profile) → the internal live-count path below.
   const heartControlled = onToggleHeart !== undefined;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
-  // Lightbox print: make the framed print the hero — as large as the viewport
-  // allows while the WHOLE 3:4 frame (rail included) stays visible. Bounded by a
-  // slim side margin AND by the height left between the top chrome (close/report)
-  // and the bottom identity bar, whichever binds first. On phones the width binds
-  // (near edge-to-edge); on tablets the height binds, so the print never overruns
-  // the bar. Route mode fills the screen (width undefined).
   const fsChromeV = insets.top + 48 + insets.bottom + 104;
   const printW = lightbox
     ? Math.min(winW - space.gutter, (winH - fsChromeV) * frame.aspect)
     : undefined;
   const { session } = useSession();
   const myId = session?.user.id;
-
-  const baseHearts = hearts;
 
   // --- Paging (gallery + profile modals) ---
   // Any caller that passes `photos` uses the polished paged layout (measured stage,
@@ -290,32 +223,45 @@ export function PhotoDetailView({
   const status = asStatus(activeStatus);
   const statusWords = status === 'crown' ? 'Photo of the Day' : status === 'top10' ? 'Top 10' : null;
 
-  const [liked, setLiked] = useState(false);
-  const [delta, setDelta] = useState(0); // local heart adjustment on top of the base
-  const [liveBase, setLiveBase] = useState<number | null>(null);
-  const [reactors, setReactors] = useState<Reactor[]>([]);
-  const [showReactors, setShowReactors] = useState(false);
-  const [showReport, setShowReport] = useState(false);
-  const [sharing, setSharing] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  // Off-screen card, snapshotted on Share — no preview sheet (the OS share sheet
-  // already previews the image; a second preview was a redundant extra tap).
-  const shareCardRef = useRef<View>(null);
   const isOwn = Boolean(myId && activeUserId && myId === activeUserId);
+
+  // --- Hooks: heart/reactors/nods/potd + flying heart animation ---
+  const {
+    displayLiked, displayCount, doToggle,
+    reactors, showReactors, setShowReactors,
+    topTag, myNod, setMyNod,
+    potdNote, toast, setToast,
+  } = usePhotoDetail(activeId, {
+    heartControlled,
+    baseHearts: hearts,
+    heartCount,
+    hearted,
+    onToggleHeart,
+    activeStatus,
+    activeNods,
+    activeCategory,
+    isOwn,
+  });
+
+  const { flyHeartStyle, flyTo, FLY_HEART } = usePhotoFlyHeart();
 
   const openProfile = (uid: string) => {
     if (onOpenProfile) onOpenProfile(uid);
     else router.push({ pathname: '/u/[id]', params: { id: uid } });
   };
 
+  const [showReport, setShowReport] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const shareCardRef = useRef<View>(null);
+
   const onShare = async () => {
     if (sharing || !shareCardRef.current) return;
     setSharing(true);
     try {
       const result = await shareCard(shareCardRef);
-      if (result === 'unavailable') setToast('Sharing isn’t available on this device.');
+      if (result === 'unavailable') setToast('Sharing isn\'t available on this device.');
     } catch {
-      setToast('Couldn’t create the image. Try again.');
+      setToast('Couldn\'t create the image. Try again.');
     } finally {
       setSharing(false);
     }
@@ -324,85 +270,12 @@ export function PhotoDetailView({
   const onReported = () => {
     setShowReport(false);
     setToast("Thanks. We'll take a look, and you won't see this photo again.");
-    setTimeout(onClose, 1100); // hide it from the reporter (spec §12)
+    setTimeout(onClose, 1100);
   };
-
-  // Signed reactors only (votes stay anonymous) — spec §8.
-  const loadReactors = useCallback(async () => {
-    if (!activeId) return;
-    const { data: rx } = await supabase.from('reactions').select('user_id').eq('submission_id', activeId);
-    const ids = (rx ?? []).map((r) => r.user_id);
-    if (ids.length === 0) {
-      setReactors([]);
-      return;
-    }
-    const { data: profs } = await supabase.from('profiles').select('id, username, avatar_url').in('id', ids);
-    setReactors(profs ?? []);
-  }, [activeId]);
-
-  useEffect(() => {
-    if (!activeId) return;
-    // Controlled mode: count + liked come from the host (useGalleryHearts); we
-    // only still need the signed-reactor list for the sheet.
-    if (heartControlled) {
-      void loadReactors();
-      return;
-    }
-    let alive = true;
-    void (async () => {
-      const [{ data: sub }, { data: mine }] = await Promise.all([
-        // Likes only — the heart never counts anonymous blind votes (reaction_count
-        // is the signed-heart tally; vote_count is the hidden ranking signal).
-        supabase.from('submissions').select('reaction_count').eq('id', activeId).maybeSingle(),
-        myId
-          ? supabase.from('reactions').select('user_id').eq('user_id', myId).eq('submission_id', activeId).maybeSingle()
-          : Promise.resolve({ data: null }),
-      ]);
-      if (!alive) return;
-      if (sub) setLiveBase(sub.reaction_count);
-      setLiked(!!mine);
-      void loadReactors();
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [myId, activeId, loadReactors, heartControlled]);
-
-  const toggle = async () => {
-    if (!myId || !activeId) return;
-    const next = !liked;
-    setLiked(next);
-    setDelta((d) => d + (next ? 1 : -1));
-    if (next) {
-      const { error } = await supabase.from('reactions').insert({ user_id: myId, submission_id: activeId, emoji: 'heart' });
-      if (error) {
-        setLiked(false);
-        setDelta((d) => d - 1);
-      }
-    } else {
-      const { error } = await supabase.from('reactions').delete().eq('user_id', myId).eq('submission_id', activeId);
-      if (error) {
-        setLiked(true);
-        setDelta((d) => d + 1);
-      }
-    }
-    void loadReactors();
-  };
-
-  const baseHeartsValue = liveBase ?? baseHearts;
-  // One source of truth for what the heart shows: the host's controller when
-  // present, else the internal live state. Both surfaces (grid + this view) read
-  // the same numbers in controlled mode, so they can't disagree.
-  const displayLiked = heartControlled ? !!hearted : liked;
-  const displayCount = heartControlled ? heartCount ?? 0 : Math.max(baseHeartsValue + delta, 0);
-  const doToggle = heartControlled ? onToggleHeart! : () => void toggle();
 
   // Double-tap to like — others' photos only (you can't heart your own). A heart
   // blooms where you tapped and sails into the heart control. Double-tap only ever
   // LIKES, never un-likes, the way people expect the gesture to behave.
-  // The overlay lives in the root view, so tap + target must be in ROOT-LOCAL
-  // space. Gestures report window coords, so we subtract the root's window origin.
-  // (The route presentation can offset the view from the window's top-left.)
   const rootRef = useRef<View>(null);
   const rootOrigin = useRef({ x: 0, y: 0 });
   const measureRoot = () => {
@@ -412,43 +285,13 @@ export function PhotoDetailView({
   };
   const heartRef = useRef<View>(null);
 
-  const flyX = useSharedValue(0);
-  const flyY = useSharedValue(0);
-  const flyScale = useSharedValue(0);
-  const flyOpacity = useSharedValue(0);
-  const flyStyle = useAnimatedStyle(() => ({
-    opacity: flyOpacity.value,
-    transform: [
-      { translateX: flyX.value - FLY_HEART / 2 },
-      { translateY: flyY.value - FLY_HEART / 2 },
-      { scale: flyScale.value },
-    ],
-  }));
-
-  // A slow, soft beat: bloom gently at the tap, hold, then glide into the heart.
-  const flyTo = (startX: number, startY: number, targetX: number, targetY: number) => {
-    flyX.value = startX;
-    flyY.value = startY;
-    flyScale.value = 0.3;
-    const glide = { duration: 620, easing: Easing.inOut(Easing.cubic) };
-    flyOpacity.value = withSequence(withTiming(1, { duration: 160 }), withDelay(320, withTiming(0, { duration: 540 })));
-    flyScale.value = withSequence(
-      withSpring(1, { damping: 13, stiffness: 130 }),
-      withDelay(180, withTiming(0.4, { duration: 620, easing: Easing.in(Easing.cubic) })),
-    );
-    flyX.value = withDelay(360, withTiming(targetX, glide));
-    flyY.value = withDelay(360, withTiming(targetY, glide));
-  };
-
   const likeFromDoubleTap = (absX: number, absY: number) => {
-    if (isOwn) return; // never heart your own photo
-    if (!displayLiked) doToggle(); // double-tap only ever likes, never un-likes
+    if (isOwn) return;
+    if (!displayLiked) doToggle();
     const ox = rootOrigin.current.x;
     const oy = rootOrigin.current.y;
     const startX = absX - ox;
     const startY = absY - oy;
-    // Measure the heart button fresh on each tap (its onLayout position can be
-    // stale before the bar has settled), then fly into its center.
     if (heartRef.current) {
       (heartRef.current as any).measureInWindow((x: number, y: number, w: number, h: number) => {
         const hasBox = w > 0 || h > 0;
@@ -461,39 +304,15 @@ export function PhotoDetailView({
     }
   };
 
+  /* eslint-disable react-hooks/refs -- pre-existing: gesture reads refs in runOnJS callback, not during render */
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .maxDuration(280)
     .onEnd((e) => {
       runOnJS(likeFromDoubleTap)(e.absoluteX, e.absoluteY);
     });
+  /* eslint-enable react-hooks/refs */
 
-  // Nods — craft recognition (feature-research §3): the top tag as an aggregate,
-  // plus a one-tap picker on others' photos (optimistic via myNod). Attaches after
-  // the reveal, when the photo is named — never on the blind voting pairs.
-  const [myNod, setMyNod] = useState<NodTag | null>(null);
-  // Per-photo nods, so the profile's fullscreen reads exactly like the gallery's:
-  // reset your session pick when the photo changes (fixes a carryover across swipes),
-  // and fetch the public aggregate when the caller didn't supply one — the gallery
-  // passes it via decorate_photos; a profile's wins don't carry it.
-  const [fetchedNods, setFetchedNods] = useState<NodCounts | null>(null);
-  useEffect(() => {
-    setMyNod(null);
-    if (!activeId || activeNods) {
-      setFetchedNods(null);
-      return;
-    }
-    let alive = true;
-    void getPhotoNods(activeId).then((n) => {
-      if (alive) setFetchedNods(n);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [activeId, activeNods]);
-  const displayNods: NodCounts = { ...(activeNods ?? fetchedNods ?? {}) };
-  if (myNod) displayNods[myNod] = (displayNods[myNod] ?? 0) + 1;
-  const topTag = topNod(displayNods);
   const nodsBlock =
     topTag || !isOwn ? (
       <View style={styles.nods}>
@@ -526,28 +345,6 @@ export function PhotoDetailView({
           ))}
       </View>
     ) : null;
-
-  // "Why this won" — the PotD's editorial note (learning loop). Fetched directly
-  // (public-gallery RLS), only for the crowned photo — off the get_gallery path.
-  const [potdNote, setPotdNote] = useState<string | null>(null);
-  useEffect(() => {
-    if (activeStatus !== 'crown' || !activeId) {
-      setPotdNote(null);
-      return;
-    }
-    let alive = true;
-    void supabase
-      .from('submissions')
-      .select('potd_note')
-      .eq('id', activeId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (alive) setPotdNote((data as { potd_note?: string | null } | null)?.potd_note ?? null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [activeStatus, activeId]);
 
   // The signed-appreciation pair — shooter (→ profile) + heart. Shared by the
   // route's on-cover overlay and the lightbox's bottom bar.
@@ -862,7 +659,7 @@ export function PhotoDetailView({
       <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} />
 
       {/* The flying like-heart — absolute, above everything, never a touch target. */}
-      <Animated.View pointerEvents="none" style={[styles.flyHeart, flyStyle]}>
+      <Animated.View pointerEvents="none" style={[styles.flyHeart, flyHeartStyle]}>
         <HeartGlyph size={FLY_HEART} color={colors.heart} fill={colors.heart} />
       </Animated.View>
     </View>
@@ -958,10 +755,4 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 12,
   },
-  // Position pips (PagerDots): a fixed-width, clipped viewport centered under the
-  // identity/actions row; the track slides inside it and each pip scales in place.
-  dotsViewport: { alignSelf: 'center', height: DOT_BASE, marginTop: 4, overflow: 'hidden', flexDirection: 'row', alignItems: 'center' },
-  dotsTrack: { flexDirection: 'row', alignItems: 'center' },
-  dotSlot: { width: DOT_SLOT, alignItems: 'center', justifyContent: 'center' },
-  dotCircle: { width: DOT_BASE, height: DOT_BASE, borderRadius: DOT_BASE / 2 },
 });

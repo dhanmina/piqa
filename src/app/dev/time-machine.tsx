@@ -28,9 +28,9 @@ import {
   devSeedVotes,
   devStatus,
   type DevStatus,
-} from '@lib/dev';
-import { getNsfwDevForceBlock, setNsfwDevForceBlock } from '@lib/nsfw';
-import { levelFromXp } from '@lib/xp';
+} from '@lib/services/dev';
+import { getNsfwDevForceBlock, setNsfwDevForceBlock } from '@lib/utils/nsfw';
+import { levelFromXp } from '@lib/utils/xp';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
 import { Toggle } from '@/components/atoms/Toggle';

@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 
-import { getOnboardingComplete } from '@lib/onboarding';
+import { getOnboardingComplete } from '@lib/utils/onboarding';
 import { useSession } from '@lib/session';
 
 export default function Index() {

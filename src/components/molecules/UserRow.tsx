@@ -1,3 +1,4 @@
+import React from 'react';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -21,7 +22,7 @@ type Props = {
  * Shared list row so the Following list, search, and any future people list read
  * identically instead of each hand-rolling one.
  */
-export function UserRow({ username, avatarUri, subtitle, trailing, onPress }: Props) {
+export const UserRow = React.memo(function UserRow({ username, avatarUri, subtitle, trailing, onPress }: Props) {
   return (
     <Pressable accessibilityRole="button" style={styles.row} onPress={onPress} disabled={!onPress}>
       <Avatar username={username} uri={avatarUri} size={48} />
@@ -38,7 +39,7 @@ export function UserRow({ username, avatarUri, subtitle, trailing, onPress }: Pr
       {trailing}
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },

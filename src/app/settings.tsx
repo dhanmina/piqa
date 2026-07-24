@@ -16,14 +16,16 @@ import { useCallback, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useIsAdmin } from '@lib/admin';
-import { S } from '@lib/admin-strings';
-import { equipFrame, type FrameId } from '@lib/frames';
+import { useIsAdmin } from '@lib/hooks/useAdmin';
+import { S } from '@lib/utils/admin-strings';
+import { equipFrame } from '@lib/services/frames';
+import type { FrameId } from '@lib/services/frames';
 import { useNotifPrefs } from '@lib/notifPrefs';
-import { deleteAccount, exportMyData, useProfile } from '@lib/profile';
+import { deleteAccount, exportMyData } from '@lib/services/profile';
+import { useProfile } from '@lib/hooks/useProfile';
 import { useSession } from '@lib/session';
-import { supabase } from '@lib/supabase';
-import { levelProgress } from '@lib/xp';
+import { supabase } from '@lib/services/supabase';
+import { levelProgress } from '@lib/utils/xp';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
 import { FramePicker } from '@/components/molecules/FramePicker';
@@ -118,8 +120,9 @@ export default function SettingsScreen() {
 
   // Contact opens the mail app pre-addressed to support. Subject is tagged with the
   // app version so replies arrive with the context we'd otherwise have to ask for.
-  const contact = () =>
-    void Linking.openURL(`mailto:hello@joinpiqa.com?subject=${encodeURIComponent(`Piqa support (v${version})`)}`);
+  const contact = useCallback(() =>
+    void Linking.openURL(`mailto:hello@joinpiqa.com?subject=${encodeURIComponent(`Piqa support (v${version})`)}`),
+  [version]);
 
   // Reflect the real OS notification permission, re-read on focus so it updates
   // after the user flips it in system settings and returns. (Delivery itself lights
@@ -147,15 +150,15 @@ export default function SettingsScreen() {
   // optimistically so it's instant, then refresh the profile (stale-while-revalidate,
   // so the list never flashes to a loading state). Revert the optimistic pick on failure.
   const [pendingEquip, setPendingEquip] = useState<FrameId | null>(null);
-  const onEquip = async (id: FrameId) => {
+  const onEquip = useCallback(async (id: FrameId) => {
     setPendingEquip(id);
     setEquipping(true);
     const ok = await equipFrame(id);
     setEquipping(false);
     if (ok) await refresh();
     else setPendingEquip(null);
-  };
-  const onDelete = async () => {
+  }, [refresh]);
+  const onDelete = useCallback(async () => {
     setBusy(true);
     const ok = await deleteAccount();
     setBusy(false);
@@ -163,17 +166,17 @@ export default function SettingsScreen() {
       setConfirmDelete(false);
       await supabase.auth.signOut(); // session is now invalid → back to auth
     }
-  };
+  }, []);
 
   // Data export (Play/GDPR): gather everything the user owns into a JSON file and
   // open the share sheet. Label flips to "Preparing…" while the RPC + file write run.
   const [exporting, setExporting] = useState(false);
-  const onExport = async () => {
+  const onExport = useCallback(async () => {
     setExporting(true);
     const ok = await exportMyData();
     setExporting(false);
     if (!ok) Alert.alert("Couldn't export your data", 'Something went wrong. Please try again.');
-  };
+  }, []);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>

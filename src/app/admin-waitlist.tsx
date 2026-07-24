@@ -8,8 +8,10 @@ import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Hourglass } from 'lucide-react-native';
 
-import { deleteWaitlist, useWaitlist, type WaitlistEntry } from '@lib/admin';
-import { S } from '@lib/admin-strings';
+import { deleteWaitlist } from '@lib/services/admin';
+import { useWaitlist } from '@lib/hooks/useAdmin';
+import type { WaitlistEntry } from '@lib/services/admin';
+import { S } from '@lib/utils/admin-strings';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';

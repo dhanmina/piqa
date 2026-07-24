@@ -19,11 +19,11 @@ import {
   deleteSubject,
   setHint,
   updateSubject,
-  useSubjects,
   type Subject,
   type SubjectCategory,
-} from '@lib/admin';
-import { S } from '@lib/admin-strings';
+} from '@lib/services/admin';
+import { useSubjects } from '@lib/hooks/useAdmin';
+import { S } from '@lib/utils/admin-strings';
 import { Button } from '@/components/atoms/Button';
 import { Chip } from '@/components/atoms/Chip';
 import { Mono } from '@/components/atoms/Mono';
@@ -190,7 +190,7 @@ export default function AdminLibraryScreen() {
   };
 
   const filtered = useMemo(() => {
-    let list = data;
+    let list = data ?? [];
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((s) => s.text.toLowerCase().includes(q) || s.category.includes(q));
@@ -201,7 +201,7 @@ export default function AdminLibraryScreen() {
     return list;
   }, [data, search, statusFilter]);
 
-  const queued = data.filter((s) => !s.used_at).length;
+  const queued = (data ?? []).filter((s) => !s.used_at).length;
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -246,7 +246,7 @@ export default function AdminLibraryScreen() {
         {/* ── Library list ────────────────────────────────────────────── */}
         <View style={styles.section}>
           <Mono size={typeScale.caption} color={colors.paper60} style={styles.sectionTitle}>
-            {S.librarySection} · {queued} {S.libraryQueued} / {data.length} {S.libraryTotal}
+            {S.librarySection} · {queued} {S.libraryQueued} / {(data ?? []).length} {S.libraryTotal}
           </Mono>
 
           {/* Search bar */}
@@ -271,7 +271,7 @@ export default function AdminLibraryScreen() {
             ))}
           </View>
 
-          {loading && data.length === 0 ? (
+          {loading && (data ?? []).length === 0 ? (
             <ActivityIndicator color={colors.paper60} style={{ marginTop: 24 }} />
           ) : error ? (
             <Text style={styles.error}>{error === 'not_authorized' ? S.notAuthorized : error}</Text>

@@ -1,4 +1,5 @@
-import { invalidate } from "./cache";
+import { myId } from "./auth";
+import { invalidate } from "../cache";
 import { supabase } from "./supabase";
 
 /** Report reasons (spec §12). Values must match the reports.reason check. */
@@ -22,11 +23,6 @@ export async function reportSubmission(submissionId: string, reason: string): Pr
   if (error) return false;
   refreshPublicSurfaces();
   return (data as unknown as { ok: boolean }).ok;
-}
-
-async function myId(): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
 }
 
 /** Block = mutual invisibility (spec §9): each user vanishes from the other's surfaces. */

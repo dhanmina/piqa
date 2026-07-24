@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { fetchFollowing, unfollow, type FollowedUser } from '@lib/profile';
+import { fetchFollowing, unfollow, type FollowedUser } from '@lib/services/profile';
 import { Button } from '@/components/atoms/Button';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';

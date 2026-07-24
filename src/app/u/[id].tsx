@@ -6,8 +6,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text, Pressable, StyleSheet } from 'react-native';
 import { useState } from 'react';
 
-import { blockUser } from '@lib/moderation';
-import { follow, unfollow, useProfile } from '@lib/profile';
+import { blockUser } from '@lib/services/moderation';
+import { follow, unfollow } from '@lib/services/profile';
+import { useProfile } from '@lib/hooks/useProfile';
 import { ProfileView } from '@/components/ProfileView';
 import { Sheet } from '@/components/molecules/Sheet';
 import { colors, fonts, typeScale } from '@/components/tokens';

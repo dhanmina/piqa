@@ -8,8 +8,9 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShieldCheck } from 'lucide-react-native';
 
-import { useReports, type ReportEntry } from '@lib/admin';
-import { S } from '@lib/admin-strings';
+import { useReports } from '@lib/hooks/useAdmin';
+import type { ReportEntry } from '@lib/services/admin';
+import { S } from '@lib/utils/admin-strings';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';

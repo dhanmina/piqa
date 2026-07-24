@@ -1,10 +1,12 @@
+import React from 'react';
 import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 import { imageCacheKey } from '@lib/cache';
-import { useFrameDef, type FrameId, type MarkerShape, type PhotoStatus } from '@lib/frames';
+import { useFrameDef } from '@lib/hooks/frames';
+import type { FrameId, MarkerShape, PhotoStatus } from '@lib/services/frames';
 import { colors, fonts, frame } from '@/components/tokens';
 
 /**
@@ -117,7 +119,7 @@ function StatusGlyph({ status }: { status: PhotoStatus }) {
  * The frame is an OVERLAY and stays one: never baked into a saved or uploaded file,
  * and never used on the voting screens.
  */
-export function FramedPhoto({
+export const FramedPhoto = React.memo(function FramedPhoto({
   photoUri,
   placeholderUri,
   dayNumber,
@@ -226,7 +228,7 @@ export function FramedPhoto({
       </Svg>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   print: {
