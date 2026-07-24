@@ -25,7 +25,7 @@ function RootNavigator() {
 
   // Play Store update nudge — soft (dismissible) unless the installed build is
   // below the config's min_build. Gated on a session (config reads are RLS'd).
-  const { status: updateStatus, openStore } = useAppUpdate(session !== null);
+  const { status: updateStatus, targetVersion, changelog, openStore } = useAppUpdate(session !== null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
 
   // Register for push once signed in (spec §14). Best-effort — the app works
@@ -99,6 +99,8 @@ function RootNavigator() {
       forced={updateStatus === 'forced'}
       onUpdate={openStore}
       onDismiss={() => setUpdateDismissed(true)}
+      targetVersion={targetVersion}
+      changelog={changelog}
     />
     <AnalyticsConsent />
     </>

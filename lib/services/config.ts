@@ -30,6 +30,10 @@ const FALLBACKS = {
   // an unset value is always safe.
   latest_build: 0,
   min_build: 0,
+  // Optional version metadata shown in the update prompt. Strings so they can be
+  // anything ("2.4", "2.4.1-beta", etc.). Empty/falsy = hidden.
+  update_version: "",
+  update_changelog: "",
 } as const;
 
 export type ConfigKey = keyof typeof FALLBACKS;

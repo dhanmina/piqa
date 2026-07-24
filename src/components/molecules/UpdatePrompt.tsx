@@ -1,45 +1,73 @@
 /**
- * Play Store update nudge. Soft = a dismissible card (Update / Later); forced =
- * the same card without a way out (no backdrop dismiss, no Later, no hardware
- * back). Driven by useAppUpdate() off the `latest_build` / `min_build` config —
- * pure JS, so it ships over OTA and can nudge an old build onto a new Play release.
+ * Play Store update nudge. Soft = a dismissible card; forced = no way out (no
+ * backdrop dismiss, no Later, no hardware back). Driven by useAppUpdate() off
+ * the latest_build / min_build config — pure JS, so it ships over OTA and can
+ * nudge an old build onto a new Play release.
+ *
+ * Shows the target version and an optional changelog so the user knows *why*
+ * they should update, not just *that* they should.
  */
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Download } from 'lucide-react-native';
+import { Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/atoms/Button';
-import { displayFamily } from '@/components/fonts';
-import { colors, fonts, radius, space, typeScale } from '@/components/tokens';
+import { colors, fonts, iconStroke, overlay, radius, space, typeScale } from '@/components/tokens';
+
+const SCREEN_W = Dimensions.get('window').width;
 
 type Props = {
   visible: boolean;
   forced: boolean;
   onUpdate: () => void;
   onDismiss: () => void;
+  /** Target version string from config (e.g. "2.4"). Null when unknown. */
+  targetVersion: string | null;
+  /** Short changelog blurb from config (e.g. "New gallery grid + faster uploads"). */
+  changelog: string | null;
 };
 
-export function UpdatePrompt({ visible, forced, onUpdate, onDismiss }: Props) {
+export function UpdatePrompt({ visible, forced, onUpdate, onDismiss, targetVersion, changelog }: Props) {
   return (
     <Modal
       visible={visible}
       transparent
       animationType="fade"
       statusBarTranslucent
-      // Forced: swallow the Android hardware back so it can't be escaped.
       onRequestClose={forced ? () => {} : onDismiss}
     >
-      <View style={styles.backdrop}>
-        {/* Soft: tap outside to dismiss. Forced: the backdrop does nothing. */}
+      <View style={styles.scrim}>
         {!forced && <Pressable style={StyleSheet.absoluteFill} onPress={onDismiss} accessibilityLabel="Dismiss" />}
         <View style={styles.card}>
-          <Text style={styles.title}>A new version of Piqa is here</Text>
+          {/* Icon row — the download arrow anchors the card visually. */}
+          <View style={styles.iconRow}>
+            <View style={styles.iconCircle}>
+              <Download size={20} strokeWidth={iconStroke(20)} color={colors.safelight} />
+            </View>
+          </View>
+
+          <Text style={styles.title}>
+            {forced ? 'Update required' : 'New version available'}
+          </Text>
+
+          {targetVersion && (
+            <Text style={styles.version}>v{targetVersion}</Text>
+          )}
+
           <Text style={styles.body}>
             {forced
-              ? 'Update to keep using Piqa. It only takes a moment.'
-              : 'Update on the Play Store for the latest fixes and features.'}
+              ? 'This update is required to keep using piqa. Install it to get back in.'
+              : changelog
+                ? `What's new: ${changelog}`
+                : 'Update for the latest fixes and improvements.'}
           </Text>
+
           <View style={styles.actions}>
-            <Button label="Update" onPress={onUpdate} />
-            {!forced && <Button label="Later" variant="text" onPress={onDismiss} />}
+            <Button label="Update now" fullWidth onPress={onUpdate} />
+            {!forced && (
+              <Pressable style={styles.laterButton} onPress={onDismiss}>
+                <Text style={styles.laterText}>Later</Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </View>
@@ -48,31 +76,64 @@ export function UpdatePrompt({ visible, forced, onUpdate, onDismiss }: Props) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  scrim: {
     flex: 1,
-    backgroundColor: 'rgba(12,11,10,0.7)',
+    backgroundColor: overlay.scrim,
     justifyContent: 'center',
     alignItems: 'center',
     padding: space.gutter,
   },
   card: {
     width: '100%',
-    maxWidth: 360,
+    maxWidth: Math.min(SCREEN_W - 48, 380),
     backgroundColor: colors.ink2,
     borderRadius: radius.card,
-    padding: space.gutter,
-    gap: 10,
+    padding: 24,
+    gap: 12,
+  },
+  iconRow: {
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 90, 54, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
-    fontFamily: displayFamily,
-    fontSize: typeScale.title,
+    fontFamily: fonts.sansSemiBold,
+    fontSize: typeScale.body,
     color: colors.paper,
+    textAlign: 'center',
+  },
+  version: {
+    fontFamily: fonts.monoMedium,
+    fontSize: typeScale.caption,
+    color: colors.safelight,
+    textAlign: 'center',
+    marginTop: -4,
   },
   body: {
     fontFamily: fonts.sans,
     fontSize: typeScale.sub,
-    lineHeight: typeScale.sub * 1.4,
     color: colors.paper60,
+    textAlign: 'center',
+    lineHeight: 22,
   },
-  actions: { gap: 4, marginTop: 8 },
+  actions: {
+    gap: 10,
+    marginTop: 8,
+  },
+  laterButton: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  laterText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: typeScale.sub,
+    color: colors.paper40,
+  },
 });
