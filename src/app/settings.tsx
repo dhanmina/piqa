@@ -26,6 +26,7 @@ import { useProfile } from '@lib/hooks/useProfile';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/services/supabase';
 import { levelProgress } from '@lib/utils/xp';
+import { getConsentSync, setConsent } from '@lib/analyticsConsent';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
 import { FramePicker } from '@/components/molecules/FramePicker';
@@ -104,6 +105,14 @@ export default function SettingsScreen() {
   const [equipping, setEquipping] = useState(false);
   const [busy, setBusy] = useState(false);
   const isAdmin = useIsAdmin();
+
+  // Analytics consent toggle — reads the real PostHog opt-in state on mount.
+  const [analyticsOn, setAnalyticsOn] = useState(() => getConsentSync());
+  const toggleAnalytics = useCallback(async () => {
+    const next = !analyticsOn;
+    setAnalyticsOn(next);
+    await setConsent(next);
+  }, [analyticsOn]);
 
   // What every user sees: a clean, standard version string — "1.0.0 (6)" — where
   // the parenthetical is the store build number (versionCode). No dev jargon.
@@ -231,6 +240,8 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title="ABOUT">
+          <ToggleRow label="Analytics" value={analyticsOn} onValueChange={() => void toggleAnalytics()} />
+          <View style={styles.divider} />
           <Row label="Version" value={version} />
           <View style={styles.divider} />
           <Row label="Build" value={otaBuild} />

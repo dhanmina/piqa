@@ -12,6 +12,7 @@ import { wrapRoot } from '@lib/services/sentry';
 import { prefetchEssentials } from '@lib/services/prefetch';
 import { registerForPush, useNotificationRouting } from '@lib/push';
 import { SessionProvider, useSession } from '@lib/session';
+import { AnalyticsConsent } from '@/components/molecules/AnalyticsConsent';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { UpdatePrompt } from '@/components/molecules/UpdatePrompt';
 import { useAppFonts } from '@/components/fonts';
@@ -99,6 +100,7 @@ function RootNavigator() {
       onUpdate={openStore}
       onDismiss={() => setUpdateDismissed(true)}
     />
+    <AnalyticsConsent />
     </>
   );
 }

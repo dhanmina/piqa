@@ -22,7 +22,20 @@ const HOST = process.env.EXPO_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
 let client: PostHog | null = null;
 if (KEY) {
   try {
-    client = new PostHog(KEY, { host: HOST });
+    client = new PostHog(KEY, {
+      host: HOST,
+      // Flush after 20 events or 60s — less aggressive than the 10s default
+      // to avoid network errors on poor mobile connections.
+      flushAt: 20,
+      flushInterval: 60_000,
+      // Don't capture app lifecycle events (foreground/background) — noisy
+      // and not useful for a daily-use photography app.
+      captureAppLifecycleEvents: false,
+      // Start opted out. Users opt in via the privacy toggle in Settings.
+      // This respects GDPR/privacy-by-default and stops all capturing until
+      // the user explicitly consents.
+      defaultOptIn: false,
+    });
     // Suppress noisy PostHog network errors when offline — the SDK throws on
     // every failed flush, which clutters logs with no actionable information.
     const origFlush = client.flush.bind(client);
@@ -75,6 +88,24 @@ export function resetAnalytics() {
 
 /** True when a PostHog key is configured and the client initialised. */
 export const analyticsEnabled = client !== null;
+
+/**
+ * Opt out of analytics capturing. Persists across sessions via PostHog's
+ * internal storage. Call from a privacy settings toggle.
+ */
+export async function optOutAnalytics() {
+  await client?.optOut();
+}
+
+/** Opt back in after previously opting out. */
+export async function optInAnalytics() {
+  await client?.optIn();
+}
+
+/** Whether the user has opted out of analytics. */
+export function hasOptedOut(): boolean {
+  return client?.optedOut ?? true;
+}
 
 // ---------------------------------------------------------------------------
 // Wired (Phase 0A) — capture() call sites:

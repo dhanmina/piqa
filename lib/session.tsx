@@ -29,8 +29,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!initDone) return;
       setState({ session, loading: false });
-      // Tie analytics to the user (no-op until PostHog is configured).
-      if (session) identify(session.user.id);
+      // Tie analytics to the user — only on actual sign-in, not on silent
+      // token refreshes which fire ~every 30min in the background.
+      if (session && event === "SIGNED_IN") identify(session.user.id);
       // Session owns only the cache lifecycle; the navigator triggers prefetch
       // (it layers above session, so importing prefetch here would cycle).
       // Sign-out wipes the prior account's cache so the next one starts clean.
