@@ -5,11 +5,12 @@
  */
 import { useRouter } from 'expo-router';
 import { Users } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fetchFollowing, unfollow, type FollowedUser } from '@lib/services/profile';
+import { useCached } from '@lib/hooks/useCache';
 import { Button } from '@/components/atoms/Button';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
@@ -27,40 +28,39 @@ function RowSkeleton() {
 
 export default function FollowingScreen() {
   const router = useRouter();
-  const [list, setList] = useState<FollowedUser[] | null>(null);
+  const { data: list, loading } = useCached<FollowedUser[]>(
+    'following:all',
+    useCallback(() => fetchFollowing(), []),
+    5 * 60_000,
+  );
 
-  useEffect(() => {
-    let alive = true;
-    void fetchFollowing().then((r) => {
-      if (alive) setList(r);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  // Optimistic removal: track unfollowed IDs so the row vanishes instantly.
+  const [removed, setRemoved] = useState(new Set<string>());
 
   const onUnfollow = (id: string) => {
-    setList((cur) => cur?.filter((u) => u.id !== id) ?? cur); // optimistic
-    void unfollow(id); // background; a failure reappears on next visit
+    setRemoved((prev) => { const next = new Set(prev); next.add(id); return next; });
+    void unfollow(id);
   };
+
+  const displayList = useMemo(() => list?.filter((u) => !removed.has(u.id)) ?? null, [list, removed]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScreenHeader onBack={() => router.back()} title="Following" />
 
-      {list === null ? (
+      {loading && !displayList ? (
         <View style={styles.list}>
           {[0, 1, 2, 3, 4].map((i) => (
             <RowSkeleton key={i} />
           ))}
         </View>
-      ) : list.length === 0 ? (
+      ) : displayList && displayList.length === 0 ? (
         <View style={styles.center}>
           <EmptyState icon={Users} line="You're not following anyone yet. Follow shooters from the gallery." />
         </View>
-      ) : (
+      ) : displayList ? (
         <FlatList
-          data={list}
+          data={displayList}
           keyExtractor={(u) => u.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
@@ -72,7 +72,7 @@ export default function FollowingScreen() {
             />
           )}
         />
-      )}
+      ) : null}
     </SafeAreaView>
   );
 }

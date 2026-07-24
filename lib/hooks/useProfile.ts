@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { useCached } from "./useCache";
 import {
   fetchProfile,
-  fetchFollowing,
+  fetchFollowingPreview,
   profileKey,
   type ProfileData,
   type FollowedUser,
@@ -26,7 +26,7 @@ export function useFollowingPreview(enabled: boolean): FollowedUser[] {
   const { data } = useCached<FollowedUser[]>(
     "following:preview",
     useCallback(
-      () => (enabled ? fetchFollowing() : Promise.resolve([])),
+      () => (enabled ? fetchFollowingPreview() : Promise.resolve([])),
       [enabled],
     ),
     5 * 60_000,

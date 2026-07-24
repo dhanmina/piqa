@@ -169,7 +169,7 @@ export async function follow(target: string): Promise<boolean> {
   const { error } = await supabase
     .from("follows")
     .insert({ follower_id: me, followee_id: target });
-  if (!error) invalidate("gallery:following");
+  if (!error) { invalidate("gallery:following"); invalidate("following:preview"); invalidate("following:all"); }
   return !error;
 }
 
@@ -181,7 +181,7 @@ export async function unfollow(target: string): Promise<boolean> {
     .delete()
     .eq("follower_id", me)
     .eq("followee_id", target);
-  if (!error) invalidate("gallery:following");
+  if (!error) { invalidate("gallery:following"); invalidate("following:preview"); invalidate("following:all"); }
   return !error;
 }
 
@@ -198,6 +198,24 @@ export async function fetchFollowing(): Promise<FollowedUser[]> {
     .from("follows")
     .select("followee_id")
     .eq("follower_id", me);
+  const ids = (rows ?? []).map((r) => r.followee_id);
+  if (ids.length === 0) return [];
+  const { data: profs } = await supabase
+    .from("profiles")
+    .select("id, username, avatar_url")
+    .in("id", ids);
+  return (profs ?? []) as FollowedUser[];
+}
+
+/** Preview: only the first 5 — the face pile never shows more. */
+export async function fetchFollowingPreview(): Promise<FollowedUser[]> {
+  const me = await myId();
+  if (!me) return [];
+  const { data: rows } = await supabase
+    .from("follows")
+    .select("followee_id")
+    .eq("follower_id", me)
+    .limit(5);
   const ids = (rows ?? []).map((r) => r.followee_id);
   if (ids.length === 0) return [];
   const { data: profs } = await supabase
