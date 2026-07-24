@@ -272,6 +272,6 @@ export function imageCacheKey(uri: string | null | undefined): string | undefine
   return q === -1 ? uri : uri.slice(0, q);
 }
 
-// ─── Barrel re-exports (hooks live in lib/hooks/useCache.ts) ─────────────────
-export { useCached, useSignedThumb } from "./hooks/useCache";
-export type { Cached } from "./hooks/useCache";
+// Hooks live in lib/hooks/useCache.ts — import directly from there to avoid
+// a require cycle (useCache imports cache primitives, cache re-exporting from
+// useCache creates the cycle).

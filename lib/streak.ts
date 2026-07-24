@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
-import { fetchKey, invalidate, useCached } from "./cache";
+import { fetchKey, invalidate } from "./cache";
+import { useCached } from "./hooks/useCache";
 import { subscribeQueue } from "./services/captureQueue";
 import { useSession } from "./session";
 import { supabase } from "./services/supabase";

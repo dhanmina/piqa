@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { useCached } from "../cache";
+import { useCached } from "./useCache";
 import { supabase } from "../services/supabase";
 import type {
   AdminToday,

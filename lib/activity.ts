@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { invalidate, signThumbs, useCached } from "./cache";
+import { invalidate, signThumbs } from "./cache";
+import { useCached } from "./hooks/useCache";
 import { supabase } from "./services/supabase";
 
 /**

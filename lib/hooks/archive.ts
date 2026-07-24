@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { useCached } from "../cache";
+import { useCached } from "./useCache";
 import { getQueueItems, subscribeQueue, type QueueItem } from "../services/captureQueue";
 import { ARCHIVE_KEY, fetchArchive, rowMatchesQueued, queuedToItem, type Archive } from "../services/archive";
 

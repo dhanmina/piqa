@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { useCached } from "../cache";
+import { useCached } from "./useCache";
 import { useSession } from "../session";
 import { supabase } from "../services/supabase";
 import {

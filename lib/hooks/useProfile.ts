@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { useCached } from "../cache";
+import { useCached } from "./useCache";
 import {
   fetchProfile,
   fetchFollowing,

@@ -1,7 +1,8 @@
 import { useCallback, useEffect } from "react";
 
 import { subscribeQueue } from "./services/captureQueue";
-import { fetchKey, revalidate, useCached } from "./cache";
+import { fetchKey, revalidate } from "./cache";
+import { useCached } from "./hooks/useCache";
 import type { FrameId, PhotoStatus } from "./frames";
 import { supabase } from "./services/supabase";
 

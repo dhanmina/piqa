@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { useCached } from "../cache";
+import { useCached } from "./useCache";
 import { getNodsReceived, nodLabel, type NodCounts } from "../services/nods";
 
 export function useNodsReceived(userId?: string | null): { label: string; count: number }[] {
