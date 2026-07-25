@@ -9,7 +9,7 @@
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Bell, CloudOff, RefreshCw } from 'lucide-react-native';
-import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -136,6 +136,21 @@ export default function TodayScreen() {
     streakDays = first >= 0 ? 7 - first : 1; // calendar days since it lit
   }
   const brandNew = !flameAlive && !last7.some(Boolean);
+
+  // Streak relight: brief flare + haptic when dead→alive transition fires.
+  const [relighting, setRelighting] = useState(false);
+  const prevAlive = useRef(flameAlive);
+  useEffect(() => {
+    if (!prevAlive.current && flameAlive) {
+      setRelighting(true);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      capture('streak_relight');
+      const t = setTimeout(() => setRelighting(false), 500);
+      return () => clearTimeout(t);
+    }
+    prevAlive.current = flameAlive;
+  }, [flameAlive]);
+
   // A quiet one-liner under the flame that teaches the 4-of-7 rhythm, then gets
   // out of the way after the first week. Short by design — the shield icon in the
   // flame already says "a miss is covered", so the caption doesn't repeat it.
@@ -453,6 +468,7 @@ export default function TodayScreen() {
                   last7={last7}
                   alive={flameAlive}
                   shields={streak?.shields ?? 0}
+                  relighting={relighting}
                 />
               </Pressable>
               <Mono size={typeScale.caption} color={colors.paper60} numberOfLines={1}>

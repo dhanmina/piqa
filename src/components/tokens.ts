@@ -130,6 +130,7 @@ export const motion = {
   pressScale: 0.97, // universal press affordance (no ripples)
   toastMs: 2000,
   heartSpring: 1.1,
+  relighPulse: 1.3, // streak dead→alive flare scale
 } as const;
 
 /** Lucide settings — one family, warm stroke. */

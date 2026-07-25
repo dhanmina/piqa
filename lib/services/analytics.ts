@@ -69,6 +69,7 @@ export type AnalyticsEvent =
   | "reveal_seen" // opened the morning gallery reveal
   | "result_seen" // saw own result on Today
   | "morning_reveal" // played the sequenced morning reveal
+  | "streak_relight" // flame dead→alive transition (relight moment)
   | "gallery_opened" // opened the Gallery tab
   | "activity_opened"; // opened the activity inbox from the Today bell
 
