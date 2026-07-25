@@ -89,6 +89,9 @@
     "runtimeVersion": {
       "policy": "fingerprint"
     },
+    "fingerprint": {
+      "ignorePaths": ["supabase/**"]
+    },
     "updates": {
       "url": "https://u.expo.dev/695fe1c2-f6a3-485f-b8b9-1b0314618f44"
     }
