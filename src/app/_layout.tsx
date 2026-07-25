@@ -85,6 +85,7 @@ function RootNavigator() {
         <Stack.Screen name="blocked" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="activity" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="reveal" options={{ animation: 'fade', gestureEnabled: false }} />
+        <Stack.Screen name="first-shot" options={{ animation: 'fade', gestureEnabled: false }} />
         <Stack.Screen name="settings" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="admin" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="admin-library" options={{ animation: 'simple_push' }} />

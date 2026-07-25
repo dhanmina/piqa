@@ -44,8 +44,9 @@ export default function CameraScreen() {
   const { data } = useHomeState();
   // Practice mode (from Today's "while you wait" / Archive CTA): always a
   // free shot to the archive, even if a drop is live. Same offline queue.
-  const { practice } = useLocalSearchParams<{ practice?: string }>();
+  const { practice, firstShot } = useLocalSearchParams<{ practice?: string; firstShot?: string }>();
   const practiceMode = practice === '1';
+  const isFirstShot = firstShot === '1';
 
   const [facing, setFacing] = useState<CameraType>('back');
   const [flash, setFlash] = useState<FlashMode>('off');
@@ -129,7 +130,11 @@ export default function CameraScreen() {
         dropsAt: submitAsDaily && live && drop ? drop.drops_at : null,
         capturedAt: captured.capturedAt,
       });
-      close();
+      if (isFirstShot) {
+        router.replace('/(tabs)/today');
+      } else {
+        close();
+      }
     } catch {
       // Local persistence failed (storage full etc.) — a real error, not connectivity.
       setToast('Could not save the shot. Check device storage');
@@ -140,27 +145,42 @@ export default function CameraScreen() {
 
   if (captured) {
     const asDaily = Boolean(submitAsDaily && live && drop);
-    const primaryLabel = asDaily ? 'Use this shot' : 'Save to archive';
-    // The last beat before a daily shot locks in — one calm line on what the
-    // primary will do, so the commit (one a day, no edits after) is never a surprise.
-    const consequence = asDaily
-      ? 'One shot a day. This locks it in.'
-      : live
-        ? 'This won’t count for today. It goes to your archive.'
-        : 'Goes to your private archive. Only you see it.';
+    // First-shot mode: always show the framed print — this IS the aha moment.
+    const showFrame = asDaily || isFirstShot;
+    const primaryLabel = isFirstShot
+      ? 'See your first print'
+      : asDaily
+        ? 'Use this shot'
+        : 'Save to archive';
+    const consequence = isFirstShot
+      ? 'Your first framed print. This is the magic.'
+      : asDaily
+        ? 'One shot a day. This locks it in.'
+        : live
+          ? 'This won\u2019t count for today. It goes to your archive.'
+          : 'Goes to your private archive. Only you see it.';
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.previewTop}>
           {/* Bail out entirely — the shot is local-only until "Use", so leaving
               just discards it. Retake, by contrast, only re-opens the finder. */}
-          <IconButton icon={X} variant="chrome" accessibilityLabel="Discard and close" onPress={close} />
+          <IconButton
+            icon={X}
+            variant="chrome"
+            accessibilityLabel="Discard and close"
+            onPress={isFirstShot ? () => router.replace('/(tabs)/today') : close}
+          />
         </View>
         <View style={styles.previewBody}>
           {/* Review it as it will land: a daily shot becomes today's print (real
               day counter); a practice/archive shot stays plain in brackets. */}
-          {asDaily && drop ? (
+          {showFrame && drop ? (
             <Animated.View entering={FadeIn.duration(180)} style={styles.previewPrint}>
               <FramedPhoto photoUri={captured.uri} dayNumber={drop.day_number} frameId="default" status={null} />
+            </Animated.View>
+          ) : showFrame ? (
+            <Animated.View entering={FadeIn.duration(180)} style={styles.previewPrint}>
+              <FramedPhoto photoUri={captured.uri} dayNumber={0} frameId="default" status={null} />
             </Animated.View>
           ) : (
             <Brackets animated color={colors.paper} style={styles.previewBrackets}>
@@ -170,8 +190,8 @@ export default function CameraScreen() {
         </View>
         <View style={styles.previewFooter}>
           <View style={styles.previewInfo}>
-            {live && drop && (
-              <Toggle label="Submit as Today’s Shot" value={submitAsDaily} onChange={setSubmitDaily} />
+            {live && drop && !isFirstShot && (
+              <Toggle label="Submit as Today's Shot" value={submitAsDaily} onChange={setSubmitDaily} />
             )}
             <Text style={styles.consequence}>{consequence}</Text>
           </View>
@@ -216,7 +236,14 @@ export default function CameraScreen() {
           {/* The brief leads: the prompt is the assignment for a daily shot; a
               clear label for practice, so the cam always says what mode it's in. */}
           <View style={styles.brief}>
-            {live && drop ? (
+            {isFirstShot ? (
+              <>
+                <Mono size={typeScale.caption} weight="medium" color={colors.crown}>
+                  YOUR FIRST SHOT
+                </Mono>
+                <Text style={styles.briefSub}>Shoot anything. Watch it become a print.</Text>
+              </>
+            ) : live && drop ? (
               <>
                 <Mono size={typeScale.caption} weight="medium" color={colors.safelight}>
                   TODAY’S SHOT
@@ -262,7 +289,7 @@ export default function CameraScreen() {
           </Pressable>
           {/* Know the stakes before you press it. */}
           <Text style={styles.shutterCaption}>
-            {live && drop ? 'Counts as today’s shot' : 'Saves to your archive'}
+            {isFirstShot ? 'Tap to capture your first print' : live && drop ? 'Counts as today\'s shot' : 'Saves to your archive'}
           </Text>
         </View>
       </SafeAreaView>
