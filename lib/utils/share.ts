@@ -1,19 +1,28 @@
 import * as Sharing from "expo-sharing";
 import type React from "react";
-import type { View } from "react-native";
+import { Share as RNShare, type View } from "react-native";
 import { captureRef } from "react-native-view-shot";
+
+import { capture } from "@lib/services/analytics";
+
+const DOMAIN = "https://joinpiqa.com";
 
 /**
  * The public link to a photo — mirrors the in-app /photo/[id] route.
  *
- * NOT included in shares yet, on purpose: there's no web landing at piqa.app and
+ * NOT included in shares yet, on purpose: there's no web landing at joinpiqa.com and
  * no universal-link config, so the URL wouldn't resolve — a dead link is worse
  * than none. Wire it into shareCard (RN Share `message` on iOS; Android via the
- * OG/universal-link path) once piqa.app serves /photo/[id] with an OG preview and
+ * OG/universal-link path) once joinpiqa.com serves /photo/[id] with an OG preview and
  * the app declares associatedDomains / assetlinks.
  */
 export function photoShareUrl(id: string): string {
-  return `https://piqa.app/photo/${id}`;
+  return `${DOMAIN}/photo/${id}`;
+}
+
+/** The public link to a user's profile. */
+export function profileShareUrl(username: string): string {
+  return `${DOMAIN}/u/${username}`;
 }
 
 /**
@@ -28,4 +37,15 @@ export async function shareCard(ref: React.RefObject<View | null>): Promise<"sha
   if (!(await Sharing.isAvailableAsync())) return "unavailable";
   await Sharing.shareAsync(uri, { mimeType: "image/png", UTI: "public.png", dialogTitle: "Share your shot" });
   return "shared";
+}
+
+/** Share a profile link via the OS share sheet. Returns "shared" or "unavailable". */
+export async function shareProfile(username: string): Promise<"shared" | "unavailable"> {
+  const url = profileShareUrl(username);
+  const result = await RNShare.share({ message: url });
+  if (result.action === RNShare.sharedAction) {
+    capture("profile_shared", { username });
+    return "shared";
+  }
+  return "unavailable";
 }

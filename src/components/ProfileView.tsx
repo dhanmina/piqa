@@ -8,7 +8,7 @@
  * shows faces, not a number.
  */
 import { Image } from 'expo-image';
-import { CloudOff, Crown, Heart, MoreHorizontal, Settings, Trophy } from 'lucide-react-native';
+import { CloudOff, Crown, Heart, MoreHorizontal, Settings, Share2, Trophy } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ import { plural } from '@lib/utils/format';
 import { useNodsReceived } from '@lib/hooks/nods';
 import { useFollowingPreview } from '@lib/hooks/useProfile';
 import type { ProfileData, ProfileWin } from '@lib/services/profile';
+import { shareProfile } from '@lib/utils/share';
 import { warmImage } from '@lib/utils/warmImage';
 import { levelProgress } from '@lib/utils/xp';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
@@ -207,16 +208,22 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
               </Mono>
             </View>
           </View>
-          {/* Own profile's settings gear — in-flow, pinned to the top-right of the
+          {/* Own profile's settings gear + share — in-flow, pinned to the top-right of the
               crest (aligned with the avatar's top). In-flow so it always renders,
               and there's no empty header band pushing the crest down. */}
           {gearInCrest && (
-            <IconButton
-              icon={Settings}
-              accessibilityLabel="Settings"
-              onPress={onSettings}
-              style={styles.crestGear}
-            />
+            <View style={styles.crestActions}>
+              <IconButton
+                icon={Share2}
+                accessibilityLabel="Share profile"
+                onPress={() => { if (data?.username) void shareProfile(data.username); }}
+              />
+              <IconButton
+                icon={Settings}
+                accessibilityLabel="Settings"
+                onPress={onSettings}
+              />
+            </View>
           )}
         </View>
 
@@ -393,9 +400,9 @@ const styles = StyleSheet.create({
   content: { padding: space.gutter, gap: space.gutter },
   // Crest: avatar left, identity block right.
   crest: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingTop: 4 },
-  // Own profile's gear: pinned to the crest's top edge, so it sits top-right and
+  // Own profile's share + gear: pinned to the crest's top edge, so it sits top-right and
   // aligns with the avatar's top rather than the vertical centre.
-  crestGear: { alignSelf: 'flex-start', marginTop: -2 },
+  crestActions: { flexDirection: 'row', alignSelf: 'flex-start', marginTop: -2, gap: 2 },
   crestText: { flex: 1, gap: 3 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   username: { flexShrink: 1, fontFamily: fonts.sansSemiBold, fontSize: typeScale.title, color: colors.paper },

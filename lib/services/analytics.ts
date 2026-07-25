@@ -71,7 +71,8 @@ export type AnalyticsEvent =
   | "morning_reveal" // played the sequenced morning reveal
   | "streak_relight" // flame dead→alive transition (relight moment)
   | "gallery_opened" // opened the Gallery tab
-  | "activity_opened"; // opened the activity inbox from the Today bell
+  | "activity_opened" // opened the activity inbox from the Today bell
+  | "profile_shared"; // shared own profile link
 
 /** Record a product event. No-op until a PostHog key is configured. */
 export function capture(event: AnalyticsEvent, props?: Record<string, unknown>) {
