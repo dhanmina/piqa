@@ -412,7 +412,7 @@ export default function TodayScreen() {
             </Pressable>
           </View>
 
-          <NextShot at={data?.next_drop_at} size={typeScale.title} onDone={() => void refresh()} />
+          <NextShot at={data?.next_drop_at} onDone={() => void refresh()} />
         </View>
 
         {/* No "See the gallery" button: the action block's job is the destinations the
@@ -429,38 +429,22 @@ export default function TodayScreen() {
     body = (
       <View style={styles.stateFill}>
         <View style={styles.waitingHero}>
-          <NextShot at={data?.next_drop_at} size={typeScale.display} onDone={() => void refresh()} />
-
-          {friendShotCount != null && friendShotCount > 0 ? (
-            <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
-              {friendShotCount} friend{friendShotCount !== 1 ? 's' : ''} already shot today
-            </Mono>
-          ) : shotCount != null && shotCount > 0 ? (
-            <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
-              {shotCount} photographer{shotCount !== 1 ? 's' : ''} shot today
-            </Mono>
-          ) : null}
-
           {potd && (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="View yesterday's gallery"
               onPress={() => router.push('/(tabs)/gallery')}
             >
-              <Mono size={typeScale.caption} color={colors.paper60}>
-                YESTERDAY'S PHOTO OF THE DAY
+              <Mono size={typeScale.caption} color={colors.paper60} style={styles.waitingLabel}>
+                YESTERDAY'S WINNER
               </Mono>
               <View style={styles.potdSpacer} />
-              {/* The winner wears their own frame and their own crown — the tile
-                  needs no gold brackets and no second crown to say so. */}
-              {/* No drop_date reaches the client for the PotD tile, so it shows the base
-                  frame here; the crown lives in the status glyph, and the gallery renders
-                  its true day frame via decorate_photos. */}
               <FramedPhoto
                 photoUri={signedPotdThumb}
                 dayNumber={potd.day_number}
                 frameId="default"
                 status={potd.status}
+                width={heroPrintW}
               />
               <View style={styles.potdCaption}>
                 <Text style={styles.shooter}>{potd.shooter}</Text>
@@ -473,6 +457,8 @@ export default function TodayScreen() {
               </View>
             </Pressable>
           )}
+
+          <NextShot at={data?.next_drop_at} onDone={() => void refresh()} />
 
           {whileYouWait}
         </View>
@@ -575,20 +561,61 @@ export default function TodayScreen() {
  * "Next shot drops soon", saying "next shot" twice). The fallback is deliberately
  * quiet rather than display-sized: it's a soft "soon", not a headline.
  */
-function NextShot({ at, size, onDone }: { at?: string | null; size: number; onDone: () => void }) {
+/**
+ * Humanized countdown. Shows a warm label that shifts with proximity:
+ *  - > 1 h  →  "Drops at 7 PM"   (static — no ticking noise)
+ *  - 1–60 m →  "in 14m 30s"      (ticking)
+ *  - < 1 m  →  "Drops soon"       (static)
+ */
+function NextShot({ at, onDone }: { at?: string | null; onDone: () => void }) {
+  if (!at) return <Text style={styles.softLine}>Next shot drops soon</Text>;
+
+  const target = new Date(at).getTime();
+  const msLeft = target - Date.now();
+
+  // > 1 hour — show target time, no ticking
+  if (msLeft > 3_600_000) {
+    const targetDate = new Date(at);
+    const timeStr = targetDate.toLocaleTimeString([], {
+      hour: 'numeric',
+      minute: targetDate.getMinutes() > 0 ? '2-digit' : undefined,
+    });
+    return <Text style={styles.dropTime}>Drops at {timeStr}</Text>;
+  }
+
+  // < 1 minute
+  if (msLeft <= 0) return <Text style={styles.dropTime}>Drops soon</Text>;
+
+  // 1 min – 60 min — ticking human format
+  return <CountdownHuman until={at} onDone={onDone} />;
+}
+
+/** Ticking "in Xm Ss" countdown — used inside NextShot for the final hour. */
+function CountdownHuman({ until, onDone }: { until: string; onDone: () => void }) {
+  const target = new Date(until).getTime();
+  const [msLeft, setMsLeft] = useState(() => target - Date.now());
+
+  useEffect(() => {
+    setMsLeft(target - Date.now());
+    const id = setInterval(() => {
+      const left = target - Date.now();
+      setMsLeft(left);
+      if (left <= 0) {
+        clearInterval(id);
+        onDone();
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [target, onDone]);
+
+  const total = Math.max(0, Math.floor(msLeft / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+
   return (
-    <View style={styles.countdownBlock}>
-      {at ? (
-        <>
-          <Mono size={typeScale.caption} color={colors.paper60}>
-            NEXT SHOT IN
-          </Mono>
-          <Countdown until={at} size={size} onDone={onDone} />
-        </>
-      ) : (
-        <Text style={styles.softLine}>Next shot drops soon</Text>
-      )}
-    </View>
+    <Mono weight="medium" size={typeScale.title} color={colors.paper}>
+      {m > 0 ? `in ${m}m ${String(s).padStart(2, '0')}s` : 'Drops soon'}
+    </Mono>
   );
 }
 
@@ -606,15 +633,12 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: space.gutter,
-    // The raised center shutter (§11) overhangs ~SIZE/2 above the bar into this
-    // scene. Without extra bottom room, a bottom-pinned action (e.g. WHILE IT'S
-    // LIVE → Curate) lands under it. Reserve the overhang plus a gutter of air.
     paddingBottom: space.gutter + space.shutter / 2,
     gap: space.gutter,
-    flexGrow: 1, // fill the viewport so states can center their hero + drop the action into the thumb zone
+    flexGrow: 1,
   },
   header: {
-    gap: 6, // column: the flame/date row, then the caption on its own line below
+    gap: 6,
   },
   headerRow: {
     flexDirection: 'row',
@@ -676,7 +700,8 @@ const styles = StyleSheet.create({
   waitingHero: {
     flex: 1,
     justifyContent: 'center',
-    gap: space.gutter * 1.5,
+    alignItems: 'center',
+    gap: space.gutter,
   },
   submittedAction: {
     alignSelf: 'stretch',
@@ -738,6 +763,7 @@ const styles = StyleSheet.create({
     fontFamily: displayFamily,
     fontSize: typeScale.title,
     color: colors.paper60,
+    textAlign: 'center',
   },
   potdSpacer: {
     height: 8,
@@ -753,6 +779,20 @@ const styles = StyleSheet.create({
     fontFamily: displayFamily,
     fontSize: typeScale.body,
     color: colors.paper,
+  },
+  dropTime: {
+    fontFamily: fonts.sansMedium,
+    fontSize: typeScale.sub,
+    color: colors.paper60,
+    textAlign: 'center',
+    paddingVertical: 4,
+  },
+  waitingLabel: {
+    textAlign: 'center',
+  },
+  waitingSocial: {
+    textAlign: 'center',
+    paddingVertical: 2,
   },
   potdHearts: {
     flexDirection: 'row',
