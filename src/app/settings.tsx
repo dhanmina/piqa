@@ -21,7 +21,7 @@ import { S } from '@lib/utils/admin-strings';
 import { equipFrame } from '@lib/services/frames';
 import type { FrameId } from '@lib/services/frames';
 import { useNotifPrefs } from '@lib/notifPrefs';
-import { deleteAccount, exportMyData } from '@lib/services/profile';
+import { deleteAccount, exportMyData, toggleBlurSensitive } from '@lib/services/profile';
 import { useProfile } from '@lib/hooks/useProfile';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/services/supabase';
@@ -105,6 +105,15 @@ export default function SettingsScreen() {
   const [equipping, setEquipping] = useState(false);
   const [busy, setBusy] = useState(false);
   const isAdmin = useIsAdmin();
+
+  // Blur sensitive content toggle — reads from the profile.
+  const [blurOn, setBlurOn] = useState(() => data?.blurSensitive ?? true);
+  const toggleBlur = useCallback(async () => {
+    const next = !blurOn;
+    setBlurOn(next);
+    const ok = await toggleBlurSensitive();
+    if (!ok) setBlurOn(blurOn); // revert on failure
+  }, [blurOn]);
 
   // Analytics consent toggle — reads the real PostHog opt-in state on mount.
   const [analyticsOn, setAnalyticsOn] = useState(() => getConsentSync());
@@ -236,6 +245,8 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title="SAFETY">
+          <ToggleRow label="Blur sensitive content" value={blurOn} onValueChange={() => void toggleBlur()} />
+          <View style={styles.divider} />
           <Row label="Blocked accounts" chevron onPress={() => router.push('/blocked')} />
         </Section>
 

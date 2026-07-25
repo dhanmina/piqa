@@ -392,6 +392,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          blur_sensitive: boolean
           created_at: string
           equipped_frame: string
           id: string
@@ -412,6 +413,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          blur_sensitive?: boolean
           created_at?: string
           equipped_frame?: string
           id: string
@@ -432,6 +434,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          blur_sensitive?: boolean
           created_at?: string
           equipped_frame?: string
           id?: string
@@ -681,6 +684,8 @@ export type Database = {
         Row: {
           bt_score: number | null
           captured_at: string
+          content_label: string | null
+          content_score: number | null
           created_at: string
           drop_id: string
           gallery_rank: number | null
@@ -703,6 +708,8 @@ export type Database = {
         Insert: {
           bt_score?: number | null
           captured_at: string
+          content_label?: string | null
+          content_score?: number | null
           created_at?: string
           drop_id: string
           gallery_rank?: number | null
@@ -725,6 +732,8 @@ export type Database = {
         Update: {
           bt_score?: number | null
           captured_at?: string
+          content_label?: string | null
+          content_score?: number | null
           created_at?: string
           drop_id?: string
           gallery_rank?: number | null
@@ -1114,6 +1123,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      toggle_blur_sensitive: { Args: Record<string, never>; Returns: { ok: boolean; blur_sensitive: boolean } }
       username_available: { Args: { p_username: string }; Returns: boolean }
     }
     Enums: {

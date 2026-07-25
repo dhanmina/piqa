@@ -395,6 +395,28 @@ async function processItem(item: QueueItem): Promise<void> {
       emit({ type: outcome === "duplicate" ? "duplicate" : "done", item });
     }
 
+    // Trigger server-side content moderation scan (best-effort, async).
+    // The edge function downloads the thumbnail, runs SafeSearch, and
+    // calls quarantine_if_flagged if needed. Failures are silent — the
+    // photo is already live; moderation catches it on the next pass.
+    if (item.kind === "daily" && item.dropId) {
+      try {
+        const { data: sub } = await supabase
+          .from("submissions")
+          .select("id")
+          .eq("drop_id", item.dropId)
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (sub?.id) {
+          void supabase.functions.invoke("moderation", {
+            body: { submission_id: sub.id },
+          }).catch(() => { /* best-effort */ });
+        }
+      } catch {
+        // best-effort — never block the upload flow
+      }
+    }
+
     // Success: drop the compressed intermediates, keep the original as the
     // local archive copy, and retire the journal entry.
     cleanupIntermediates(item);

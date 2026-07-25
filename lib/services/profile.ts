@@ -37,6 +37,7 @@ export type ProfileData = {
   badges: string[];
   isSelf: boolean;
   isFollowing: boolean;
+  blurSensitive: boolean | null;
 };
 
 type RawProfile = {
@@ -65,6 +66,7 @@ type RawProfile = {
   badges: string[];
   is_self: boolean;
   is_following: boolean;
+  blur_sensitive: boolean | null;
 };
 
 export const profileKey = (targetId: string | null) =>
@@ -160,6 +162,7 @@ export async function fetchProfile(
     badges: p.badges ?? [],
     isSelf: p.is_self,
     isFollowing: p.is_following,
+    blurSensitive: p.blur_sensitive ?? true,
   };
 }
 
@@ -309,4 +312,11 @@ export async function updateUsername(name: string): Promise<{ ok: boolean; error
   }
   invalidate(profileKey(null));
   return { ok: true };
+}
+
+export async function toggleBlurSensitive(): Promise<boolean> {
+  const { data, error } = await supabase.rpc("toggle_blur_sensitive");
+  if (error) return false;
+  invalidate(profileKey(null));
+  return (data as unknown as { ok: boolean }).ok;
 }

@@ -22,6 +22,7 @@ type RichPhotoRow = {
   status: string | null;
   day_number: number;
   nods?: Record<string, number>;
+  content_label?: string | null;
 };
 
 type GetGalleryResult = {
@@ -44,6 +45,7 @@ export type GalleryDetailPhoto = GalleryPhoto & {
   thumbPath?: string | null;
   capturedAt?: string | null;
   nods?: import("../nods").NodCounts | null;
+  contentLabel?: string | null;
 };
 
 export type GalleryFeed = {
@@ -70,6 +72,7 @@ export function toGalleryPhoto(p: RichPhotoRow, signed: Map<string, string>): Ga
     status: asStatus(p.status),
     dayNumber: p.day_number,
     nods: p.nods ?? null,
+    contentLabel: p.content_label ?? null,
   };
 }
 

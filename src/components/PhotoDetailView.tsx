@@ -44,6 +44,7 @@ import { displayFamily } from '@/components/fonts';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { PagerDots } from '@/components/molecules/PagerDots';
 import { ReportSheet } from '@/components/molecules/ReportSheet';
+import { SensitiveContentOverlay } from '@/components/molecules/SensitiveContentOverlay';
 import { ShareCard } from '@/components/molecules/ShareCard';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
@@ -71,6 +72,8 @@ export type PhotoDetailData = {
   /** An already-cached thumb (e.g. the gallery grid's) shown instantly under the
    *  full-res image, so opening a shot never waits on a reload. */
   placeholderUri?: string | null;
+  /** Server-side content moderation label ('safe', 'nudity', 'violence', etc.). */
+  contentLabel?: string | null;
 };
 
 type Props = PhotoDetailData & {
@@ -103,6 +106,8 @@ type Props = PhotoDetailData & {
   initialIndex?: number;
   /** Called when the page changes (swipe). The host can update heart state. */
   onPageChange?: (index: number) => void;
+  /** Whether the blur sensitive content preference is enabled. */
+  blurEnabled?: boolean;
 };
 
 export function PhotoDetailView({
@@ -118,6 +123,7 @@ export function PhotoDetailView({
   category,
   nods,
   placeholderUri,
+  contentLabel,
   onClose,
   onOpenProfile,
   lightbox = false,
@@ -128,6 +134,7 @@ export function PhotoDetailView({
   photos,
   initialIndex = 0,
   onPageChange,
+  blurEnabled = false,
 }: Props) {
   const heartControlled = onToggleHeart !== undefined;
   const router = useRouter();
@@ -217,6 +224,7 @@ export function PhotoDetailView({
   const activeNods = active?.nods ?? nods;
   const activePlaceholder = active?.placeholderUri ?? placeholderUri;
   const activeCategory = active?.category ?? category;
+  const activeContentLabel = active?.contentLabel ?? contentLabel;
 
   // This is the one view that says the frame's marks out loud — the print shows
   // the glyph, and here it's spelled out in words. Derive from active photo in paging mode.
@@ -461,14 +469,19 @@ export function PhotoDetailView({
         >
           <GestureDetector gesture={tap}>
           <View>
-            <FramedPhoto
-              photoUri={itemUri}
-              placeholderUri={item.placeholderUri}
-              dayNumber={item.day ?? 0}
-              frameId={itemFrame}
-              status={itemStatus}
-              width={pagePrintW}
-            />
+            <SensitiveContentOverlay
+              flagged={Boolean(item.contentLabel && item.contentLabel !== 'safe')}
+              blurEnabled={blurEnabled}
+            >
+              <FramedPhoto
+                photoUri={itemUri}
+                placeholderUri={item.placeholderUri}
+                dayNumber={item.day ?? 0}
+                frameId={itemFrame}
+                status={itemStatus}
+                width={pagePrintW}
+              />
+            </SensitiveContentOverlay>
           </View>
           </GestureDetector>
         </View>
@@ -570,14 +583,19 @@ export function PhotoDetailView({
           <View style={[styles.stage, lightbox && styles.stageCentered]} pointerEvents="box-none">
             <GestureDetector gesture={doubleTap}>
             <View>
-              <FramedPhoto
-                photoUri={activeUri}
-                placeholderUri={activePlaceholder}
-                dayNumber={activeDay}
-                frameId={asFrameId(activeFrame)}
-                status={asStatus(activeStatus)}
-                width={printW}
-              />
+              <SensitiveContentOverlay
+                flagged={Boolean(activeContentLabel && activeContentLabel !== 'safe')}
+                blurEnabled={blurEnabled}
+              >
+                <FramedPhoto
+                  photoUri={activeUri}
+                  placeholderUri={activePlaceholder}
+                  dayNumber={activeDay}
+                  frameId={asFrameId(activeFrame)}
+                  status={asStatus(activeStatus)}
+                  width={printW}
+                />
+              </SensitiveContentOverlay>
 
               {/* Route mode signs the print on its cover — name + heart over a scrim. The
                   lightbox keeps the photo clean and moves them to a bottom bar (the archive
