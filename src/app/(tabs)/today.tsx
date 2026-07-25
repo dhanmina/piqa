@@ -20,7 +20,7 @@ import { useFrameForDate } from '@lib/hooks/frames';
 import { capture } from '@lib/services/analytics';
 import { markResultSeen } from '@lib/services/gallery';
 import { useSignedThumb } from '@lib/hooks/useCache';
-import { useHomeState, useTodayHint, useTodayGolden } from '@lib/homeState';
+import { useHomeState, useTodayHint, useTodayGolden, useShotCountToday } from '@lib/homeState';
 import { useLast7Pattern } from '@lib/streak';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
@@ -50,6 +50,7 @@ export default function TodayScreen() {
   const { data, loading, error, refresh } = useHomeState();
   const hint = useTodayHint();
   const golden = useTodayGolden();
+  const shotCount = useShotCountToday();
   const activityUnread = useActivityUnread();
   const [toast, setToast] = useState<string | null>(null);
   const [showStreakInfo, setShowStreakInfo] = useState(false);
@@ -286,6 +287,11 @@ export default function TodayScreen() {
           <View style={styles.submittedStatus}>
             <Text style={styles.statusLine}>{statusLine}</Text>
             {inRound && resultsAt && <Text style={styles.subNote}>Results at {resultsAt}</Text>}
+            {inRound && shotCount != null && shotCount > 1 && (
+              <Mono size={typeScale.caption} color={colors.paper40}>
+                {shotCount} shots today
+              </Mono>
+            )}
           </View>
           {blocked && <Button label="Retry upload" variant="ghost" onPress={() => void retryBlocked()} fullWidth />}
         </View>
@@ -317,6 +323,11 @@ export default function TodayScreen() {
             quickDrawUntil={quickDrawUntil}
             onShoot={() => router.push('/camera')}
           />
+          {shotCount != null && shotCount > 0 && (
+            <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
+              {shotCount} photographer{shotCount !== 1 ? 's' : ''} shooting today
+            </Mono>
+          )}
         </View>
         {votingOpen && (
           <View style={styles.submittedAction}>
@@ -405,6 +416,12 @@ export default function TodayScreen() {
       <View style={styles.stateFill}>
         <View style={styles.waitingHero}>
           <NextShot at={data?.next_drop_at} size={typeScale.display} onDone={() => void refresh()} />
+
+          {shotCount != null && shotCount > 0 && (
+            <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
+              {shotCount} photographer{shotCount !== 1 ? 's' : ''} shot today
+            </Mono>
+          )}
 
           {potd && (
             <Pressable
@@ -604,6 +621,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: typeScale.caption,
     color: colors.paper60,
+  },
+  socialProof: {
+    textAlign: 'center',
+    marginTop: 4,
   },
   skeletonCard: {
     alignSelf: 'stretch',

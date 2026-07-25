@@ -1,7 +1,14 @@
 import { Flame, Shield } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
+import Animated, {
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+} from 'react-native-reanimated';
 
 import { Mono } from '@/components/atoms/Mono';
 import { colors, icons, motion, typeScale } from '@/components/tokens';
@@ -34,6 +41,17 @@ export function StreakFlame({ days, alive = true, shields = 0, last7, daysThisWe
 
   const flameScale = useSharedValue(1);
 
+  // Flame warmth: the color temperature shifts subtly as the streak grows.
+  // 1-6 days = standard safelight, 7-29 = slightly warmer, 30+ = warm amber.
+  // This makes longer streaks *feel* different — identity, not gamification.
+  const warmth = interpolate(days, [0, 7, 30], [0, 0.5, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const flameColor = alive
+    ? interpolateColor(warmth, [0, 0.5, 1], ['#FF5A36', '#FF6B42', '#D4944A'])
+    : colors.paper40;
+
   useEffect(() => {
     if (relighting) {
       flameScale.value = withSequence(
@@ -53,8 +71,8 @@ export function StreakFlame({ days, alive = true, shields = 0, last7, daysThisWe
         <Flame
           size={20}
           strokeWidth={icons.strokeWidth}
-          color={alive ? colors.safelight : colors.paper40}
-          fill={alive ? colors.safelight : 'transparent'}
+          color={flameColor}
+          fill={flameColor}
         />
       </Animated.View>
       <Mono weight="semibold" size={typeScale.body} color={alive ? colors.paper : colors.paper60}>

@@ -1,6 +1,14 @@
 import { Zap } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
@@ -48,6 +56,25 @@ export function ShotCard({
     !quickDrawOver &&
     Date.now() < new Date(quickDrawUntil).getTime();
 
+  // "Developing" animation: the prompt fades from warm amber to paper white
+  // over 2s, like a print appearing in a darkroom safelight.
+  const developProgress = useSharedValue(0);
+  useEffect(() => {
+    developProgress.value = withDelay(300, withTiming(1, { duration: 2000 }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- shared value, stable
+  const developStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(
+      developProgress.value,
+      [0, 1],
+      ['#D4944A', colors.paper],
+    ),
+    opacity: interpolate(
+      developProgress.value,
+      [0, 0.15, 1],
+      [0.6, 1, 1],
+    ),
+  }));
+
   return (
     <View style={styles.card}>
       <Brackets color={golden ? colors.crown : colors.paper} style={styles.brackets}>
@@ -55,9 +82,9 @@ export function ShotCard({
           <Text style={[styles.kicker, golden && styles.kickerGold]}>
             {golden ? 'Golden Shot' : 'Today’s Shot'}
           </Text>
-          <Text style={styles.prompt} numberOfLines={3}>
+          <Animated.Text style={[styles.prompt, developStyle]} numberOfLines={3}>
             {prompt}
-          </Text>
+          </Animated.Text>
           {hint ? (
             <Text style={styles.hint} numberOfLines={2}>
               {hint}

@@ -32,6 +32,19 @@ export function useTodayGolden(): boolean {
   return data ?? false;
 }
 
+/** How many photographers have submitted to today's active drop (social proof). */
+export function useShotCountToday(): number | null {
+  const { data } = useCached<number | null>(
+    "shot_count_today",
+    useCallback(async () => {
+      const { data } = await supabase.rpc("get_shot_count_today" as never);
+      return (data as number | null) ?? null;
+    }, []),
+    60_000,
+  );
+  return data;
+}
+
 export type HomeDrop = {
   id: string;
   prompt: string;
