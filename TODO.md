@@ -9,9 +9,9 @@ Things that must not silently ship. Check items off only when done on-device.
       in `get_matchup`/`get_gallery`, 3-reporter auto-quarantine, `/admin` triage.
 - [x] **Manage/unblock** — Settings → SAFETY → Blocked accounts (`/blocked`),
       so a mistaken block can be undone. Built 2026-07-24.
-- [ ] **Mature-content control** — the one open safety item: a "Blur sensitive
-      content" toggle (manual report → hide covers the gap until the NSFWJS
-      classifier lands). See `docs/build-roadmap.md` → Phase 1.5A.
+- [x] **Mature-content control** — server-side moderation (Google Cloud Vision
+      SafeSearch) + blur toggle. Edge Function `moderation` deployed, DB migration
+      pushed, SensitiveContentOverlay + settings toggle shipped. Build 14.
 
 ## Brand assets
 
@@ -40,7 +40,5 @@ Things that must not silently ship. Check items off only when done on-device.
 
 ## Release config
 
-- [ ] **Android package rename** — still `com.anonymous.piqa`; spec §1 mandates
-      the permanent brand-tied id `com.joinpiqa.piqa`. Change `android.package`
-      in app.json + re-run prebuild BEFORE the first Play Console upload
-      (package ids are immutable once uploaded).
+- [x] **Android package rename** — changed from `com.anonymous.piqa` to
+      `com.joinpiqa.app`. Shipped in build 6+.

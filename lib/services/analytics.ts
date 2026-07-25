@@ -68,6 +68,7 @@ export type AnalyticsEvent =
   | "curate_set_completed" // finished a set of 10 picks
   | "reveal_seen" // opened the morning gallery reveal
   | "result_seen" // saw own result on Today
+  | "morning_reveal" // played the sequenced morning reveal
   | "gallery_opened" // opened the Gallery tab
   | "activity_opened"; // opened the activity inbox from the Today bell
 

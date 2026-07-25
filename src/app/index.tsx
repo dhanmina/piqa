@@ -15,7 +15,7 @@ export default function Index() {
   }, []);
 
   if (loading) return null;
-  if (session) return <Redirect href="/(tabs)/today" />;
+  if (session) return <Redirect href={'/reveal' as any} />;
   if (onboarded === null) return null; // signed out — wait for the flag before routing
   return <Redirect href={onboarded ? '/auth' : '/onboarding'} />;
 }

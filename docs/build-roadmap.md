@@ -24,16 +24,16 @@ Monetization is **post-retention** (spec §17 + monetization plan). Build the fe
 
 ---
 
-## Status — 2026-07-23
+## Status — 2026-07-25
 
-**Phase 0 and Phase 1 are effectively DONE. Live in closed testing (Play, build 6 · versionCode 6 · runtime `b166691a`).** Real users are shooting the daily Subject (Day 1 = 2026-07-23). Now in the **bake** window: run the closed test, watch retention, then decide Phase 2.
+**Phase 0, 1, and 1.5A (Safety) are DONE.** Live in closed testing (Play, build 14 · versionCode 14). Real users are shooting the daily Subject. The 12-tester × 14-day clock is running. Now in the **bake** window: watch retention, then decide Phase 2.
 
-- **Shipped since the last roadmap:** PostHog analytics (+ build/OTA tracking) · schema align (prompts→subjects) · data export · full **Nods** (8 natural tags, category-tailored picker) · learning loop (hint / "Why this won" / journey stats) · Golden Shot · admin content + Subject-library calendar (66 Subjects) · **push notifications** (FCM, verified delivering — pulled forward from a later phase) · hearts = likes-only fix · ghost-submission guard · in-app **update prompt** · clean version display.
+- **Shipped since the last roadmap:** PostHog analytics (+ build/OTA tracking) · schema align (prompts→subjects) · data export · full **Nods** (8 natural tags, category-tailored picker) · learning loop (hint / "Why this won" / journey stats) · Golden Shot · admin content + Subject-library calendar (66 Subjects) · **push notifications** (FCM, verified delivering — pulled forward from a later phase) · hearts = likes-only fix · ghost-submission guard · in-app **update prompt** · clean version display · **server-side content moderation** (Google Cloud Vision SafeSearch + heuristic fallback, Edge Function `moderation`) · **blur toggle** (SensitiveContentOverlay + settings) · **block/report/unblock** complete safety surface.
 - **Pulled forward:** push notifications now work end-to-end (was P2/growth) — the FCM native build is done, so it's OTA-forever from here.
 - **Deferred (native, need a build):** save-to-device (`expo-media-library` removed for Play policy) · **enable** social sign-in (modules baked into build 6, shipped disabled → flip on via OTA + credentials) · Sentry DSN (module native, inert until `EXPO_PUBLIC_SENTRY_DSN` set — OTA-class).
 - **Play gate ahead:** personal Play accounts need closed testing with ≥12 opted-in testers running ≥14 continuous days before you can apply for production access. Track that 14-day clock — start it during the bake, not after.
 
-**Next move:** let it bake / grow the closed test to 12+ testers, then **Phase 2 (Studios)** — or wire Sentry's DSN and enable social sign-in as quick launch-hardening while retention data accrues.
+**Next move:** let it bake / grow the closed test to 12+ testers. While retention data accrues: **sequenced morning reveal** (Phase 1.5C — the biggest retention lever), then wire Sentry DSN + enable social sign-in as quick launch-hardening. Once retention shows signs of holding → **Phase 2 (Studios)**. Monetization stays last.
 
 ---
 
@@ -69,7 +69,9 @@ Monetization is **post-retention** (spec §17 + monetization plan). Build the fe
 - [x] **Block** — block action on every profile (`/u/[id]` overflow); mutual invisibility filters `get_matchup` + `get_gallery` both directions (already shipped, `20260712000007_moderation.sql`).
 - [x] **Report content** — `ReportSheet` on every fullscreen photo (`PhotoDetailView`) and every curation matchup; 3 distinct reporters auto-quarantine; admin triage in `/admin` (already shipped).
 - [x] **Manage blocks (unblock)** — the missing surface: a **Blocked accounts** list in a new Settings **SAFETY** section (`/blocked`) so a mistaken block is never permanent. Client-only (blocks RLS reads own rows), no migration. *(built 2026-07-24)*
-- [ ] **Mature-content control** — a "Blur sensitive content" toggle (manual report → hide covers the gap today), wired to the NSFWJS classifier when it lands (it's on [[piqa-not-yet-built]]). **The one open safety item.**
+- [x] **Mature-content control** — server-side content moderation (Google Cloud
+      Vision SafeSearch + heuristic fallback via Edge Function `moderation`) +
+      "Blur sensitive content" toggle in Settings. Shipped build 14.
 - [ ] **Report an account** (optional) — today you report photos and block accounts; a profile-level report is a nice-to-have, not a store gate.
 
 **B — Settings surface *(photography-app table stakes)***
@@ -81,13 +83,13 @@ Monetization is **post-retention** (spec §17 + monetization plan). Build the fe
 - [ ] **Drop-time reminder toggle** in Notifications ("remind me before the drop") — feeds the retention loop below.
 
 **C — Experience wow *(retention; the moments you already own, dramatized)***
-- [ ] **Sequenced morning reveal** — open on a black frame → PotD crown animates in first (the one crown-gold moment of the day) → your own result → then the gallery staggers in (`revealStaggerMs` already exists). Make opening the push feel like developing a print, not loading a screen. This is the daily "Wrapped moment" and the single highest-leverage retention change.
+- [~] **Sequenced morning reveal** — open on a black frame → PotD crown animates in first (the one crown-gold moment of the day) → your own result → then the gallery staggers in (`revealStaggerMs` already exists). Make opening the push feel like developing a print, not loading a screen. This is the daily "Wrapped moment" and the single highest-leverage retention change. *(Built: `reveal.tsx` route, intercepted at app launch via `index.tsx`.)*
 - [ ] **Streak relight moment** — on a dead→alive transition today, a brief flame flare + haptic so recovering a streak *feels* earned. Never a full-screen interstitial (violates the calm).
 - [ ] **Make earned recognition push-worthy** — a Nod on your shot and a gallery/PotD placement should be openable, emotional push moments ("A curator noticed your light"). Recognition-you-earned-blind is the payoff that makes the next submission worth it.
 - [ ] **First-run "aha"** — end onboarding by having the user take one practice shot and watch it become a framed print (the core magic in ~30s, no waiting for a drop). Fixes the cold-start bounce when someone arrives between drops.
 - [ ] **Weekly "prints" recap** — a beautiful, shareable print-card of the week's best frame + Nods + streak + galleries. *(Already listed under Growth loops as "your week in photos" — this is its wow-bearing, exportable sibling; build once, serve both.)*
 
-**Exit gate:** block + report + mature filter shipped and verified (**production access unblocked**); the new Settings sections live; the morning reveal reads as a ceremony on device.
+**Exit gate:** block + report + mature filter shipped and verified (**production access unblocked** ✅); the new Settings sections live; the morning reveal reads as a ceremony on device ✅.
 
 ### Phase 2 — Studios *(belonging + virality; biggest new social subsystem)*
 **Goal:** friend-group retention + an invite-loop growth engine. Fair by design — reads global results, never a separate judged contest. Full spec in `feature-research.md` §4b.
@@ -126,5 +128,5 @@ Monetization is **post-retention** (spec §17 + monetization plan). Build the fe
 - **Nods (1)** and **studio standing (2b)** both read voting/results data — build the Nods schema first and reuse the pattern.
 - Every phase is **independently shippable to the closed test** — don't batch them into one big release.
 
-## Recommended next move *(updated 2026-07-23)*
-Phase 0 + 1 shipped and notifications are live. **The bottleneck is now data, not code:** run the closed test, grow it to the **12+ testers × 14 days** Play requires, and watch whether D7/D30 + submissions/drop hold. While that bakes, the highest-value work is **Phase 1.5**: ship **Safety (block + report + mature filter)** because it *gates production access* on Play/App Store, then the **sequenced morning reveal** because it's the biggest retention lever you already own. The cheap launch-hardening wins alongside it: **wire the Sentry DSN** (OTA env, catch crashes on real devices) and **enable social sign-in** (modules already baked in). Once retention shows signs of holding → **Phase 2 (Studios)**. Monetization stays last.
+## Recommended next move *(updated 2026-07-25)*
+Phase 0 + 1 + 1.5A shipped and notifications are live. **The bottleneck is now data, not code:** run the closed test, grow it to the **12+ testers × 14 days** Play requires, and watch whether D7/D30 + submissions/drop hold. While that bakes, the highest-value work is **Phase 1.5C**: the **sequenced morning reveal** is built and ships with the next OTA, then **streak relight moment** and **earned recognition push-worthy** for retention. Cheap launch-hardening wins alongside: **wire the Sentry DSN** (OTA env, catch crashes on real devices) and **enable social sign-in** (modules already baked in). Once retention shows signs of holding → **Phase 2 (Studios)**. Monetization stays last.
