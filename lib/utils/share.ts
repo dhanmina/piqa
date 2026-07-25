@@ -49,3 +49,21 @@ export async function shareProfile(username: string): Promise<"shared" | "unavai
   }
   return "unavailable";
 }
+
+/** Snapshot a WeeklyRecapCard view to a PNG and hand it to the OS share sheet.
+ *  Captures at 1080 × 1350 (4:5) — the optimal size for Instagram / Facebook
+ *  feed posts. captureRef scales the rendered view to fill the target dimensions,
+ *  so the on-screen size is irrelevant; only the aspect ratio must match. */
+export async function shareRecap(ref: React.RefObject<View | null>): Promise<"shared" | "unavailable"> {
+  const uri = await captureRef(ref, {
+    format: "png",
+    quality: 1,
+    result: "tmpfile",
+    width: 1080,
+    height: 1350,
+  });
+  if (!(await Sharing.isAvailableAsync())) return "unavailable";
+  await Sharing.shareAsync(uri, { mimeType: "image/png", UTI: "public.png", dialogTitle: "Share your week" });
+  capture("recap_shared");
+  return "shared";
+}

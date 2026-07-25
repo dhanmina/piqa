@@ -488,6 +488,18 @@ export default function TodayScreen() {
             </Pressable>
           </View>
           {streakCaption && <Text style={styles.dayZero}>{streakCaption}</Text>}
+          {last7.some(Boolean) && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Share your weekly recap"
+              onPress={() => router.push('/weekly-recap')}
+              style={({ pressed }) => pressed && { opacity: 0.6 }}
+            >
+              <Mono size={typeScale.caption} color={colors.safelight}>
+                Share your week
+              </Mono>
+            </Pressable>
+          )}
         </View>
         {body}
         {__DEV__ && (

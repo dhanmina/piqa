@@ -174,7 +174,7 @@ export default function CameraScreen() {
         <View style={styles.previewBody}>
           {/* Review it as it will land: a daily shot becomes today's print (real
               day counter); a practice/archive shot stays plain in brackets. */}
-          {showFrame && drop ? (
+          {showFrame && drop && !isFirstShot ? (
             <Animated.View entering={FadeIn.duration(180)} style={styles.previewPrint}>
               <FramedPhoto photoUri={captured.uri} dayNumber={drop.day_number} frameId="default" status={null} />
             </Animated.View>
