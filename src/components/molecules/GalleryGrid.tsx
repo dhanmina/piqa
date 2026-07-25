@@ -9,7 +9,7 @@ import type { FrameId, PhotoStatus } from '@lib/services/frames';
 import { HeartButton } from '@/components/atoms/HeartButton';
 import { Mono } from '@/components/atoms/Mono';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
-import { SensitiveContentOverlay } from '@/components/molecules/SensitiveContentOverlay';
+
 import { colors, fade, frame, motion, radius, space, typeScale } from '@/components/tokens';
 
 export type GalleryPhoto = {
@@ -53,8 +53,6 @@ type GalleryGridProps = {
   onHeart?: (photo: GalleryPhoto) => void;
   isHearted?: (id: string) => boolean;
   heartCount?: (photo: GalleryPhoto) => number;
-  /** Whether the blur sensitive content preference is enabled. */
-  blurEnabled?: boolean;
 };
 
 /**
@@ -97,7 +95,6 @@ export function GalleryGrid({
   onHeart,
   isHearted,
   heartCount,
-  blurEnabled = false,
 }: GalleryGridProps) {
   const { tileWidth, onLayout } = useTwoColumn();
   const cellStyle = [styles.cell, tileWidth ? { width: tileWidth } : null];
@@ -136,18 +133,13 @@ export function GalleryGrid({
   // and the sharp full-res crossfades in (already warmed into cache by the gallery
   // screen, so no extra fetch). Falls back to the thumb when there's no full-res.
   const print = (photo: GalleryPhoto) => (
-    <SensitiveContentOverlay
-      flagged={Boolean(photo.contentLabel && photo.contentLabel !== 'safe')}
-      blurEnabled={blurEnabled}
-    >
-      <FramedPhoto
-        photoUri={photo.fullUri ?? photo.uri}
-        placeholderUri={photo.uri}
-        dayNumber={photo.dayNumber}
-        frameId={photo.frameId}
-        status={photo.status}
-      />
-    </SensitiveContentOverlay>
+    <FramedPhoto
+      photoUri={photo.fullUri ?? photo.uri}
+      placeholderUri={photo.uri}
+      dayNumber={photo.dayNumber}
+      frameId={photo.frameId}
+      status={photo.status}
+    />
   );
 
   if (flat) {

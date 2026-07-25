@@ -28,7 +28,7 @@ import {
   useGallery,
   useGalleryHearts,
 } from '@lib/hooks/useGallery';
-import { useProfile } from '@lib/hooks/useProfile';
+
 import { signThumbs } from '@lib/cache';
 import { warmImage } from '@lib/utils/warmImage';
 import { useSession } from '@lib/session';
@@ -81,10 +81,6 @@ export default function GalleryScreen() {
     error: followingError,
     refresh: refreshFollowing,
   } = useFollowingGallery();
-
-  // Blur preference — read from the viewer's own profile.
-  const { data: myProfile } = useProfile(null);
-  const blurEnabled = myProfile?.blurSensitive ?? true;
 
   // Direct hearting for the active tab's photos (grid + PotD).
   const activePhotos = tab === 'following' ? followingPhotos : data?.photos ?? [];
@@ -261,7 +257,7 @@ export default function GalleryScreen() {
           category={tab === 'world' ? data?.drop?.category : undefined}
           nods={viewer.nods}
           contentLabel={viewer.contentLabel}
-          blurEnabled={blurEnabled}
+
           // Drive the heart off the SAME controller as the grid tile, so the
           // fullscreen and the grid always show one count and toggle together.
           heartCount={gHearts.count(viewer)}
@@ -364,7 +360,7 @@ export default function GalleryScreen() {
               onHeart={(p) => void gHearts.toggle(p.id)}
               isHearted={gHearts.isLiked}
               heartCount={gHearts.count}
-              blurEnabled={blurEnabled}
+    
             />
           </ScrollView>
         )}
@@ -485,7 +481,7 @@ export default function GalleryScreen() {
           onHeart={(p) => void gHearts.toggle(p.id)}
           isHearted={gHearts.isLiked}
           heartCount={gHearts.count}
-          blurEnabled={blurEnabled}
+
         />
 
         {/* End card — the real bottom of the magazine (spec §11c). One clean

@@ -16,7 +16,6 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useGallery } from '@lib/hooks/useGallery';
-import { useProfile } from '@lib/hooks/useProfile';
 import { useSession } from '@lib/session';
 import { capture } from '@lib/services/analytics';
 import { isRevealSeen, markRevealSeen, markResultSeen } from '@lib/services/gallery';
@@ -27,7 +26,6 @@ import { displayFamily } from '@/components/fonts';
 import { Brackets } from '@/components/molecules/Brackets';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { GalleryGrid } from '@/components/molecules/GalleryGrid';
-import { SensitiveContentOverlay } from '@/components/molecules/SensitiveContentOverlay';
 import { colors, fonts, space, typeScale } from '@/components/tokens';
 
 /** How long each phase waits before appearing (ms). */
@@ -48,8 +46,6 @@ export default function RevealScreen() {
 
   // Gallery data (already prefetched; reads from cache → instant on revisit).
   const { data, loading } = useGallery(null);
-  const { data: myProfile } = useProfile(null);
-  const blurEnabled = myProfile?.blurSensitive ?? true;
 
   const dropId = data?.drop?.id ?? null;
   const dropDate = data?.drop?.drop_date ?? null;
@@ -151,10 +147,6 @@ export default function RevealScreen() {
             PHOTO OF THE DAY
           </Mono>
           <Brackets animated color={colors.crown}>
-            <SensitiveContentOverlay
-              flagged={Boolean(potdPhoto.contentLabel && potdPhoto.contentLabel !== 'safe')}
-              blurEnabled={blurEnabled}
-            >
                 <FramedPhoto
                   photoUri={potdUri}
                   placeholderUri={potdUri}
@@ -163,7 +155,6 @@ export default function RevealScreen() {
                   status={potdPhoto.status}
                   width={heroW}
                 />
-            </SensitiveContentOverlay>
           </Brackets>
           {potdPhoto.shooter && (
             <Text style={styles.shooterName}>{potdPhoto.shooter}</Text>
@@ -218,7 +209,6 @@ export default function RevealScreen() {
             photos={data.photos}
             highlightUserId={myId}
             potdLabel={hasPotd ? 'PHOTO OF THE DAY' : undefined}
-            blurEnabled={blurEnabled}
           />
         </Animated.View>
 

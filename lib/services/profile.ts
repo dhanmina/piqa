@@ -313,10 +313,3 @@ export async function updateUsername(name: string): Promise<{ ok: boolean; error
   invalidate(profileKey(null));
   return { ok: true };
 }
-
-export async function toggleBlurSensitive(): Promise<boolean> {
-  const { data, error } = await supabase.rpc("toggle_blur_sensitive");
-  if (error) return false;
-  invalidate(profileKey(null));
-  return (data as unknown as { ok: boolean }).ok;
-}
