@@ -45,6 +45,19 @@ export function useShotCountToday(): number | null {
   return data;
 }
 
+/** How many photographers you follow submitted to today's active drop. */
+export function useFriendShotCountToday(): number | null {
+  const { data } = useCached<number | null>(
+    "friend_shot_count_today",
+    useCallback(async () => {
+      const { data } = await supabase.rpc("get_friend_shot_count_today" as never);
+      return (data as number | null) ?? null;
+    }, []),
+    60_000,
+  );
+  return data;
+}
+
 export type HomeDrop = {
   id: string;
   prompt: string;

@@ -20,7 +20,7 @@ import { useFrameForDate } from '@lib/hooks/frames';
 import { capture } from '@lib/services/analytics';
 import { markResultSeen } from '@lib/services/gallery';
 import { useSignedThumb } from '@lib/hooks/useCache';
-import { useHomeState, useTodayHint, useTodayGolden, useShotCountToday } from '@lib/homeState';
+import { useHomeState, useTodayHint, useTodayGolden, useShotCountToday, useFriendShotCountToday } from '@lib/homeState';
 import { useLast7Pattern } from '@lib/streak';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
@@ -51,6 +51,7 @@ export default function TodayScreen() {
   const hint = useTodayHint();
   const golden = useTodayGolden();
   const shotCount = useShotCountToday();
+  const friendShotCount = useFriendShotCountToday();
   const activityUnread = useActivityUnread();
   const [toast, setToast] = useState<string | null>(null);
   const [showStreakInfo, setShowStreakInfo] = useState(false);
@@ -287,9 +288,18 @@ export default function TodayScreen() {
           <View style={styles.submittedStatus}>
             <Text style={styles.statusLine}>{statusLine}</Text>
             {inRound && resultsAt && <Text style={styles.subNote}>Results at {resultsAt}</Text>}
-            {inRound && shotCount != null && shotCount > 1 && (
+            {inRound && friendShotCount != null && friendShotCount > 0 ? (
+              <Mono size={typeScale.caption} color={colors.paper40}>
+                {friendShotCount} friend{friendShotCount !== 1 ? 's' : ''} already shot today
+              </Mono>
+            ) : inRound && shotCount != null && shotCount > 1 ? (
               <Mono size={typeScale.caption} color={colors.paper40}>
                 {shotCount} shots today
+              </Mono>
+            ) : null}
+            {inRound && resultsAt && (
+              <Mono size={typeScale.caption} color={colors.paper40} style={styles.openLoop}>
+                Tomorrow's subject drops at {clockTime(data?.next_drop_at ?? drop!.voting_closes_at)}
               </Mono>
             )}
           </View>
@@ -323,11 +333,15 @@ export default function TodayScreen() {
             quickDrawUntil={quickDrawUntil}
             onShoot={() => router.push('/camera')}
           />
-          {shotCount != null && shotCount > 0 && (
+          {friendShotCount != null && friendShotCount > 0 ? (
+            <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
+              {friendShotCount} friend{friendShotCount !== 1 ? 's' : ''} already shot today
+            </Mono>
+          ) : shotCount != null && shotCount > 0 ? (
             <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
               {shotCount} photographer{shotCount !== 1 ? 's' : ''} shooting today
             </Mono>
-          )}
+          ) : null}
         </View>
         {votingOpen && (
           <View style={styles.submittedAction}>
@@ -417,11 +431,15 @@ export default function TodayScreen() {
         <View style={styles.waitingHero}>
           <NextShot at={data?.next_drop_at} size={typeScale.display} onDone={() => void refresh()} />
 
-          {shotCount != null && shotCount > 0 && (
+          {friendShotCount != null && friendShotCount > 0 ? (
+            <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
+              {friendShotCount} friend{friendShotCount !== 1 ? 's' : ''} already shot today
+            </Mono>
+          ) : shotCount != null && shotCount > 0 ? (
             <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
               {shotCount} photographer{shotCount !== 1 ? 's' : ''} shot today
             </Mono>
-          )}
+          ) : null}
 
           {potd && (
             <Pressable
@@ -625,6 +643,9 @@ const styles = StyleSheet.create({
   socialProof: {
     textAlign: 'center',
     marginTop: 4,
+  },
+  openLoop: {
+    marginTop: 8,
   },
   skeletonCard: {
     alignSelf: 'stretch',
