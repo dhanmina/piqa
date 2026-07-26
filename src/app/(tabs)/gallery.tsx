@@ -2,7 +2,7 @@
  * Gallery — the ONLY sub-tabs in the app: World · Following (spec §11c).
  * World reads a materialized JSON blob (never a live query for the day's
  * photos): date + prompt → PotD full-width cover (gold brackets, crown, gold
- * eyebrow, shooter) → unnumbered 2-col grid → end card (past back-issues ·
+ * eyebrow, shooter) → unnumbered 2-col grid → end card (past back-drops ·
  * what's live · tomorrow teaser). First open plays the morning reveal once; if
  * my shot made it, my tile enters last in gold brackets. Past galleries are
  * immutable and re-open identically. Following is a pull surface — invitation
@@ -11,7 +11,7 @@
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
-import { ArrowLeft, Calendar, ChevronRight, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
+import { ArrowLeft, Calendar, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,15 +40,9 @@ import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { GalleryGrid, GalleryGridSkeleton, type GalleryPhoto } from '@/components/molecules/GalleryGrid';
+import { PastDropsCalendar } from '@/components/molecules/PastDropsCalendar';
 import { Sheet } from '@/components/molecules/Sheet';
 import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
-
-// Row eyebrow drops the month — the section header carries it, so rows read "SUN 13".
-const issueDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).toUpperCase();
-
-const monthLabel = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
 
 const longDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -171,21 +165,6 @@ export default function GalleryScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dropId, isSeed, selectedDropId]);
 
-  // Group back-issues into month sections so a long archive stays legible and
-  // you can orient by month instead of scrolling one flat list (kept in the
-  // payload's order, newest first).
-  const pastGroups = useMemo(() => {
-    type PastEntry = { drop_id: string; drop_date: string; prompt: string | null };
-    const groups: { key: string; label: string; items: PastEntry[] }[] = [];
-    for (const g of data?.past ?? []) {
-      const label = monthLabel(g.drop_date);
-      const last = groups[groups.length - 1];
-      if (last && last.label === label) last.items.push(g);
-      else groups.push({ key: label, label, items: [g] });
-    }
-    return groups;
-  }, [data?.past]);
-
   useEffect(() => {
     if ((data?.past?.length ?? 0) > 0) setEverHadPast(true);
   }, [data?.past]);
@@ -282,12 +261,43 @@ export default function GalleryScreen() {
     </Modal>
   );
 
+  const handleTabChange = (t: 'world' | 'following') => {
+    if (t !== tab) {
+      void Haptics.selectionAsync();
+      setTab(t);
+    }
+  };
+
+  const handleSelectDrop = (dropId: string | null) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedDropId(dropId);
+  };
+
   const hasPast = tab === 'world' && ((data?.past?.length ?? 0) > 0 || everHadPast);
+  const viewingPast = selectedDropId !== null;
+  const viewingDropDate = data?.drop?.drop_date;
+  const viewingBanner = viewingPast && viewingDropDate ? (
+    <View style={styles.viewingPill}>
+      <View style={styles.viewingDot} />
+      <Mono size={typeScale.caption} color={colors.paper60} weight="medium">
+        VIEWING {longDate(viewingDropDate).toUpperCase()}
+      </Mono>
+      <Pressable
+        accessibilityRole="button"
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        onPress={() => handleSelectDrop(null)}
+      >
+        <Mono size={typeScale.caption} color={colors.safelight}>
+          TODAY
+        </Mono>
+      </Pressable>
+    </View>
+  ) : null;
   const segmented = (
     <View style={styles.topBar}>
       <View style={styles.segments}>
         {(['world', 'following'] as const).map((t) => (
-          <Pressable key={t} accessibilityRole="button" style={styles.segment} onPress={() => setTab(t)}>
+          <Pressable key={t} accessibilityRole="button" style={styles.segment} onPress={() => handleTabChange(t)}>
             <Text style={[styles.segmentLabel, tab === t ? styles.segmentActive : styles.segmentInactive]}>
               {t === 'world' ? 'World' : 'Following'}
             </Text>
@@ -311,7 +321,10 @@ export default function GalleryScreen() {
             accessibilityLabel="Past galleries"
             hitSlop={10}
             style={styles.iconBtn}
-            onPress={() => setShowPast(true)}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowPast(true);
+            }}
           >
             <Calendar size={20} strokeWidth={icons.strokeWidth} color={colors.paper60} />
           </Pressable>
@@ -324,11 +337,12 @@ export default function GalleryScreen() {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
         {segmented}
+        {viewingBanner}
         {followingError && followingPhotos.length === 0 ? (
           <View style={[styles.center, centerPad]}>
             <EmptyState
               icon={CloudOff}
-              line="Couldn't load Following. Check your connection."
+              line="Having trouble connecting. Give it another go."
               ctaLabel="Retry"
               onCta={() => void refreshFollowing()}
             />
@@ -341,7 +355,7 @@ export default function GalleryScreen() {
           <View style={[styles.center, centerPad]}>
             <EmptyState
               icon={Users}
-              line="Follow shooters and their winning galleries land here"
+              line="Follow some photographers and their galleries will show up here"
               ctaLabel="Explore World"
               onCta={() => setTab('world')}
             />
@@ -376,7 +390,7 @@ export default function GalleryScreen() {
         <View style={[styles.center, centerPad]}>
           <EmptyState
             icon={CloudOff}
-            line="Couldn't load the gallery. Check your connection."
+            line="Having trouble connecting. Give it another go."
             ctaLabel="Retry"
             onCta={() => void refresh()}
           />
@@ -389,6 +403,7 @@ export default function GalleryScreen() {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
         {segmented}
+        {viewingBanner}
         <View style={styles.content}>
           <GalleryGridSkeleton />
         </View>
@@ -401,25 +416,21 @@ export default function GalleryScreen() {
       <SafeAreaView style={styles.root} edges={['top']}>
         <View style={{ flex: 1 }}>
           {segmented}
+          {viewingBanner}
           <View style={[styles.center, centerPad]}>
-            <EmptyState icon={ImageIcon} line="The first galleries are rolling in." />
+            <EmptyState icon={ImageIcon} line="The gallery is just getting started." />
           </View>
         </View>
       </SafeAreaView>
     );
   }
 
-  const viewingPast = selectedDropId !== null;
-  // The crowd only crowns a Photo of the Day above the vote floor (close_day →
-  // potd_requires_votes). On a thin day nobody is crowned, so there is NO hero —
-  // faking one would counterfeit the app's one scarce honor. Instead the page
-  // leads with a quiet editorial note where the crown would sit, and the grid
-  // stays equal-weight (every shot already made the gallery).
   const hasPotd = data.photos.some((p) => p.isPotd);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       {segmented}
+      {viewingBanner}
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -427,46 +438,55 @@ export default function GalleryScreen() {
         }
       >
         {celebrate && reveal && (
-          <View style={styles.celebrate}>
-            <Text style={styles.celebrateText}>Your shot made the gallery</Text>
+          <View style={styles.winnerPass}>
+            <Mono size={typeScale.caption} color={colors.crown} weight="medium" style={styles.winnerPassEyebrow}>
+              GALLERY EXHIBITOR
+            </Mono>
+            <Text style={styles.winnerPassTitle}>Your shot made the gallery</Text>
             <Mono size={typeScale.caption} color={colors.paper60}>
-              scroll down to your framed tile
+              Scroll down to find your framed print
             </Mono>
           </View>
         )}
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Mono size={typeScale.caption} color={colors.paper60} style={styles.kicker}>
+            <Mono size={typeScale.caption} color={colors.crown} weight="medium" style={styles.kicker}>
+              DROP {data.photos[0]?.dayNumber ?? 1}
+            </Mono>
+            <Mono size={typeScale.caption} color={colors.paper40} style={styles.kickerDate}>
               {longDate(data.drop.drop_date).toUpperCase()}
             </Mono>
-            {viewingPast && (
-              <Pressable
-                accessibilityRole="button"
-                hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
-                onPress={() => setSelectedDropId(null)}
-              >
-                <Mono size={typeScale.caption} color={colors.safelight}>
-                  ← Latest
-                </Mono>
-              </Pressable>
-            )}
           </View>
           {data.drop.prompt && (
             <Text style={styles.prompt} numberOfLines={3}>
               {data.drop.prompt}
             </Text>
           )}
-          {data.isSeed && <Text style={styles.rollingIn}>The first galleries are rolling in.</Text>}
+          <View style={styles.badgeRow}>
+            {data.drop.category && (
+              <View style={styles.categoryBadge}>
+                <Mono size={typeScale.caption} color={colors.safelight}>
+                  {data.drop.category.toUpperCase()}
+                </Mono>
+              </View>
+            )}
+            <View style={styles.countBadge}>
+              <Mono size={typeScale.caption} color={colors.paper60}>
+                {data.photos.length} SHOTS
+              </Mono>
+            </View>
+          </View>
+          {data.isSeed && <Text style={styles.rollingIn}>The gallery is just getting started.</Text>}
           <View style={styles.headerRule} />
         </View>
 
         {!hasPotd && (
           <View style={styles.noCrown}>
-            <Mono size={typeScale.caption} color={colors.paper60} style={styles.noCrownEyebrow}>
-              NO CROWN TODAY
+            <Mono size={typeScale.caption} color={colors.paper40} weight="medium" style={styles.noCrownEyebrow}>
+              THE WHOLE GALLERY
             </Mono>
             <Text style={styles.noCrownBody}>
-              Not enough votes to crown a Photo of the Day. Here’s the whole gallery.
+              Every shot that made today's drop.
             </Text>
           </View>
         )}
@@ -481,27 +501,23 @@ export default function GalleryScreen() {
           onHeart={(p) => void gHearts.toggle(p.id)}
           isHearted={gHearts.isLiked}
           heartCount={gHearts.count}
-
         />
 
-        {/* End card — the real bottom of the magazine (spec §11c). One clean
-            forward block: what's next. Past issues live in the header calendar. */}
+        {/* End card — the back cover of the magazine (spec §11c). */}
         <View style={styles.endCard}>
-          <View style={styles.rule} />
-          <View style={styles.teaser}>
+          <View style={styles.endRule} />
+          <View style={styles.teaserCard}>
             {data.nextDropAt ? (
               <>
-                <Mono size={typeScale.caption} color={colors.paper60}>
-                  NEXT SHOT IN
+                <Mono size={typeScale.caption} color={colors.paper40} weight="medium" style={{ letterSpacing: 2 }}>
+                  THE NEXT DROP
                 </Mono>
-                {/* onDone matters here: without it the clock hits 00:00:00 and freezes,
-                    so the back page keeps showing a dead timer after the drop lands. */}
                 <Countdown until={data.nextDropAt} size={typeScale.title} onDone={() => void refresh()} />
               </>
             ) : (
-              <Text style={styles.teaserSoft}>Next shot drops soon</Text>
+              <Text style={styles.teaserSoft}>Dropping shortly</Text>
             )}
-            <Button label="See what’s live" variant="text" onPress={() => router.push('/(tabs)/today')} />
+            <Button label="See what's live" variant="text" onPress={() => router.push('/(tabs)/today')} />
           </View>
         </View>
       </ScrollView>
@@ -511,9 +527,7 @@ export default function GalleryScreen() {
         </View>
       )}
 
-      <Sheet visible={showPast} onClose={() => setShowPast(false)} title="Past galleries">
-        {/* Viewing a back-issue only lists issues older than it, so pin a way home
-            here — otherwise the only route to latest is closing the sheet. */}
+      <Sheet visible={showPast} onClose={() => setShowPast(false)} title="Past drops">
         {viewingPast && (
           <Pressable
             accessibilityRole="button"
@@ -524,38 +538,16 @@ export default function GalleryScreen() {
             }}
           >
             <ArrowLeft size={16} strokeWidth={icons.strokeWidth} color={colors.safelight} />
-            <Text style={styles.pastLatestText}>Back to the latest gallery</Text>
+            <Text style={styles.pastLatestText}>Back to the latest</Text>
           </Pressable>
         )}
-        <Text style={styles.pastIntro}>Tap a gallery to open it again.</Text>
-        <ScrollView style={styles.pastScroll}>
-          {pastGroups.map((grp) => (
-            <View key={grp.key}>
-              <Text style={styles.pastMonth}>{grp.label}</Text>
-              {grp.items.map((g) => (
-                <Pressable
-                  key={g.drop_id}
-                  accessibilityRole="button"
-                  style={styles.pastRow}
-                  onPress={() => {
-                    setSelectedDropId(g.drop_id);
-                    setShowPast(false);
-                  }}
-                >
-                  <View style={styles.pastRowText}>
-                    <Mono size={typeScale.caption} color={colors.paper60} style={styles.pastEyebrow}>
-                      {issueDate(g.drop_date)}
-                    </Mono>
-                    <Text style={styles.pastTitle} numberOfLines={2}>
-                      {g.prompt ?? 'Untitled gallery'}
-                    </Text>
-                  </View>
-                  <ChevronRight size={18} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-                </Pressable>
-              ))}
-            </View>
-          ))}
-        </ScrollView>
+        <PastDropsCalendar
+          pastDrops={(data?.past ?? []).filter((p) => p.drop_date < new Date().toISOString().slice(0, 10))}
+          selectedDate={viewingDropDate}
+          onSelectDate={(dropId) => {
+            setSelectedDropId(dropId);
+          }}
+        />
       </Sheet>
 
       {viewerModal}
@@ -582,18 +574,19 @@ const styles = StyleSheet.create({
   segmentInactive: { fontFamily: fonts.sans, color: colors.paper60 },
   segmentBar: { height: 2, width: 20, backgroundColor: 'transparent', borderRadius: 1 },
   segmentBarActive: { backgroundColor: colors.safelight },
-  celebrate: {
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 12,
+  winnerPass: {
+    padding: space.gutter,
     borderRadius: radius.card,
     backgroundColor: colors.ink2,
+    borderWidth: 1,
+    borderColor: colors.crown,
+    gap: 6,
   },
-  celebrateText: {
+  winnerPassEyebrow: { letterSpacing: 1.5 },
+  winnerPassTitle: {
     fontFamily: displayFamily,
-    fontSize: typeScale.title,
-    color: colors.safelight,
-    textAlign: 'center',
+    fontSize: typeScale.body,
+    color: colors.paper,
   },
   confettiOverlay: {
     position: 'absolute',
@@ -603,16 +596,31 @@ const styles = StyleSheet.create({
     height: 380,
   },
   header: { gap: 8 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  viewingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.safelight,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    alignSelf: 'flex-start',
+    marginHorizontal: space.gutter,
+    marginTop: 8,
+  },
+  viewingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.paper,
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   kicker: { letterSpacing: 1.5 },
+  kickerDate: { letterSpacing: 1, flex: 1 },
   prompt: { fontFamily: displayFamily, fontSize: typeScale.display, lineHeight: typeScale.display * 1.1, color: colors.paper },
   rollingIn: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
   headerRule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginTop: 6 },
   center: { flex: 1, justifyContent: 'center' },
-  // Editorial note that stands in for the hero on a no-crown day. Centered and
-  // hairline-bracketed so the empty front page reads as deliberate whitespace,
-  // not a failed load. Never gold — the crown treatment is reserved for a real
-  // Photo of the Day.
   noCrown: {
     alignItems: 'center',
     gap: 6,
@@ -630,31 +638,28 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 280,
   },
-  endCard: { gap: 14 },
-  rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginTop: 8 },
+  endCard: { gap: 0 },
+  endRule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginTop: 8 },
   pastLatestRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 },
   pastLatestText: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.safelight },
-  pastIntro: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60, marginBottom: 4 },
-  pastScroll: { maxHeight: 360 },
-  pastMonth: {
-    fontFamily: fonts.monoMedium,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.5,
-    color: colors.paper60,
-    paddingTop: 18,
-    paddingBottom: 6,
-  },
-  pastRow: {
-    flexDirection: 'row',
+  teaserCard: {
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.ink2,
+    gap: 10,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  pastRowText: { flex: 1, gap: 4 },
-  pastEyebrow: { letterSpacing: 1 },
-  pastTitle: { fontFamily: displayFamily, fontSize: typeScale.body, lineHeight: typeScale.body * 1.15, color: colors.paper },
-  teaser: { alignItems: 'center', gap: 6, paddingTop: 8 },
   teaserSoft: { fontFamily: displayFamily, fontSize: typeScale.sub, color: colors.paper60 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  countBadge: {
+    backgroundColor: colors.ink2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
+  categoryBadge: {
+    backgroundColor: colors.ink2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
 });

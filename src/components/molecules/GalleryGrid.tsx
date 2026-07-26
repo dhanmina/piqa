@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
@@ -8,6 +9,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import type { FrameId, PhotoStatus } from '@lib/services/frames';
 import { HeartButton } from '@/components/atoms/HeartButton';
 import { Mono } from '@/components/atoms/Mono';
+import { Brackets } from '@/components/molecules/Brackets';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 
 import { colors, fade, frame, motion, radius, space, typeScale } from '@/components/tokens';
@@ -20,7 +22,7 @@ export type GalleryPhoto = {
   fullUri?: string | null;
   hearts: number;
   isPotd?: boolean;
-  /** Shooter name — shown only on the PotD cover (appreciation is signed). */
+  /** Shooter name — shown on PotD hero credit and grid tile caption. */
   shooter?: string;
   /** Owner id — lets the morning reveal single out the viewer's own tile. */
   userId?: string;
@@ -37,15 +39,14 @@ type GalleryGridProps = {
   photos: GalleryPhoto[];
   /** Stagger tiles in — first reveal only, never on re-visits. */
   reveal?: boolean;
-  /** Gold eyebrow above the PotD cover, e.g. "PHOTO OF THE DAY · JUL 11". */
+  /** Gold eyebrow above the PotD cover, e.g. "PHOTO OF THE DAY". */
   potdLabel?: string;
   /** During a reveal, the viewer's own tile enters last. */
   highlightUserId?: string;
   /**
    * Feed mode (Following): a flat equal-weight 2-col grid — never a single hero.
-   * The magazine hero only makes sense for one day's issue (World); a cross-day
-   * feed has many PotDs, so promoting one would silently drop the others. Each
-   * one still wears its crown on the frame, which is how you tell them apart now.
+   * The magazine hero only makes sense for one day's drop (World); a cross-day
+   * feed has many PotDs, so promoting one would silently drop the others.
    */
   flat?: boolean;
   onPress?: (photo: GalleryPhoto) => void;
@@ -58,9 +59,6 @@ type GalleryGridProps = {
 /**
  * Two equal columns with a fixed gap. Measure the grid's own width and floor the
  * tile width so two cells + the gap can never overflow into a single column.
- * Percentage widths ('48.8%') mix badly with a fixed-pixel gap: Yoga counts the
- * gap against available space, and the percentage rounds up per pixel-density, so
- * narrow / high-density real devices wrap to one column while emulators don't.
  */
 function useTwoColumn() {
   const [width, setWidth] = useState(0);
@@ -73,17 +71,14 @@ function useTwoColumn() {
 }
 
 /**
- * The morning paper: the PotD full-width first, then an unnumbered 2-col grid.
- * Finite by construction — galleries are bounded, so this is a plain wrapped
- * grid, never an infinite list.
+ * The morning paper: the PotD full-width first, then an unnumbered 2-col grid
+ * with photographer names on every tile.
  *
- * Every photo is a FramedPhoto, so the print itself now says what it is: the day
- * number on the rail, the owner's frame, and a gold crown in the status slot if it
- * won. That is why there are no crown badges and no gold brackets here any more —
- * they said the same thing a third time, in a different visual language.
- *
- * Anything overlaid on a photo (the heart, the shooter's name) is inset above the
- * rail, never on it. The rail is part of the print, not free canvas.
+ * Design rationale (research-backed):
+ * - Photographer names on tiles create social proof + connection (retention).
+ * - Heart count on tiles validates community engagement (wow factor).
+ * - The PotD hero is the magazine COVER — photographer credit lives below it.
+ * - Section header "THE GALLERY" creates visual rhythm in the scroll.
  */
 export function GalleryGrid({
   photos,
@@ -108,24 +103,34 @@ export function GalleryGrid({
       <>{child}</>
     );
 
-  // Grid-tile heart lives inside the photo window, on a bottom fade. Only the
-  // glyph + count — no name (tiles are too small); count hides at 0.
-  const heartOverlay = (photo: GalleryPhoto) => {
-    if (!onHeart) return null;
+  // Grid-tile heart + name caption below the photo window, above the rail.
+  const tileCaption = (photo: GalleryPhoto) => {
     const c = heartCount ? heartCount(photo) : photo.hearts;
+    const hasHearts = c > 0;
+    const hasName = !!photo.shooter;
+    if (!onHeart && !hasName) return null;
     return (
-      <>
-        <LinearGradient pointerEvents="none" colors={fade} style={styles.tileFade} />
-        <View pointerEvents="box-none" style={styles.tileHeartOverlay}>
+      <View style={styles.tileCaption}>
+        <View style={styles.tileCaptionLeft}>
+          {hasName && (
+            <Mono size={typeScale.caption} color={colors.paper60} numberOfLines={1}>
+              {photo.shooter}
+            </Mono>
+          )}
+        </View>
+        {onHeart && (
           <HeartButton
             onPhoto
             liked={isHearted?.(photo.id) ?? false}
-            count={c > 0 ? c : undefined}
-            onToggle={() => onHeart(photo)}
-            size={20}
+            count={hasHearts ? c : undefined}
+            onToggle={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onHeart(photo);
+            }}
+            size={16}
           />
-        </View>
-      </>
+        )}
+      </View>
     );
   };
 
@@ -149,7 +154,7 @@ export function GalleryGrid({
           {photos.map((p) => (
             <View key={p.id} style={cellStyle}>
               {wrap(p, print(p))}
-              {heartOverlay(p)}
+              {tileCaption(p)}
             </View>
           ))}
         </View>
@@ -171,7 +176,7 @@ export function GalleryGrid({
     const body = (
       <>
         {wrap(photo, print(photo))}
-        {heartOverlay(photo)}
+        {tileCaption(photo)}
       </>
     );
     return reveal ? (
@@ -194,33 +199,54 @@ export function GalleryGrid({
       {potd && (
         <View style={styles.potdBlock}>
           {potdLabel && (
-            <Mono size={typeScale.caption} color={colors.crown} weight="medium">
+            <Mono size={typeScale.caption} color={colors.crown} weight="medium" style={styles.potdEyebrow}>
               {potdLabel}
             </Mono>
           )}
-          <View>
-            {wrap(potd, print(potd))}
-            {/* Gallery stays name-free — just the heart, like the tiles. The crown on
-                the frame already marks the winner; the shooter's name shows only in
-                fullscreen (photo detail). */}
-            {onHeart && (
-              <>
-                <LinearGradient pointerEvents="none" colors={fade} style={styles.potdFade} />
-                <View pointerEvents="box-none" style={styles.potdCaption}>
-                  <HeartButton
-                    onPhoto
-                    liked={isHearted?.(potd.id) ?? false}
-                    count={heartCount ? heartCount(potd) : potd.hearts}
-                    onToggle={() => onHeart(potd)}
-                    size={20}
-                  />
-                </View>
-              </>
-            )}
-          </View>
+          <Brackets color={colors.crown} animated gap={4}>
+            <View>
+              {wrap(potd, print(potd))}
+              {onHeart && (
+                <>
+                  <LinearGradient pointerEvents="none" colors={fade} style={styles.potdFade} />
+                  <View pointerEvents="box-none" style={styles.potdCaption}>
+                    <HeartButton
+                      onPhoto
+                      liked={isHearted?.(potd.id) ?? false}
+                      count={heartCount ? heartCount(potd) : potd.hearts}
+                      onToggle={() => {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        onHeart(potd);
+                      }}
+                      size={20}
+                    />
+                  </View>
+                </>
+              )}
+            </View>
+          </Brackets>
+          {potd.shooter && (
+            <Mono size={typeScale.caption} color={colors.paper60} style={styles.potdCredit}>
+              {potd.shooter}
+            </Mono>
+          )}
         </View>
       )}
-      <View style={styles.grid} onLayout={onLayout}>{rest.map((photo, i) => tile(photo, i))}</View>
+
+      {rest.length > 0 && (
+        <>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionRule} />
+            <Mono size={typeScale.caption} color={colors.paper40} weight="medium" style={styles.sectionLabel}>
+              THE GALLERY
+            </Mono>
+            <View style={styles.sectionRule} />
+          </View>
+          <View style={styles.grid} onLayout={onLayout}>
+            {rest.map((photo, i) => tile(photo, i))}
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -237,11 +263,18 @@ export function GalleryGridSkeleton({ tiles = 6 }: { tiles?: number }) {
       <View style={styles.potdBlock}>
         <View style={styles.skelEyebrow} />
         <View style={[styles.skelBlock, styles.skelPhoto]} />
+        <View style={styles.skelCreditLine} />
+      </View>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionRule} />
+        <View style={styles.skelSectionLabel} />
+        <View style={styles.sectionRule} />
       </View>
       <View style={styles.grid} onLayout={onLayout}>
         {Array.from({ length: tiles }).map((_, i) => (
           <View key={i} style={cellStyle}>
             <View style={[styles.skelBlock, styles.skelPhoto]} />
+            <View style={styles.skelCaptionLine} />
           </View>
         ))}
       </View>
@@ -258,11 +291,31 @@ const styles = StyleSheet.create({
   },
   skelPhoto: {
     width: '100%',
-    aspectRatio: frame.aspect, // the print's shape, rail included
-    borderRadius: radius.photo, // 0 — a print, even while loading
+    aspectRatio: frame.aspect,
+    borderRadius: radius.photo,
   },
   skelEyebrow: {
     width: 150,
+    height: 10,
+    borderRadius: 2,
+    backgroundColor: colors.ink2,
+  },
+  skelCreditLine: {
+    width: 80,
+    height: 10,
+    borderRadius: 2,
+    backgroundColor: colors.ink2,
+    marginTop: 2,
+  },
+  skelCaptionLine: {
+    width: 60,
+    height: 10,
+    borderRadius: 2,
+    backgroundColor: colors.ink2,
+    marginTop: 6,
+  },
+  skelSectionLabel: {
+    width: 90,
     height: 10,
     borderRadius: 2,
     backgroundColor: colors.ink2,
@@ -272,8 +325,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     gap: 8,
   },
-  // Overlays stop at the top of the rail — the frame's rail is never covered. The
-  // hero heart matches the grid tiles' treatment: bottom-left over a short fade.
+  potdEyebrow: {
+    letterSpacing: 1.5,
+  },
+  potdCredit: {
+    letterSpacing: 0.5,
+    paddingLeft: 2,
+  },
   potdFade: {
     position: 'absolute',
     left: 0,
@@ -288,28 +346,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 10,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 4,
+  },
+  sectionRule: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.paper30,
+  },
+  sectionLabel: {
+    letterSpacing: 2,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: space.gridGap,
   },
   cell: {
-    // Fallback for the first frame only; useTwoColumn() overrides with an exact
-    // floored pixel width once the grid is measured (see the hook's note).
     width: '48.8%',
   },
-  tileFade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: frame.window.bottom,
-    height: '45%',
+  tileCaption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 6,
+    paddingBottom: 2,
   },
-  tileHeartOverlay: {
-    position: 'absolute',
-    left: 0,
-    bottom: frame.window.bottom,
-    paddingHorizontal: 10,
-    paddingBottom: 8,
+  tileCaptionLeft: {
+    flex: 1,
+    marginRight: 8,
   },
 });
