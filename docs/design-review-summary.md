@@ -15,7 +15,8 @@
 | 3 | `03-screens-layout-system.html` | Modal placement, search, avatar/list sizing, Profile/Settings/Camera audits, first Studio screen design |
 | 4 | `04-final-audit-coverage.html` | Full-app coverage map (every screen/component read at least once), cross-cutting findings, consolidated punch list |
 | 5 | `05-ia-findability-map.html` | Navigation/findability research, hub-and-spoke map, **Studios placement decision** (corrected twice), rendered tab-bar mockup |
-| 6 | `06-today-screen-clutter.html` | Today screen clutter diagnosis, four-line-stack fix, corrects the Studios ambient-line suggestion from doc 5 |
+| 6 | `06-today-screen-clutter.html` | Today screen clutter diagnosis + full redesigned layout for all 6 states (loading/error/waiting/live/submitted/done), rendered in HTML; corrects the Studios ambient-line suggestion from doc 5 |
+| 7 | `07-studios-screen.html` | Full Studios screen design — empty state, create/join, standing view, invite, members, manage — the screen designed for the tab decided in doc 5 |
 
 ## Current status (2026-07-29)
 
@@ -46,9 +47,11 @@ Today · Gallery · [ ● shutter ] · Studios · Profile
 Verdict from report 6: **no decision-fatigue problem** (one primary action per state, always) — **yes, a reading-load problem**, in exactly two spots:
 
 1. **Header:** "Share your week" renders any time the user has shot at least once in the trailing 7 days — effectively permanent after week one, and it doesn't semantically belong with the streak/date/bell status chunks around it. **Fix:** move it into the Done-state teaser (contextual, right when a week's results land) with a Profile row as a backup entry point for anytime access — not a new nav item, matches the low-frequency-nested pattern used for Edit Profile/Frame Picker.
-2. **Submitted state:** four caption lines stack simultaneously in the common case (status / "results at X" / friend-or-shot count / "tomorrow's subject drops at Y"). **Fix:** keep the status line + "results at" line only; drop the social-proof count from this state (it's motivating in Live, not here); move the tomorrow's-teaser to the Done state instead.
+2. **Submitted state:** four caption lines stack simultaneously in the common case (status / "results at X" / friend-or-shot count / "tomorrow's subject drops at Y"). **Fix:** keep the status line + "results at" line only; drop the social-proof count from this state (it's motivating in Live, not here); **cut** the tomorrow's-teaser entirely — Done already renders a `NextShot` line for the same information, so relocating it would just duplicate that line.
 
 Bonus (senior-dev lens): `today.tsx` is 811 lines with all five states branched inline in one render function. Recommended a pure refactor — extract each state into its own named component — no behavior change, easier to review, and safer to add the Studios social-proof preference into later without touching four other states in the same diff.
+
+All six states (loading/error/waiting/live/submitted/done) were then rendered in full in report 6 to confirm the fixes hold end-to-end. One mockup correction worth recording: the first pass drew the Live and Submitted brackets as a solid box border — the real `Brackets` component (and `tokens.brackets`, `armLength:16`) is four independent corner ticks with gaps along the edges, viewfinder-style, never a continuous rectangle, and is `paper`-colored by default (not `safelight` — that's reserved for the eyebrow text/countdown, with `crown` gold only on rare "Golden Shot" event days). Fixed in the mockup; worth remembering as a general rule when illustrating anything framed in this system.
 
 ### The P0 constitutional-conflict finding (resolved by reverting)
 
