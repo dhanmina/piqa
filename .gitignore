@@ -48,6 +48,9 @@ logs/
 # local env files & secrets
 .env
 .env.*
+
+# Design-review artifacts (Claude-generated HTML audits) — reference only, not shipped/reviewed content
+docs/design-review/
 !.env.example
 *.env
 secrets.json

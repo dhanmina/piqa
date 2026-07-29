@@ -78,6 +78,16 @@ Priority is by review evidence × law-fit × retention impact. Effort is rough.
 
 ## 4b. Studios — feature spec (the friend-group mode)
 
+> **Nav placement decided 2026-07-29** (design review, not yet built): Studios gets
+> a full tab bar slot — `Today · Gallery · [shutter] · Studios · Profile` — with
+> Archive relocated to a Profile section to make room. Earlier drafts of this
+> decision considered a Profile-only row, then a Gallery segment; both were
+> superseded after review (a friends-driven retention lever needs tab-level
+> prominence, not a toggle most users won't discover — see Duolingo's own Feb
+> 2026 tab redesign, which gives Friends/Leaderboard full tabs, as a live
+> precedent). Full reasoning in `docs/design-review/05-ia-findability-map.html`
+> (gitignored locally) and `docs/design-review-summary.md` (tracked).
+
 **Concept.** A Director creates a **named group**, invites friends, and they play Piqa together. Crucially, they compete on the **same global daily Shot as everyone else** — the studio is a *social lens* on the global blind results, **never a separate judged contest.**
 
 **Guardrails that keep it fair (the whole reason it works):**

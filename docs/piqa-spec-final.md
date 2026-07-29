@@ -121,21 +121,30 @@ TODO before coding: buy joinpiqa.com · @piqa handles (TikTok/IG; fallback @piqa
 
 ## 11. Navigation, Tabs & Empty States
 
+> **Updated 2026-07-29** (post-MVP design review, not yet implemented): Studios is
+> promoted from a backlog nested feature to a full tab, and Archive moves from a
+> tab into a Profile section, to make room without exceeding the 3–5 tab research
+> ceiling. Rationale, research citations (incl. Duolingo's own Feb 2026 tab
+> redesign giving Friends/Leaderboard full tabs), and the corrected IA are in
+> `docs/design-review/` (gitignored locally — see `docs/design-review-summary.md`
+> for the tracked, in-repo synthesis). The rest of this section is the original
+> MVP spec; treat the tab row below as superseded once Studios ships.
+
 **Bottom nav: 4 tabs + raised center shutter** (research-backed: 3–5 items, thumb zone, icons+labels always, active state = 2+ modifications, 48px+ targets).
 
-`Today · Gallery · [ ● shutter ] · Archive · Profile`
+`Today · Gallery · [ ● shutter ] · Archive · Profile` — **MVP.** Post-Studios: `Today · Gallery · [ ● shutter ] · Studios · Profile`, with Archive relocated to a Profile section (reusing the existing Wins/Starred segmented-toggle pattern).
 
-- **Icons: Lucide only** (`lucide-react-native`, ISC license — never mix families, no Flaticon/paid sets): `house`, `image`, `aperture` (shutter), `book-image` (archive), `user`. Labels 11px Instrument Sans under every tab.
+- **Icons: Lucide only** (`lucide-react-native`, ISC license — never mix families, no Flaticon/paid sets): `house`, `image`, `aperture` (shutter), `book-image` (archive — moves to a Profile row post-Studios), `users` (studios, post-MVP), `user`. Labels 11px Instrument Sans under every tab.
 - **Center shutter = raised 60dp safelight circle with `aperture` icon** — the logo's dot made tappable, always opens the camera. It is also a status display:
   - **Shot live:** safelight fill + paper ring (pulse) → shoot now
   - **Submitted/done:** rests in ink2 with check → calm
   - **Default:** safelight, no ring → free shooting
 - Active tab: safelight icon + medium-weight label (two modifications). Inactive: paper @40%.
-- Badge dot on Today when something waits (drop live / gallery revealed). No badge counts, no nagging.
+- Badge dot on Today when something waits (drop live / gallery revealed). No badge counts, no nagging. Post-Studios: the same plain dot mechanic also lights on unread appreciation, and appears on the Studios tab for studio activity — never a count.
 - Bar is ink `#141210`; photos above it stay the brightest element.
-- Deliberate omissions: no Search tab (no feed to search), no Curate tab (curating lives inside Today).
+- Deliberate omissions: no Search tab (no feed to search), no Curate tab (curating lives inside Today). No notification-center tab, ever (see badge-dot rule above) — this still holds post-Studios.
 
-Tab contents: **Today** (Shot status, curate sets, done-screen) · **Gallery** (today's = yesterday's reveal + immutable past galleries, date-paged, re-viewable forever) · **Archive** (private journal) · **Profile**.
+Tab contents: **Today** (Shot status, curate sets, done-screen) · **Gallery** (today's = yesterday's reveal + immutable past galleries, date-paged, re-viewable forever) · **Archive** (private journal; MVP tab, Profile section post-Studios) · **Profile** · **Studios** (post-MVP: shared standing off the same global gallery — never a separate judged contest, never peer voting, never a daily friend ranking; management (create/invite/leave) one tap deeper inside the tab).
 
 - Gallery tab is never empty: shows the latest closed gallery all day; zero-submission days show most recent gallery + "quiet day 🌙" card.
 - Bottom of today's gallery = real end card → "View past galleries" / live-action shortcuts / tomorrow teaser. History browsing = finite albums (magazine back-issues), chronological, no algorithm.
