@@ -73,7 +73,10 @@ export type AnalyticsEvent =
   | "gallery_opened" // opened the Gallery tab
   | "activity_opened" // opened the activity inbox from the Today bell
   | "profile_shared" // shared own profile link
-  | "recap_shared"; // shared weekly recap card
+  | "recap_shared" // shared weekly recap card
+  | "studio_created" // created a Studio
+  | "studio_joined" // joined a Studio by invite code
+  | "studio_invite_shared"; // shared a Studio's invite code
 
 /** Record a product event. No-op until a PostHog key is configured. */
 export function capture(event: AnalyticsEvent, props?: Record<string, unknown>) {

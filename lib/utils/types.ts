@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -389,6 +384,39 @@ export type Database = {
           },
         ]
       }
+      photo_views: {
+        Row: {
+          submission_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          submission_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          submission_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_views_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_views_viewer_id_fkey"
+            columns: ["viewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -586,6 +614,71 @@ export type Database = {
             foreignKeyName: "streaks_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_members: {
+        Row: {
+          joined_at: string
+          studio_id: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          studio_id: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          studio_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_members_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studios: {
+        Row: {
+          created_at: string
+          director_id: string
+          id: string
+          invite_code: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          director_id: string
+          id?: string
+          invite_code: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          director_id?: string
+          id?: string
+          invite_code?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studios_director_id_fkey"
+            columns: ["director_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1010,8 +1103,10 @@ export type Database = {
       claim_event_frame: { Args: { p_frame: string }; Returns: Json }
       close_day: { Args: { p_drop: string }; Returns: Json }
       close_due_drops: { Args: never; Returns: Json }
+      create_studio: { Args: { p_name: string }; Returns: Json }
       decorate_photos: { Args: { p_photos: Json }; Returns: Json }
       delete_account: { Args: never; Returns: Json }
+      delete_studio: { Args: never; Returns: Json }
       dev_advance_day: { Args: { p_i_submitted?: boolean }; Returns: Json }
       dev_break_streak: { Args: never; Returns: Json }
       dev_current_drop: { Args: never; Returns: string }
@@ -1049,12 +1144,14 @@ export type Database = {
         Args: { p_photos: Json; p_viewer: string }
         Returns: Json
       }
+      generate_studio_code: { Args: never; Returns: string }
       get_activity: {
         Args: { p_before?: string; p_limit?: number }
         Returns: Json
       }
       get_activity_unread: { Args: never; Returns: boolean }
       get_following_gallery: { Args: never; Returns: Json }
+      get_friend_shot_count_today: { Args: never; Returns: number }
       get_gallery: { Args: { p_drop?: string }; Returns: Json }
       get_home_state: { Args: never; Returns: Json }
       get_latest_gallery: { Args: never; Returns: Json }
@@ -1062,10 +1159,18 @@ export type Database = {
       get_my_stats: { Args: never; Returns: Json }
       get_nods_received: { Args: { p_user?: string }; Returns: Json }
       get_notification_prefs: { Args: never; Returns: Json }
+      get_photo_view_count: {
+        Args: { p_submission_id: string }
+        Returns: number
+      }
       get_profile: { Args: { p_user?: string }; Returns: Json }
+      get_shot_count_today: { Args: never; Returns: number }
+      get_studio: { Args: never; Returns: Json }
+      get_studio_members: { Args: never; Returns: Json }
       get_today_golden: { Args: never; Returns: boolean }
       get_today_hint: { Args: never; Returns: string }
       get_user_badges: { Args: { p_user: string }; Returns: Json }
+      get_weekly_recap: { Args: { p_user_id: string }; Returns: Json }
       has_badge: { Args: { p_badge: string; p_user: string }; Returns: boolean }
       in_quiet_hours: {
         Args: { p_qe: string; p_qs: string; p_tz: string }
@@ -1073,6 +1178,8 @@ export type Database = {
       }
       is_admin: { Args: { p_uid?: string }; Returns: boolean }
       is_live_drop_thumb: { Args: { object_name: string }; Returns: boolean }
+      join_studio_by_code: { Args: { p_code: string }; Returns: Json }
+      leave_studio: { Args: never; Returns: Json }
       mark_activity_seen: { Args: never; Returns: undefined }
       notify_appreciation: { Args: never; Returns: Json }
       notify_pending: { Args: never; Returns: Json }
@@ -1081,14 +1188,21 @@ export type Database = {
         Args: { p_is_potd: boolean; p_rank: number }
         Returns: string
       }
+      quarantine_if_flagged: {
+        Args: { p_label: string; p_score: number; p_submission: string }
+        Returns: Json
+      }
       record_appreciation: {
         Args: { p_actor: string; p_submission: string }
         Returns: undefined
       }
+      remove_studio_member: { Args: { p_user: string }; Returns: Json }
+      rename_studio: { Args: { p_name: string }; Returns: Json }
       report_submission: {
         Args: { p_reason: string; p_submission: string }
         Returns: Json
       }
+      resolve_username: { Args: { p_username: string }; Returns: string }
       search_users: { Args: { p_query: string }; Returns: Json }
       send_push: {
         Args: {
@@ -1111,7 +1225,12 @@ export type Database = {
         Args: { p_submission: string; p_tag: string }
         Returns: undefined
       }
+      toggle_blur_sensitive: { Args: never; Returns: Json }
       toggle_star: { Args: { p_id: string; p_type: string }; Returns: Json }
+      track_photo_view: {
+        Args: { p_submission_id: string }
+        Returns: undefined
+      }
       update_notification_prefs: {
         Args: {
           p_appreciation: boolean
@@ -1123,7 +1242,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      toggle_blur_sensitive: { Args: Record<string, never>; Returns: { ok: boolean; blur_sensitive: boolean } }
       username_available: { Args: { p_username: string }; Returns: boolean }
     }
     Enums: {
@@ -1260,3 +1378,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

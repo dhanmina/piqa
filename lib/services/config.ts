@@ -34,6 +34,10 @@ const FALLBACKS = {
   // anything ("2.4", "2.4.1-beta", etc.). Empty/falsy = hidden.
   update_version: "",
   update_changelog: "",
+  // Studios ships dark-launched: false keeps the tab a placeholder for everyone
+  // until a slice is flipped on and D7/D30 engagement is confirmed (Phase 3).
+  studios_enabled: false,
+  studio_member_cap: 8,
 } as const;
 
 export type ConfigKey = keyof typeof FALLBACKS;
