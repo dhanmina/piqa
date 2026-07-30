@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
-import { BookImage, House, Image as ImageIcon, User, type LucideIcon } from 'lucide-react-native';
+import { House, Image as ImageIcon, User, Users, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,13 +14,16 @@ import { colors, fonts, iconStroke, typeScale } from '@/components/tokens';
 const TAB_META: Record<string, { label: string; icon: LucideIcon }> = {
   today: { label: 'Today', icon: House },
   gallery: { label: 'Gallery', icon: ImageIcon },
-  archive: { label: 'Archive', icon: BookImage },
+  studios: { label: 'Studios', icon: Users },
   profile: { label: 'Profile', icon: User },
 };
 
 /**
- * 4 tabs + raised center shutter (spec §11). Bar is ink so photos above it
- * stay the brightest element. No search tab, no curate tab — deliberate.
+ * 4 tabs + raised center shutter (spec §11, updated 2026-07-29 IA review):
+ * Today · Gallery · [shutter] · Studios · Profile. Archive relocated into a
+ * Profile segment — solo/private, doesn't need top-level real estate the way
+ * a friends feature does. Bar is ink so photos above it stay the brightest
+ * element. No search tab, no curate tab — deliberate.
  */
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -137,7 +140,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           router.push(shutterState === 'done' ? { pathname: '/camera', params: { practice: '1' } } : '/camera')
         }
       />
-      {renderTab('archive')}
+      {renderTab('studios')}
       {renderTab('profile')}
     </View>
   );

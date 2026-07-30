@@ -15,7 +15,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="today" />
       <Tabs.Screen name="gallery" />
-      <Tabs.Screen name="archive" />
+      <Tabs.Screen name="studios" />
       <Tabs.Screen name="profile" />
     </Tabs>
   );

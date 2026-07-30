@@ -22,6 +22,7 @@ import type { ProfileData, ProfileWin } from '@lib/services/profile';
 import { shareProfile } from '@lib/utils/share';
 import { warmImage } from '@lib/utils/warmImage';
 import { levelProgress } from '@lib/utils/xp';
+import { ArchiveGrid } from '@/components/ArchiveGrid';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { FramedAvatar } from '@/components/molecules/FramedAvatar';
 import { Button } from '@/components/atoms/Button';
@@ -87,10 +88,18 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
   // submissions), so they open in a plain paged photo viewer, not a framed print.
   const [starIndex, setStarIndex] = useState<number | null>(null);
 
-  // One photo surface at a time. Starred is a self-only shelf, so the segment
-  // only appears when there's something on it; everyone else just sees the wins.
-  const [tab, setTab] = useState<'wins' | 'starred'>('wins');
-  const showSegment = !!data?.isSelf && (data?.starred.length ?? 0) > 0;
+  // One photo surface at a time. Starred only earns a slot once there's something
+  // on it; Archive (your private journal, relocated here from its own tab per the
+  // 2026-07 nav decision) is always available to yourself. Everyone else just
+  // sees the wins — no segment control at all.
+  const [tab, setTab] = useState<'wins' | 'starred' | 'archive'>('wins');
+  const segments = useMemo(() => {
+    const list: ('wins' | 'starred' | 'archive')[] = ['wins'];
+    if (data?.isSelf && (data?.starred.length ?? 0) > 0) list.push('starred');
+    if (data?.isSelf) list.push('archive');
+    return list;
+  }, [data?.isSelf, data?.starred]);
+  const showSegment = segments.length > 1;
 
   // Measure the grid container so two columns + the gap never overflow into one.
   // Percentage widths ('48.8%') round up on high-density devices and push the
@@ -267,10 +276,10 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
         {/* Work — one surface at a time. Others just see the wins. */}
         {showSegment ? (
           <View style={styles.segment}>
-            {(['wins', 'starred'] as const).map((t) => (
+            {segments.map((t) => (
               <Pressable key={t} accessibilityRole="button" style={styles.segItem} onPress={() => setTab(t)}>
                 <Mono size={typeScale.caption} weight={tab === t ? 'semibold' : 'regular'} color={tab === t ? colors.paper : colors.paper60}>
-                  {t === 'wins' ? 'WINS' : 'STARRED'}
+                  {t === 'wins' ? 'WINS' : t === 'starred' ? 'STARRED' : 'ARCHIVE'}
                 </Mono>
                 <View style={[styles.segBar, tab === t && styles.segBarOn]} />
               </Pressable>
@@ -282,7 +291,9 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
           </View>
         )}
 
-        {showSegment && tab === 'starred' ? (
+        {showSegment && tab === 'archive' ? (
+          <ArchiveGrid />
+        ) : showSegment && tab === 'starred' ? (
           <View style={styles.grid} onLayout={onGridLayout}>
             {data?.starred.map((s, i) => (
               <Pressable key={s.key} accessibilityRole="button" style={cellWidth ? { width: cellWidth, aspectRatio: frame.aspect, backgroundColor: colors.ink2 } : styles.starCell} onPress={() => setStarIndex(i)}>
