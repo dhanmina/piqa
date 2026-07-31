@@ -10,8 +10,9 @@
  * Gestures inside a React Native Modal only work when the modal's content has its
  * OWN GestureHandlerRootView (the app has none at the root), so this owns one.
  */
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { X } from 'lucide-react-native';
+import { Star, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { FlatList, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -23,7 +24,7 @@ import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { colors, typeScale } from '@/components/tokens';
 
-export type StarItem = { key: string; uri: string | null; fullUri: string | null };
+export type StarItem = { key: string; type: 'free' | 'daily'; uri: string | null; fullUri: string | null };
 
 // Past this drag (or a fast flick) the release dismisses; short of it, spring back.
 const DISMISS_DISTANCE = 130;
@@ -32,10 +33,13 @@ export function StarredLightbox({
   items,
   index,
   onClose,
+  onUnstar,
 }: {
   items: StarItem[];
   index: number;
   onClose: () => void;
+  /** Everything shown here is already starred, so this control only ever unstars. */
+  onUnstar?: (item: StarItem) => void;
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -100,6 +104,21 @@ export function StarredLightbox({
 
       <View style={[styles.close, { top: insets.top + 8 }]} pointerEvents="box-none">
         <IconButton icon={X} variant="chrome" accessibilityLabel="Close" onPress={onClose} />
+        {onUnstar && (
+          <IconButton
+            icon={Star}
+            variant="chrome"
+            fill={colors.safelight}
+            accessibilityLabel="Unstar shot"
+            onPress={() => {
+              const item = items[page];
+              if (!item) return;
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onUnstar(item);
+              onClose();
+            }}
+          />
+        )}
       </View>
 
       {items.length > 1 && (
@@ -116,6 +135,6 @@ export function StarredLightbox({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   backdrop: { backgroundColor: 'rgba(12,11,10,0.96)' },
-  close: { position: 'absolute', left: 16, right: 16, flexDirection: 'row' },
+  close: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
   counter: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
 });

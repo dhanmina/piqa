@@ -31,7 +31,7 @@ export type ProfileData = {
   hearts: number;
   crowns: number;
   wins: ProfileWin[];
-  starred: { key: string; uri: string | null; fullUri: string | null }[];
+  starred: { key: string; type: "free" | "daily"; uri: string | null; fullUri: string | null }[];
   equippedFrame: FrameId;
   ownedFrames: FrameId[];
   badges: string[];
@@ -89,6 +89,7 @@ export async function fetchProfile(
 
   let starRows: {
     id: string;
+    type: "free" | "daily";
     thumb_path: string | null;
     image_path: string | null;
     starred_at: string | null;
@@ -110,7 +111,10 @@ export async function fetchProfile(
         .order("starred_at", { ascending: false })
         .limit(12),
     ]);
-    starRows = [...(sf ?? []), ...(sd ?? [])]
+    starRows = [
+      ...(sf ?? []).map((r) => ({ ...r, type: "free" as const })),
+      ...(sd ?? []).map((r) => ({ ...r, type: "daily" as const })),
+    ]
       .sort(
         (a, b) =>
           Date.parse(b.starred_at ?? "") - Date.parse(a.starred_at ?? ""),
@@ -154,6 +158,7 @@ export async function fetchProfile(
     })),
     starred: starRows.map((r) => ({
       key: r.id,
+      type: r.type,
       uri: r.thumb_path ? (signed.get(r.thumb_path) ?? null) : null,
       fullUri: r.image_path ? (signed.get(r.image_path) ?? null) : null,
     })),

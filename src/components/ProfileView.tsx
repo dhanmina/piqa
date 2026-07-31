@@ -7,8 +7,9 @@
  * size: follower/following counts are never shown, to anyone (spec §9). The pile
  * shows faces, not a number.
  */
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { CloudOff, Crown, Heart, MoreHorizontal, Settings, Share2, Trophy } from 'lucide-react-native';
+import { CloudOff, Crown, Heart, MoreHorizontal, Settings, Share2, Star, Trophy } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,8 +17,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { imageCacheKey, signThumbs } from '@lib/cache';
 import { titleForLevel } from '@lib/utils/cosmetics';
 import { plural } from '@lib/utils/format';
+import { isOffline } from '@lib/utils/net';
 import { useNodsReceived } from '@lib/hooks/nods';
 import { useFollowingPreview } from '@lib/hooks/useProfile';
+import { toggleStar } from '@lib/services/archive';
 import type { ProfileData, ProfileWin } from '@lib/services/profile';
 import { shareProfile } from '@lib/utils/share';
 import { warmImage } from '@lib/utils/warmImage';
@@ -33,7 +36,10 @@ import { FacePile } from '@/components/molecules/FacePile';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { StarredLightbox } from '@/components/molecules/StarredLightbox';
+import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, frame, icons, space, typeScale } from '@/components/tokens';
+
+type StarredItem = ProfileData['starred'][number];
 
 type Props = {
   data: ProfileData | null;
@@ -102,6 +108,26 @@ export function ProfileView({
   // Starred shots are private and unframed (a mix of practice free shots and
   // submissions), so they open in a plain paged photo viewer, not a framed print.
   const [starIndex, setStarIndex] = useState<number | null>(null);
+  const [starBusyKeys, setStarBusyKeys] = useState<Set<string>>(new Set());
+  const [starToast, setStarToast] = useState<string | null>(null);
+
+  // Every tile here is already starred, so this only ever unstars. The RPC
+  // patches the "profile:self" cache in place (see toggleStar), which drops
+  // the item from data.starred and re-renders this grid without a refetch.
+  const onUnstar = async (item: StarredItem) => {
+    if (starBusyKeys.has(item.key)) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setStarBusyKeys((s) => new Set(s).add(item.key));
+    const res = await toggleStar({ id: item.key, type: item.type, imagePath: null, uri: item.uri });
+    setStarBusyKeys((s) => {
+      const next = new Set(s);
+      next.delete(item.key);
+      return next;
+    });
+    if (!res.ok) {
+      setStarToast((await isOffline()) ? "You're offline" : 'Could not update the star');
+    }
+  };
 
   // One photo surface at a time. Starred only earns a slot once there's something
   // on it; Archive (your private journal, relocated here from its own tab per the
@@ -326,6 +352,17 @@ export function ProfileView({
                 ) : (
                   <View style={[styles.starImg, styles.skeleton]} />
                 )}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Unstar shot"
+                  hitSlop={10}
+                  disabled={starBusyKeys.has(s.key)}
+                  style={styles.starToggle}
+                  onPress={() => void onUnstar(s)}
+                >
+                  <Star size={18} strokeWidth={3.5} color="rgba(20, 18, 16, 0.55)" fill="rgba(20, 18, 16, 0.55)" style={styles.starHalo} />
+                  <Star size={16} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
+                </Pressable>
               </Pressable>
             ))}
           </View>
@@ -416,9 +453,16 @@ export function ProfileView({
         statusBarTranslucent
       >
         {starIndex !== null && data && (
-          <StarredLightbox items={data.starred} index={starIndex} onClose={() => setStarIndex(null)} />
+          <StarredLightbox
+            items={data.starred}
+            index={starIndex}
+            onClose={() => setStarIndex(null)}
+            onUnstar={(item) => void onUnstar(item)}
+          />
         )}
       </Modal>
+
+      <Toast message={starToast ?? ''} visible={starToast !== null} onHide={() => setStarToast(null)} />
     </SafeAreaView>
   );
 }
@@ -456,6 +500,16 @@ const styles = StyleSheet.create({
   winSkel: { aspectRatio: frame.aspect }, // the loader has no print to size it
   starCell: { width: '48.8%', aspectRatio: frame.aspect, backgroundColor: colors.ink2 },
   starImg: { width: '100%', height: '100%' },
+  starToggle: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  starHalo: { position: 'absolute', top: 5, left: 5 },
   skeleton: { backgroundColor: colors.ink2 },
   errorWrap: { flex: 1, justifyContent: 'center' },
 });

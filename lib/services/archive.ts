@@ -178,7 +178,9 @@ export async function fetchArchive(): Promise<Archive> {
 
 export type StarResult = { ok: boolean; reason?: string; starred?: boolean; used?: number; cap?: number };
 
-export async function toggleStar(item: ArchiveItem): Promise<StarResult> {
+export type StarToggleItem = Pick<ArchiveItem, "id" | "type" | "imagePath" | "uri">;
+
+export async function toggleStar(item: StarToggleItem): Promise<StarResult> {
   const { type, id } = item;
   const t0 = Date.now();
   console.log(`[archive] toggleStar: calling RPC type=${type} id=${id}`);
@@ -232,7 +234,7 @@ export async function toggleStar(item: ArchiveItem): Promise<StarResult> {
         if (already) return profile;
         return {
           ...profile,
-          starred: [{ key: id, uri: item.uri, fullUri }, ...profile.starred].slice(0, 12),
+          starred: [{ key: id, type, uri: item.uri, fullUri }, ...profile.starred].slice(0, 12),
         };
       }
       profileMatched = already;
