@@ -44,6 +44,7 @@ export const PhotoTile = React.memo(function PhotoTile({ uri, hearts, badge, asp
             source={{ uri, cacheKey: imageCacheKey(uri) }}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
+            cachePolicy="memory-disk"
             transition={100}
           />
         ) : (

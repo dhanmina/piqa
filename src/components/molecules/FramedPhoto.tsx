@@ -154,6 +154,7 @@ export const FramedPhoto = React.memo(function FramedPhoto({
           placeholderContentFit="cover"
           style={styles.window}
           contentFit="cover"
+          cachePolicy="memory-disk"
           transition={100}
         />
       ) : (

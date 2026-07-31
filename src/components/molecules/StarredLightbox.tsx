@@ -78,6 +78,7 @@ export function StarredLightbox({
         placeholder={item.uri ? { uri: item.uri, cacheKey: imageCacheKey(item.uri) } : undefined}
         style={StyleSheet.absoluteFill}
         contentFit="contain"
+        cachePolicy="memory-disk"
         transition={120}
       />
     </View>

@@ -377,6 +377,7 @@ export function ArchiveGrid() {
                   placeholderContentFit="contain"
                   style={{ width: Math.min(SCREEN_W - GUTTER * 2, STAGE_MAX_H * photo.aspect), aspectRatio: photo.aspect }}
                   contentFit="contain"
+                  cachePolicy="memory-disk"
                   transition={100}
                 />
               ) : (

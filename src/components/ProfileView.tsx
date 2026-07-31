@@ -141,6 +141,12 @@ export function ProfileView({
     return list;
   }, [data?.isSelf, data?.starred]);
   const showSegment = segments.length > 1;
+  // Archive has its own fetch (unlike Wins/Starred, which share `data`), so it
+  // mounts lazily on first visit rather than eagerly with the rest of the
+  // segment — but once mounted it stays mounted (see the `display: none` panes
+  // below) so switching away and back never remounts its image tree. Set at
+  // the tap site (below), not in an effect, to avoid a cascading re-render.
+  const [archiveVisited, setArchiveVisited] = useState(false);
 
   // Measure the grid container so two columns + the gap never overflow into one.
   // Percentage widths ('48.8%') round up on high-density devices and push the
@@ -318,7 +324,15 @@ export function ProfileView({
         {showSegment ? (
           <View style={styles.segment}>
             {segments.map((t) => (
-              <Pressable key={t} accessibilityRole="button" style={styles.segItem} onPress={() => setTab(t)}>
+              <Pressable
+                key={t}
+                accessibilityRole="button"
+                style={styles.segItem}
+                onPress={() => {
+                  setTab(t);
+                  if (t === 'archive') setArchiveVisited(true);
+                }}
+              >
                 <Mono size={typeScale.caption} weight={tab === t ? 'semibold' : 'regular'} color={tab === t ? colors.paper : colors.paper60}>
                   {t === 'wins' ? 'WINS' : t === 'starred' ? 'STARRED' : 'ARCHIVE'}
                 </Mono>
@@ -332,78 +346,95 @@ export function ProfileView({
           </View>
         )}
 
-        {showSegment && tab === 'archive' ? (
-          <ArchiveGrid />
-        ) : showSegment && tab === 'starred' ? (
-          <View style={styles.grid} onLayout={onGridLayout}>
-            {data?.starred.map((s, i) => (
-              <Pressable key={s.key} accessibilityRole="button" style={cellWidth ? { width: cellWidth, aspectRatio: frame.aspect, backgroundColor: colors.ink2 } : styles.starCell} onPress={() => setStarIndex(i)}>
-                {s.fullUri || s.uri ? (
-                  <Image
-                    // Full-res over the warmed thumb placeholder — the starred wall
-                    // is a viewing surface, so it must be sharp, not the 300px thumb.
-                    source={s.fullUri ? { uri: s.fullUri, cacheKey: imageCacheKey(s.fullUri) } : undefined}
-                    placeholder={s.uri ? { uri: s.uri, cacheKey: imageCacheKey(s.uri) } : undefined}
-                    placeholderContentFit="cover"
-                    style={styles.starImg}
-                    contentFit="cover"
-                    transition={100}
-                  />
-                ) : (
-                  <View style={[styles.starImg, styles.skeleton]} />
-                )}
+        {/* All three panes stay mounted once shown, toggled with `display: none`
+            instead of swapped in a type-changing ternary. Tab switches used to
+            unmount the whole grid/Image tree and remount it fresh (replaying
+            the crossfade transition and dropping the in-memory image cache) —
+            that's what caused the flicker. `display: none` keeps every Image
+            instance alive underneath. */}
+        <View style={tab === 'wins' ? undefined : styles.hiddenPane}>
+          {loading ? (
+            <View style={styles.grid} onLayout={onGridLayout}>
+              {[0, 1, 2, 3].map((i) => (
+                <View key={i} style={[cellWidth ? { width: cellWidth } : styles.winCell, styles.winSkel, styles.skeleton]} />
+              ))}
+            </View>
+          ) : (data?.wins.length ?? 0) === 0 ? (
+            <EmptyState
+              icon={Trophy}
+              line={data?.isSelf ? 'Your best shots live here' : 'No gallery shots yet'}
+              sub={
+                data?.isSelf
+                  ? 'Any shot that makes the daily gallery stays here for good, not just the Photo of the Day. Star shots you love to start your shelf.'
+                  : 'Shots that make the gallery show up here.'
+              }
+              ctaLabel={data?.isSelf ? 'Explore the gallery' : undefined}
+              onCta={data?.isSelf ? onExploreGallery : undefined}
+            />
+          ) : (
+            <View style={styles.grid} onLayout={onGridLayout}>
+              {data?.wins.map((w) => (
                 <Pressable
+                  key={w.id}
                   accessibilityRole="button"
-                  accessibilityLabel="Unstar shot"
-                  hitSlop={10}
-                  disabled={starBusyKeys.has(s.key)}
-                  style={styles.starToggle}
-                  onPress={() => void onUnstar(s)}
+                  style={cellWidth ? { width: cellWidth } : styles.winCell}
+                  onPress={() => openWin(w)}
                 >
-                  <Star size={18} strokeWidth={3.5} color="rgba(20, 18, 16, 0.55)" fill="rgba(20, 18, 16, 0.55)" style={styles.starHalo} />
-                  <Star size={16} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
+                  {/* No crown badge: the print carries its own status glyph. Full-res
+                      over the thumb (already warmed) keeps the trophy shelf sharp. */}
+                  <FramedPhoto
+                    photoUri={w.fullUri ?? w.uri}
+                    placeholderUri={w.uri}
+                    dayNumber={w.dayNumber}
+                    frameId={w.frameId}
+                    status={w.status}
+                  />
                 </Pressable>
-              </Pressable>
-            ))}
+              ))}
+            </View>
+          )}
+        </View>
+
+        {showSegment && segments.includes('starred') && (
+          <View style={tab === 'starred' ? undefined : styles.hiddenPane}>
+            <View style={styles.grid} onLayout={onGridLayout}>
+              {data?.starred.map((s, i) => (
+                <Pressable key={s.key} accessibilityRole="button" style={cellWidth ? { width: cellWidth, aspectRatio: frame.aspect, backgroundColor: colors.ink2 } : styles.starCell} onPress={() => setStarIndex(i)}>
+                  {s.fullUri || s.uri ? (
+                    <Image
+                      // Full-res over the warmed thumb placeholder — the starred wall
+                      // is a viewing surface, so it must be sharp, not the 300px thumb.
+                      source={s.fullUri ? { uri: s.fullUri, cacheKey: imageCacheKey(s.fullUri) } : undefined}
+                      placeholder={s.uri ? { uri: s.uri, cacheKey: imageCacheKey(s.uri) } : undefined}
+                      placeholderContentFit="cover"
+                      style={styles.starImg}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={100}
+                    />
+                  ) : (
+                    <View style={[styles.starImg, styles.skeleton]} />
+                  )}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Unstar shot"
+                    hitSlop={10}
+                    disabled={starBusyKeys.has(s.key)}
+                    style={styles.starToggle}
+                    onPress={() => void onUnstar(s)}
+                  >
+                    <Star size={18} strokeWidth={3.5} color="rgba(20, 18, 16, 0.55)" fill="rgba(20, 18, 16, 0.55)" style={styles.starHalo} />
+                    <Star size={16} strokeWidth={icons.strokeWidth} color={colors.safelight} fill={colors.safelight} />
+                  </Pressable>
+                </Pressable>
+              ))}
+            </View>
           </View>
-        ) : loading ? (
-          <View style={styles.grid} onLayout={onGridLayout}>
-            {[0, 1, 2, 3].map((i) => (
-              <View key={i} style={[cellWidth ? { width: cellWidth } : styles.winCell, styles.winSkel, styles.skeleton]} />
-            ))}
-          </View>
-        ) : (data?.wins.length ?? 0) === 0 ? (
-          <EmptyState
-            icon={Trophy}
-            line={data?.isSelf ? 'Your best shots live here' : 'No gallery shots yet'}
-            sub={
-              data?.isSelf
-                ? 'Any shot that makes the daily gallery stays here for good, not just the Photo of the Day. Star shots you love to start your shelf.'
-                : 'Shots that make the gallery show up here.'
-            }
-            ctaLabel={data?.isSelf ? 'Explore the gallery' : undefined}
-            onCta={data?.isSelf ? onExploreGallery : undefined}
-          />
-        ) : (
-          <View style={styles.grid} onLayout={onGridLayout}>
-            {data?.wins.map((w) => (
-              <Pressable
-                key={w.id}
-                accessibilityRole="button"
-                style={cellWidth ? { width: cellWidth } : styles.winCell}
-                onPress={() => openWin(w)}
-              >
-                {/* No crown badge: the print carries its own status glyph. Full-res
-                    over the thumb (already warmed) keeps the trophy shelf sharp. */}
-                <FramedPhoto
-                  photoUri={w.fullUri ?? w.uri}
-                  placeholderUri={w.uri}
-                  dayNumber={w.dayNumber}
-                  frameId={w.frameId}
-                  status={w.status}
-                />
-              </Pressable>
-            ))}
+        )}
+
+        {showSegment && segments.includes('archive') && (archiveVisited || tab === 'archive') && (
+          <View style={tab === 'archive' ? undefined : styles.hiddenPane}>
+            <ArchiveGrid />
           </View>
         )}
 
@@ -495,6 +526,9 @@ const styles = StyleSheet.create({
   segBar: { height: 2, width: 18, backgroundColor: 'transparent', borderRadius: 1 },
   segBarOn: { backgroundColor: colors.safelight },
   winsHead: { flexDirection: 'row', marginTop: 4 },
+  // Keeps a tab's pane (and its mounted Images) alive out of layout while
+  // another tab is active, instead of unmounting it — see the tab-switch note above.
+  hiddenPane: { display: 'none' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.gridGap },
   winCell: { width: '48.8%' }, // 2 columns; FramedPhoto owns the 3:4 print aspect
   winSkel: { aspectRatio: frame.aspect }, // the loader has no print to size it
