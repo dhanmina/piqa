@@ -19,6 +19,7 @@ export default function ProfileScreen() {
       onRetry={() => void refresh()}
       onSettings={() => router.push('/settings')}
       onOpenFollowing={() => router.push('/following')}
+      onExploreGallery={() => router.push('/(tabs)/gallery')}
     />
   );
 }

@@ -33,7 +33,7 @@ import { FacePile } from '@/components/molecules/FacePile';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { StarredLightbox } from '@/components/molecules/StarredLightbox';
-import { colors, fonts, frame, iconStroke, icons, space, typeScale } from '@/components/tokens';
+import { colors, fonts, frame, icons, space, typeScale } from '@/components/tokens';
 
 type Props = {
   data: ProfileData | null;
@@ -48,9 +48,24 @@ type Props = {
   followBusy?: boolean;
   error?: boolean;
   onRetry?: () => void;
+  /** Self only — Wins-empty CTA routes to the Gallery tab to go star something. */
+  onExploreGallery?: () => void;
 };
 
-export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, onSignOut, onBack, onMore, onSettings, followBusy, error, onRetry }: Props) {
+export function ProfileView({
+  data,
+  loading,
+  onFollowToggle,
+  onOpenFollowing,
+  onSignOut,
+  onBack,
+  onMore,
+  onSettings,
+  followBusy,
+  error,
+  onRetry,
+  onExploreGallery,
+}: Props) {
   void onSignOut; // sign out now lives in the settings sheet (owned by the screen)
   const prog = levelProgress(data?.xp ?? 0);
   const title = titleForLevel(prog.level);
@@ -321,15 +336,17 @@ export function ProfileView({ data, loading, onFollowToggle, onOpenFollowing, on
             ))}
           </View>
         ) : (data?.wins.length ?? 0) === 0 ? (
-          <View style={styles.winsEmpty}>
-            <Trophy size={28} strokeWidth={iconStroke(28)} color={colors.paper40} />
-            <Text style={styles.winsLine}>{data?.isSelf ? 'Your best shots live here' : 'No gallery shots yet'}</Text>
-            <Text style={styles.winsSub}>
-              {data?.isSelf
+          <EmptyState
+            icon={Trophy}
+            line={data?.isSelf ? 'Your best shots live here' : 'No gallery shots yet'}
+            sub={
+              data?.isSelf
                 ? 'Any shot that makes the daily gallery stays here for good, not just the Photo of the Day. Star shots you love to start your shelf.'
-                : 'Shots that make the gallery show up here.'}
-            </Text>
-          </View>
+                : 'Shots that make the gallery show up here.'
+            }
+            ctaLabel={data?.isSelf ? 'Explore the gallery' : undefined}
+            onCta={data?.isSelf ? onExploreGallery : undefined}
+          />
         ) : (
           <View style={styles.grid} onLayout={onGridLayout}>
             {data?.wins.map((w) => (
@@ -441,7 +458,4 @@ const styles = StyleSheet.create({
   starImg: { width: '100%', height: '100%' },
   skeleton: { backgroundColor: colors.ink2 },
   errorWrap: { flex: 1, justifyContent: 'center' },
-  winsEmpty: { alignItems: 'center', gap: 10, paddingVertical: space.gutter * 2 },
-  winsLine: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.paper },
-  winsSub: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60, textAlign: 'center' },
 });
