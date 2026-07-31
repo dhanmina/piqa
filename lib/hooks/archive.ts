@@ -21,6 +21,9 @@ export function useArchive() {
   const merged = useMemo<Archive | null>(() => {
     if (!data) return data;
     const queued = pending
+      // Studio challenge shots are a shared Studio submission, not a personal
+      // archive item — they never appear here, mid-upload or otherwise.
+      .filter((q): q is QueueItem & { kind: "daily" | "free" } => q.kind !== "studio_challenge")
       .filter((q) => q.status !== "blocked")
       .filter((q) => !data.items.some((db) => rowMatchesQueued(db.thumbPath, q)))
       .map(queuedToItem);

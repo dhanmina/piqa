@@ -619,6 +619,126 @@ export type Database = {
           },
         ]
       }
+      studio_challenge_hearts: {
+        Row: {
+          created_at: string
+          submission_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          submission_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          submission_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_challenge_hearts_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "studio_challenge_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_challenge_hearts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_challenge_submissions: {
+        Row: {
+          captured_at: string
+          challenge_id: string
+          created_at: string
+          id: string
+          image_path: string
+          thumb_path: string
+          user_id: string
+        }
+        Insert: {
+          captured_at: string
+          challenge_id: string
+          created_at?: string
+          id?: string
+          image_path: string
+          thumb_path: string
+          user_id: string
+        }
+        Update: {
+          captured_at?: string
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          image_path?: string
+          thumb_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_challenge_submissions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "studio_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_challenge_submissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_challenges: {
+        Row: {
+          created_at: string
+          created_by: string
+          ends_at: string
+          id: string
+          studio_id: string
+          theme: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          ends_at: string
+          id?: string
+          studio_id: string
+          theme: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          ends_at?: string
+          id?: string
+          studio_id?: string
+          theme?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_challenges_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_challenges_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studio_members: {
         Row: {
           joined_at: string
@@ -1166,6 +1286,7 @@ export type Database = {
       get_profile: { Args: { p_user?: string }; Returns: Json }
       get_shot_count_today: { Args: never; Returns: number }
       get_studio: { Args: never; Returns: Json }
+      get_studio_challenge: { Args: never; Returns: Json }
       get_studio_members: { Args: never; Returns: Json }
       get_today_golden: { Args: never; Returns: boolean }
       get_today_hint: { Args: never; Returns: string }
@@ -1196,6 +1317,14 @@ export type Database = {
         Args: { p_actor: string; p_submission: string }
         Returns: undefined
       }
+      record_studio_challenge_photo: {
+        Args: {
+          p_challenge_id: string
+          p_image_path: string
+          p_thumb_path: string
+        }
+        Returns: Json
+      }
       remove_studio_member: { Args: { p_user: string }; Returns: Json }
       rename_studio: { Args: { p_name: string }; Returns: Json }
       report_submission: {
@@ -1217,6 +1346,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      start_studio_challenge: {
+        Args: { p_duration_hours: number; p_theme: string }
+        Returns: Json
+      }
       streak_window_start: {
         Args: { p_as_of: string; p_uid: string }
         Returns: string
@@ -1227,6 +1360,10 @@ export type Database = {
       }
       toggle_blur_sensitive: { Args: never; Returns: Json }
       toggle_star: { Args: { p_id: string; p_type: string }; Returns: Json }
+      toggle_studio_challenge_heart: {
+        Args: { p_submission_id: string }
+        Returns: Json
+      }
       track_photo_view: {
         Args: { p_submission_id: string }
         Returns: undefined

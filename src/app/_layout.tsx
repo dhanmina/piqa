@@ -84,6 +84,7 @@ function RootNavigator() {
         <Stack.Screen name="following" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="studio-members" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="studio-manage" options={{ animation: 'simple_push' }} />
+        <Stack.Screen name="studio-challenge" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="blocked" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="activity" options={{ animation: 'simple_push' }} />
         <Stack.Screen name="reveal" options={{ animation: 'fade', gestureEnabled: false }} />

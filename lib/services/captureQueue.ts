@@ -58,13 +58,15 @@ const JOURNAL_KEY = "piqa.captureQueue.v1";
 const BACKOFF_BASE_MS = 2_000;
 const BACKOFF_MAX_MS = 5 * 60_000;
 
-export type CaptureKind = "daily" | "free";
+export type CaptureKind = "daily" | "free" | "studio_challenge";
 
 export type QueueItem = {
   id: string;
   kind: CaptureKind;
   dropId: string | null;
   dropsAt: string | null;
+  /** Set only for kind: "studio_challenge" — which challenge this shot belongs to. */
+  challengeId: string | null;
   /** ISO timestamp of the capture moment — THE submission time. */
   capturedAt: string;
   width: number;
@@ -118,6 +120,12 @@ export function getPendingItemForDrop(dropId: string): QueueItem | undefined {
   return items.find((i) => i.kind === "daily" && i.dropId === dropId && i.status !== "done");
 }
 
+export function getPendingItemForChallenge(challengeId: string): QueueItem | undefined {
+  return items.find(
+    (i) => i.kind === "studio_challenge" && i.challengeId === challengeId && i.status !== "done",
+  );
+}
+
 function persist(): Promise<void> {
   // Serialize journal writes — single writer, last state wins.
   persistChain = persistChain.then(() =>
@@ -164,24 +172,31 @@ export async function enqueueCapture(input: {
   kind: CaptureKind;
   dropId?: string | null;
   dropsAt?: string | null;
+  challengeId?: string | null;
   capturedAt: string;
 }): Promise<QueueItem> {
   const id = Crypto.randomUUID();
   const original = new File(capturesDir(), `${id}.jpg`);
   await new File(input.uri).copy(original);
 
-  // One public slot per drop: if a daily capture is already queued for this
-  // drop, the new shot is archived instead of becoming a backdoor replace.
+  // One slot per drop / per challenge: if a capture is already queued for
+  // that drop or challenge, the new shot is archived instead of becoming a
+  // backdoor replace.
   const kind: CaptureKind =
     input.kind === "daily" && input.dropId && getPendingItemForDrop(input.dropId)
       ? "free"
-      : input.kind;
+      : input.kind === "studio_challenge" &&
+          input.challengeId &&
+          getPendingItemForChallenge(input.challengeId)
+        ? "free"
+        : input.kind;
 
   const item: QueueItem = {
     id,
     kind,
     dropId: input.dropId ?? null,
     dropsAt: input.dropsAt ?? null,
+    challengeId: input.challengeId ?? null,
     capturedAt: input.capturedAt,
     width: input.width,
     height: input.height,
@@ -242,6 +257,12 @@ function storagePaths(item: QueueItem, userId: string): { full: string; thumb: s
       thumb: `${item.dropId}/${userId}_thumb.jpg`,
     };
   }
+  if (item.kind === "studio_challenge" && item.challengeId) {
+    return {
+      full: `studio-challenges/${item.challengeId}/${userId}.jpg`,
+      thumb: `studio-challenges/${item.challengeId}/${userId}_thumb.jpg`,
+    };
+  }
   return {
     full: `free/${userId}/${item.id}.jpg`,
     thumb: `free/${userId}/${item.id}_thumb.jpg`,
@@ -277,6 +298,24 @@ async function insertRow(item: QueueItem, userId: string): Promise<"inserted" | 
       throw new Error(error.message);
     }
     capture("shot_entered", { quick_draw: quickDraw });
+    return "inserted";
+  }
+  if (item.kind === "studio_challenge" && item.challengeId) {
+    // studio_challenge_submissions has zero client policies (RPC-only, same
+    // as studios/studio_members), so the insert goes through an RPC instead
+    // of a direct .insert() the way daily/free do.
+    const { data, error } = await supabase.rpc("record_studio_challenge_photo", {
+      p_challenge_id: item.challengeId,
+      p_image_path: paths.full,
+      p_thumb_path: paths.thumb,
+    });
+    if (error) throw new Error(error.message);
+    const res = data as { ok: boolean; reason?: string };
+    if (!res.ok) {
+      if (res.reason === "duplicate") return "duplicate";
+      throw new Error(res.reason ?? "record_studio_challenge_photo failed");
+    }
+    capture("studio_challenge_photo_entered", { challenge_id: item.challengeId });
     return "inserted";
   }
   const { error } = await supabase.from("free_shots").insert({

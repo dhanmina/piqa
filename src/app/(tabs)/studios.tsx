@@ -17,7 +17,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getConfig } from '@lib/services/config';
 import { capture } from '@lib/services/analytics';
 import { useStudio } from '@lib/hooks/studios';
+import { useStudioChallenge } from '@lib/hooks/studioChallenges';
 import { createStudio, joinStudioByCode } from '@lib/services/studios';
+import {
+  formatChallengeTimeLeft,
+  startStudioChallenge,
+  STUDIO_CHALLENGE_DURATIONS,
+} from '@lib/services/studioChallenges';
 import { Avatar } from '@/components/atoms/Avatar';
 import { Button } from '@/components/atoms/Button';
 import { Field } from '@/components/atoms/Field';
@@ -175,16 +181,87 @@ function InviteSheet({ visible, onClose, code, name }: { visible: boolean; onClo
   );
 }
 
+function StartChallengeSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const [theme, setTheme] = useState('');
+  const [duration, setDuration] = useState<(typeof STUDIO_CHALLENGE_DURATIONS)[number]['hours']>(72);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const close = () => {
+    setTheme('');
+    setDuration(72);
+    setError(null);
+    onClose();
+  };
+
+  const onSubmit = async () => {
+    setBusy(true);
+    setError(null);
+    const res = await startStudioChallenge(theme.trim(), duration);
+    setBusy(false);
+    if (res.ok) {
+      capture('studio_challenge_started');
+      close();
+    } else {
+      setError(
+        res.reason === 'bad_theme'
+          ? 'Give it a short theme (2–60 characters).'
+          : res.reason === 'already_active'
+            ? 'Your Studio already has a challenge running.'
+            : 'Could not start a challenge.',
+      );
+    }
+  };
+
+  return (
+    <Sheet visible={visible} onClose={close} title="Studio challenge">
+      <Field
+        label="Theme"
+        placeholder="Something blue"
+        value={theme}
+        onChangeText={setTheme}
+        maxLength={60}
+        hint={error ?? 'Everyone in your Studio can add one photo and heart each other’s. No winners, no ranking.'}
+        error={!!error}
+      />
+      <View style={styles.seg}>
+        {STUDIO_CHALLENGE_DURATIONS.map((d) => (
+          <Pressable
+            key={d.hours}
+            accessibilityRole="button"
+            accessibilityState={{ selected: duration === d.hours }}
+            style={[styles.segItem, duration === d.hours && styles.segItemOn]}
+            onPress={() => setDuration(d.hours)}
+          >
+            <Text style={[styles.segLabel, duration === d.hours && styles.segLabelOn]}>{d.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Button
+        label="Start challenge"
+        fullWidth
+        loading={busy}
+        disabled={theme.trim().length < 2}
+        onPress={() => void onSubmit()}
+      />
+    </Sheet>
+  );
+}
+
 export default function StudiosScreen() {
   const router = useRouter();
   const { data: studio, loading, refresh } = useStudio();
+  const { data: challenge } = useStudioChallenge();
   const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [challengesEnabled, setChallengesEnabled] = useState(false);
   const [showCreateJoin, setShowCreateJoin] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showStartChallenge, setShowStartChallenge] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     void getConfig('studios_enabled').then(setEnabled);
+    void getConfig('studio_challenges_enabled').then(setChallengesEnabled);
   }, []);
 
   if (enabled === null || (enabled && loading && !studio)) {
@@ -263,12 +340,43 @@ export default function StudiosScreen() {
           </Text>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardRow}>
-            <Text style={styles.cardLabel}>Studio challenge</Text>
-            <Mono size={typeScale.caption} color={colors.paper40}>SOON</Mono>
+        {!challengesEnabled ? (
+          <View style={styles.card}>
+            <View style={styles.cardRow}>
+              <Text style={styles.cardLabel}>Studio challenge</Text>
+              <Mono size={typeScale.caption} color={colors.paper40}>SOON</Mono>
+            </View>
           </View>
-        </View>
+        ) : !challenge ? (
+          studio.isDirector ? (
+            <Pressable
+              accessibilityRole="button"
+              style={styles.card}
+              onPress={() => setShowStartChallenge(true)}
+            >
+              <View style={styles.cardRow}>
+                <Text style={styles.cardLabel}>Studio challenge</Text>
+                <Text style={styles.cardCta}>Start one</Text>
+              </View>
+            </Pressable>
+          ) : (
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>Studio challenge</Text>
+              <Text style={styles.cardMeta}>Ask your Director to start one</Text>
+            </View>
+          )
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            style={styles.card}
+            onPress={() => router.push('/studio-challenge')}
+          >
+            <View style={styles.cardRow}>
+              <Text style={styles.cardLabel} numberOfLines={1}>{challenge.theme}</Text>
+              <Text style={styles.cardMeta}>{formatChallengeTimeLeft(challenge.endsAt)}</Text>
+            </View>
+          </Pressable>
+        )}
 
         <Button label="Invite a friend" fullWidth onPress={() => setShowInvite(true)} />
       </ScrollView>
@@ -279,6 +387,7 @@ export default function StudiosScreen() {
         code={studio.inviteCode}
         name={studio.name}
       />
+      <StartChallengeSheet visible={showStartChallenge} onClose={() => setShowStartChallenge(false)} />
     </SafeAreaView>
   );
 }
@@ -303,7 +412,9 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.ink2, borderRadius: radius.card, padding: 16 },
   cardCenter: { alignItems: 'center' },
   cardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper },
+  cardLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper, flexShrink: 1 },
+  cardCta: { fontFamily: fonts.sansMedium, fontSize: typeScale.caption, color: colors.safelight },
+  cardMeta: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
   standingLine: { fontFamily: fonts.sans, fontSize: typeScale.body, color: colors.paper, textAlign: 'center' },
   standingBold: { fontFamily: fonts.sansSemiBold },
   seg: { flexDirection: 'row', backgroundColor: colors.ink, borderRadius: radius.pill, padding: 3 },

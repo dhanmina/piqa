@@ -38,6 +38,9 @@ const FALLBACKS = {
   // until a slice is flipped on and D7/D30 engagement is confirmed (Phase 3).
   studios_enabled: false,
   studio_member_cap: 8,
+  // Independent of studios_enabled — challenges can stay dark after Studios
+  // itself goes live, until validated separately.
+  studio_challenges_enabled: false,
 } as const;
 
 export type ConfigKey = keyof typeof FALLBACKS;

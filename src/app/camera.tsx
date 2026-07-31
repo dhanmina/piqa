@@ -44,9 +44,17 @@ export default function CameraScreen() {
   const { data } = useHomeState();
   // Practice mode (from Today's "while you wait" / Archive CTA): always a
   // free shot to the archive, even if a drop is live. Same offline queue.
-  const { practice, firstShot } = useLocalSearchParams<{ practice?: string; firstShot?: string }>();
+  const { practice, firstShot, studioChallengeId, studioTheme } = useLocalSearchParams<{
+    practice?: string;
+    firstShot?: string;
+    studioChallengeId?: string;
+    studioTheme?: string;
+  }>();
   const practiceMode = practice === '1';
   const isFirstShot = firstShot === '1';
+  // Studio challenge capture: walled off from the daily Shot entirely — never
+  // competes with the submit-toggle, never becomes a daily submission.
+  const challengeMode = typeof studioChallengeId === 'string' && studioChallengeId.length > 0;
 
   const [facing, setFacing] = useState<CameraType>('back');
   const [flash, setFlash] = useState<FlashMode>('off');
@@ -64,7 +72,7 @@ export default function CameraScreen() {
   };
 
   const drop = data?.drop ?? null;
-  const live = !practiceMode && Boolean(drop?.is_live) && !data?.submission;
+  const live = !practiceMode && !challengeMode && Boolean(drop?.is_live) && !data?.submission;
   // Default ON during the live window, OFF otherwise → archive (free_shots).
   const [submitDaily, setSubmitDaily] = useState<boolean | null>(null);
   const submitAsDaily = submitDaily ?? live;
@@ -125,9 +133,10 @@ export default function CameraScreen() {
         uri: captured.uri,
         width: captured.width,
         height: captured.height,
-        kind: submitAsDaily && live && drop ? 'daily' : 'free',
+        kind: challengeMode ? 'studio_challenge' : submitAsDaily && live && drop ? 'daily' : 'free',
         dropId: submitAsDaily && live && drop ? drop.id : null,
         dropsAt: submitAsDaily && live && drop ? drop.drops_at : null,
+        challengeId: challengeMode ? studioChallengeId : null,
         capturedAt: captured.capturedAt,
       });
       if (isFirstShot) {
@@ -149,16 +158,20 @@ export default function CameraScreen() {
     const showFrame = asDaily || isFirstShot;
     const primaryLabel = isFirstShot
       ? 'See your first print'
-      : asDaily
-        ? 'Use this shot'
-        : 'Save to archive';
+      : challengeMode
+        ? 'Add to challenge'
+        : asDaily
+          ? 'Use this shot'
+          : 'Save to archive';
     const consequence = isFirstShot
       ? 'Your first framed print. This is the magic.'
-      : asDaily
-        ? 'One shot a day. This locks it in.'
-        : live
-          ? 'This won\u2019t count for today. It goes to your archive.'
-          : 'Goes to your private archive. Only you see it.';
+      : challengeMode
+        ? 'Everyone in your Studio can heart it. No winners, no ranking.'
+        : asDaily
+          ? 'One shot a day. This locks it in.'
+          : live
+            ? 'This won\u2019t count for today. It goes to your archive.'
+            : 'Goes to your private archive. Only you see it.';
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.previewTop}>
@@ -243,6 +256,15 @@ export default function CameraScreen() {
                 </Mono>
                 <Text style={styles.briefSub}>Shoot anything. Watch it become a print.</Text>
               </>
+            ) : challengeMode ? (
+              <>
+                <Mono size={typeScale.caption} weight="medium" color={colors.paper60}>
+                  STUDIO CHALLENGE
+                </Mono>
+                <Text style={styles.briefPrompt} numberOfLines={3}>
+                  {studioTheme}
+                </Text>
+              </>
             ) : live && drop ? (
               <>
                 <Mono size={typeScale.caption} weight="medium" color={colors.safelight}>
@@ -289,7 +311,13 @@ export default function CameraScreen() {
           </Pressable>
           {/* Know the stakes before you press it. */}
           <Text style={styles.shutterCaption}>
-            {isFirstShot ? 'Tap to capture your first print' : live && drop ? 'Counts as today\'s shot' : 'Saves to your archive'}
+            {isFirstShot
+              ? 'Tap to capture your first print'
+              : challengeMode
+                ? "Adds to your Studio's challenge"
+                : live && drop
+                  ? 'Counts as today\'s shot'
+                  : 'Saves to your archive'}
           </Text>
         </View>
       </SafeAreaView>

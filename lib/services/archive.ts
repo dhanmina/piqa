@@ -46,12 +46,17 @@ function dateOf(rel: { drop_date: string } | { drop_date: string }[] | null): st
   return Array.isArray(rel) ? (rel[0]?.drop_date ?? null) : rel.drop_date;
 }
 
-function rowMatchesQueued(dbThumbPath: string | null, q: QueueItem): boolean {
+// Studio challenge shots never reach here — lib/hooks/archive.ts filters them
+// out before calling either of these (they're a shared Studio submission, not
+// a personal archive item).
+type ArchivableQueueItem = QueueItem & { kind: ArchiveType };
+
+function rowMatchesQueued(dbThumbPath: string | null, q: ArchivableQueueItem): boolean {
   if (!dbThumbPath) return false;
   return q.kind === "daily" && q.dropId ? dbThumbPath.includes(q.dropId) : dbThumbPath.includes(q.id);
 }
 
-function queuedToItem(q: QueueItem): ArchiveItem {
+function queuedToItem(q: ArchivableQueueItem): ArchiveItem {
   return {
     id: q.id,
     type: q.kind,
