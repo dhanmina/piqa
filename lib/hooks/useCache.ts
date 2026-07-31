@@ -30,12 +30,16 @@ export function useCached<T>(key: string, fetcher: () => Promise<T>, ttlMs: numb
   useFocusEffect(
     useCallback(() => {
       const entry = peek<T>(key);
-      if (!entry || Date.now() - entry.at > ttlMs) void fetchKey(key, fetcher);
+      const age = entry ? Date.now() - entry.at : null;
+      const stale = !entry || (age !== null && age > ttlMs);
+      console.log(`[cache] useCached(${key}): focus check — has_entry=${!!entry} age_ms=${age ?? "n/a"} ttl_ms=${ttlMs} will_fetch=${stale}`);
+      if (stale) void fetchKey(key, fetcher);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [key, ttlMs]),
   );
 
   const refresh = useCallback(async () => {
+    console.log(`[cache] useCached(${key}): manual refresh() called`);
     errors.delete(key);
     emit(key);
     try {

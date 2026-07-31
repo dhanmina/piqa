@@ -1,7 +1,8 @@
-import { invalidate, signThumbs } from "../cache";
+import { patch, signThumb, signThumbs } from "../cache";
 import { type QueueItem } from "./captureQueue";
 import { getConfig } from "./config";
 import { type PhotoStatus } from "../frames";
+import { profileKey, type ProfileData } from "./profile";
 import { supabase } from "./supabase";
 
 export type ArchiveType = "free" | "daily";
@@ -78,11 +79,15 @@ function isThisMonth(iso: string | null): boolean {
 export const ARCHIVE_KEY = "archive";
 
 export async function fetchArchive(): Promise<Archive> {
+  const t0 = Date.now();
   const { data: auth } = await supabase.auth.getUser();
   const uid = auth.user?.id;
-  if (!uid) return { items: [], starsUsed: 0, starsCap: 5, since: null };
+  if (!uid) {
+    console.log("[archive] fetchArchive: no authenticated user, returning empty");
+    return { items: [], starsUsed: 0, starsCap: 5, since: null };
+  }
 
-  const [{ data: free }, { data: daily }, cap] = await Promise.all([
+  const [{ data: free, error: freeErr }, { data: daily, error: dailyErr }, cap] = await Promise.all([
     supabase
       .from("free_shots")
       .select("id, image_path, thumb_path, captured_at, starred, starred_at")
@@ -99,6 +104,10 @@ export async function fetchArchive(): Promise<Archive> {
       .order("captured_at", { ascending: false }),
     getConfig("stars_per_month"),
   ]);
+  const tQuery = Date.now();
+  console.log(
+    `[archive] fetchArchive: rows free=${free?.length ?? 0} (err=${freeErr?.message ?? "none"}) daily=${daily?.length ?? 0} (err=${dailyErr?.message ?? "none"}) query_ms=${tQuery - t0}`,
+  );
 
   const rawFree = (free ?? []).map((r) => ({
     id: r.id,
@@ -133,7 +142,9 @@ export async function fetchArchive(): Promise<Archive> {
     (a, b) => Date.parse(b.capturedAt) - Date.parse(a.capturedAt),
   );
 
+  const tSignStart = Date.now();
   const signed = await signThumbs(merged.map((m) => m.thumbPath).filter((p): p is string => !!p));
+  const tSignEnd = Date.now();
   const items: ArchiveItem[] = merged.map((m) => ({
     id: m.id,
     type: m.type,
@@ -149,6 +160,17 @@ export async function fetchArchive(): Promise<Archive> {
     status: m.status,
   }));
 
+  const blankCount = items.filter((it) => it.thumbPath && !it.uri).length;
+  console.log(
+    `[archive] fetchArchive: signed ${signed.size}/${merged.filter((m) => m.thumbPath).length} thumbs in ${tSignEnd - tSignStart}ms, blank_tiles=${blankCount}, total_ms=${tSignEnd - t0}`,
+  );
+  if (blankCount > 0) {
+    console.warn(
+      `[archive] fetchArchive: ${blankCount} item(s) have a thumbPath but no signed uri — will render blank`,
+      items.filter((it) => it.thumbPath && !it.uri).map((it) => ({ type: it.type, id: it.id, thumbPath: it.thumbPath })),
+    );
+  }
+
   const starsUsed = merged.filter((m) => m.starred && isThisMonth(m.starredAt)).length;
   const since = merged.length > 0 ? merged[merged.length - 1].capturedAt : null;
   return { items, starsUsed, starsCap: cap, since };
@@ -156,11 +178,69 @@ export async function fetchArchive(): Promise<Archive> {
 
 export type StarResult = { ok: boolean; reason?: string; starred?: boolean; used?: number; cap?: number };
 
-export async function toggleStar(type: ArchiveType, id: string): Promise<StarResult> {
+export async function toggleStar(item: ArchiveItem): Promise<StarResult> {
+  const { type, id } = item;
+  const t0 = Date.now();
+  console.log(`[archive] toggleStar: calling RPC type=${type} id=${id}`);
   const { data, error } = await supabase.rpc("toggle_star", { p_type: type, p_id: id });
-  if (error) return { ok: false, reason: error.message };
-  invalidate("profile:self");
-  return data as unknown as StarResult;
+  const rpcMs = Date.now() - t0;
+  if (error) {
+    console.warn(`[archive] toggleStar: RPC error after ${rpcMs}ms — ${error.message}`, error);
+    return { ok: false, reason: error.message };
+  }
+  const res = data as unknown as StarResult;
+  console.log(`[archive] toggleStar: RPC ok in ${rpcMs}ms — result=${JSON.stringify(res)}`);
+  if (res.ok) {
+    // Patch the one changed row + tally in place instead of refetching the
+    // whole archive (two full-table selects + re-signing every thumb) for a
+    // single toggle — that refetch was the "too long to load" and, when a
+    // signing batch partially failed, the "blank tile" symptom.
+    let matched = false;
+    patch<Archive>(ARCHIVE_KEY, (archive) => {
+      const items = archive.items.map((it) => {
+        if (it.type === type && it.id === id) {
+          matched = true;
+          return { ...it, starred: res.starred ?? it.starred };
+        }
+        return it;
+      });
+      return { ...archive, starsUsed: res.used ?? archive.starsUsed, items };
+    });
+    console.log(`[archive] toggleStar: archive patch applied matched_row=${matched}`);
+    if (!matched) {
+      console.warn(
+        `[archive] toggleStar: no matching item found in cached archive for type=${type} id=${id} — cache may be stale/empty, UI will not reflect the change until next fetch`,
+      );
+    }
+
+    // The Profile "Starred" segment reads a SEPARATE cache key (profile:self),
+    // built from its own query — patching `archive` above does nothing for it.
+    // This used to call invalidate("profile:self"), which deletes the cached
+    // entry and emits immediately (blanking the Starred segment on the spot)
+    // but only refetches on the NEXT screen-focus event — useFocusEffect only
+    // fires on navigation focus, not on switching Profile's internal segmented
+    // control. Net effect: star from Archive → Starred segment goes blank and
+    // stays blank until the user leaves the Profile tab and comes back. Patch
+    // profile:self in place instead, same as archive, so no refetch is needed.
+    const fullUri = item.imagePath ? await signThumb(item.imagePath) : null;
+    let profileMatched = false;
+    patch<ProfileData | null>(profileKey(null), (profile) => {
+      if (!profile) return profile; // "profile:self" not cached (or found:false) — nothing to patch
+      const already = profile.starred.some((s) => s.key === id);
+      if (res.starred) {
+        profileMatched = true;
+        if (already) return profile;
+        return {
+          ...profile,
+          starred: [{ key: id, uri: item.uri, fullUri }, ...profile.starred].slice(0, 12),
+        };
+      }
+      profileMatched = already;
+      return { ...profile, starred: profile.starred.filter((s) => s.key !== id) };
+    });
+    console.log(`[archive] toggleStar: profile:self patch applied matched=${profileMatched}`);
+  }
+  return res;
 }
 
 export async function deleteFreeShot(item: ArchiveItem): Promise<boolean> {

@@ -78,6 +78,20 @@ export function ArchiveGrid() {
   const catalog = useFrameCatalog();
 
   useEffect(() => {
+    const blank = items.filter((it) => !it.queued && !it.uri);
+    console.log(
+      `[ArchiveGrid] data changed: loading=${loading} error=${error} items=${items.length} blank_uri=${blank.length} starred=${items.filter((it) => it.starred).length}`,
+    );
+    if (blank.length > 0) {
+      console.warn(
+        '[ArchiveGrid] items rendering blank (no uri):',
+        blank.map((it) => ({ type: it.type, id: it.id, thumbPath: it.thumbPath })),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, loading, error]);
+
+  useEffect(() => {
     const paths = (data?.items ?? [])
       .filter((it) => it.starred)
       .map((it) => it.imagePath)
@@ -116,13 +130,17 @@ export function ArchiveGrid() {
   const starsLeft = data ? Math.max(data.starsCap - data.starsUsed, 0) : 0;
 
   const onToggleStar = useCallback(async (item: ArchiveItem, announce = false) => {
+    const t0 = Date.now();
     const key = starKey(item);
     const next = !(optimisticStars[key] ?? item.starred);
+    console.log(`[ArchiveGrid] onToggleStar: tap type=${item.type} id=${item.id} -> next=${next}`);
     setOptimisticStars((m) => ({ ...m, [key]: next }));
     setBusy(true);
-    const res = await toggleStar(item.type, item.id);
+    const res = await toggleStar(item);
     setBusy(false);
+    console.log(`[ArchiveGrid] onToggleStar: toggleStar() resolved in ${Date.now() - t0}ms ok=${res.ok}`);
     if (!res.ok) {
+      console.warn(`[ArchiveGrid] onToggleStar: failed — reason=${res.reason}`);
       setOptimisticStars((m) => {
         const copy = { ...m };
         delete copy[key];
@@ -134,13 +152,14 @@ export function ArchiveGrid() {
     }
     if (announce && next) setToast('Starred · kept at full resolution');
     setSelected((s) => (s ? { ...s, starred: res.starred ?? s.starred } : s));
-    await refresh();
+    // toggleStar() already patched the cached archive entry with this row's new
+    // starred state, so the real data is in sync now — no refetch needed.
     setOptimisticStars((m) => {
       const copy = { ...m };
       delete copy[key];
       return copy;
     });
-  }, [optimisticStars, data?.starsCap, refresh]);
+  }, [optimisticStars, data?.starsCap]);
 
   const onViewerStar = () => {
     if (!selected || busy) return;

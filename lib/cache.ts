@@ -118,6 +118,26 @@ export function invalidate(key: string) {
 }
 
 /**
+ * Patch a cached entry in place using a value already known locally (e.g. a
+ * mutation's own response), instead of invalidate()+refetch. Skips the network
+ * round trip entirely, so it can't reintroduce a loading/blank flash the way a
+ * full refetch can. No-op if the key isn't cached (nothing to patch).
+ */
+export function patch<T>(key: string, updater: (value: T) => T): void {
+  const entry = store.get(key);
+  if (!entry) {
+    console.warn(`[cache] patch(${key}): no cached entry — no-op (nothing for callers to see update)`);
+    return;
+  }
+  const next = { value: updater(entry.value as T), at: entry.at };
+  store.set(key, next);
+  persistEntry(key, next);
+  const subCount = subscribers.get(key)?.size ?? 0;
+  console.log(`[cache] patch(${key}): applied, notifying ${subCount} subscriber(s)`);
+  emit(key);
+}
+
+/**
  * Force the next read to fetch fresh — WITHOUT dropping the cached value. Same
  * generation bump + inflight clear as invalidate() (so a fresh request is issued
  * and any pre-write fetch in flight is discarded), but the current value stays in
@@ -146,14 +166,19 @@ export function invalidatePrefix(prefix: string) {
 /** Fetch a key, deduping concurrent callers and caching the result. */
 export async function fetchKey<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   const existing = inflight.get(key);
-  if (existing) return existing as Promise<T>;
+  if (existing) {
+    console.log(`[cache] fetchKey(${key}): deduping onto in-flight fetch`);
+    return existing as Promise<T>;
+  }
 
   const gen = generation.get(key) ?? 0;
-  if (__DEV__) console.log(`[cache] RPC fetch → ${key}`);
+  const t0 = Date.now();
+  console.log(`[cache] fetchKey(${key}): RPC fetch start (gen=${gen})`);
   let p!: Promise<T>;
   p = (async () => {
     try {
       const value = await fetcher();
+      const ms = Date.now() - t0;
       // Discard if an invalidate raced in while we were fetching: a newer write
       // superseded this read, so committing it would clobber the fresh data.
       if ((generation.get(key) ?? 0) === gen) {
@@ -161,10 +186,15 @@ export async function fetchKey<T>(key: string, fetcher: () => Promise<T>): Promi
         store.set(key, entry);
         persistEntry(key, entry); // mirror to disk for the next cold start
         errors.delete(key); // recovered
+        console.log(`[cache] fetchKey(${key}): committed in ${ms}ms`);
         emit(key);
+      } else {
+        console.warn(`[cache] fetchKey(${key}): discarded stale result after ${ms}ms — generation moved on (gen=${gen} vs current=${generation.get(key)})`);
       }
       return value;
     } catch (err) {
+      const ms = Date.now() - t0;
+      console.warn(`[cache] fetchKey(${key}): failed after ${ms}ms`, err);
       if ((generation.get(key) ?? 0) === gen) {
         errors.set(key, true); // surface an error state instead of loading forever
         emit(key);
