@@ -11,7 +11,17 @@ import { supabase } from "./services/supabase";
  * deep-link to a specific shot/person. Kept in sync with the server sender.
  */
 export type PushData = {
-  type?: "drop" | "reveal" | "gallery" | "result" | "potd" | "follow" | "streak" | "curate" | "nod";
+  type?:
+    | "drop"
+    | "reveal"
+    | "gallery"
+    | "result"
+    | "potd"
+    | "follow"
+    | "streak"
+    | "curate"
+    | "nod"
+    | "studio_challenge_nudge";
   photoId?: string;
   userId?: string;
   dropId?: string;
@@ -106,6 +116,9 @@ export function useNotificationRouting(): void {
           break;
         case "follow":
           if (data.userId) router.push({ pathname: "/u/[id]", params: { id: data.userId } });
+          break;
+        case "studio_challenge_nudge":
+          router.push("/(tabs)/studios");
           break;
       }
     };

@@ -79,7 +79,8 @@ export type AnalyticsEvent =
   | "studio_invite_shared" // shared a Studio's invite code
   | "studio_challenge_started" // Director started a Studio challenge
   | "studio_challenge_photo_entered" // added a photo to a Studio challenge
-  | "studio_challenge_hearted"; // hearted a photo in a Studio challenge
+  | "studio_challenge_hearted" // hearted a photo in a Studio challenge
+  | "studio_challenge_nudged"; // non-Director pinged the Director to start one
 
 /** Record a product event. No-op until a PostHog key is configured. */
 export function capture(event: AnalyticsEvent, props?: Record<string, unknown>) {

@@ -20,6 +20,8 @@ import { useStudio } from '@lib/hooks/studios';
 import { useStudioChallenge } from '@lib/hooks/studioChallenges';
 import { createStudio, joinStudioByCode } from '@lib/services/studios';
 import {
+  fetchThemePresets,
+  nudgeStudioDirector,
   formatChallengeTimeLeft,
   startStudioChallenge,
   STUDIO_CHALLENGE_DURATIONS,
@@ -186,6 +188,12 @@ function StartChallengeSheet({ visible, onClose }: { visible: boolean; onClose: 
   const [duration, setDuration] = useState<(typeof STUDIO_CHALLENGE_DURATIONS)[number]['hours']>(72);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [presets, setPresets] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!visible) return;
+    void fetchThemePresets().then(setPresets);
+  }, [visible]);
 
   const close = () => {
     setTheme('');
@@ -224,6 +232,20 @@ function StartChallengeSheet({ visible, onClose }: { visible: boolean; onClose: 
         hint={error ?? 'Everyone in your Studio can add one photo and heart each other’s. No winners, no ranking.'}
         error={!!error}
       />
+      {presets.length > 0 && (
+        <View style={styles.chipRow}>
+          {presets.map((p) => (
+            <Pressable
+              key={p}
+              accessibilityRole="button"
+              style={styles.chip}
+              onPress={() => setTheme(p)}
+            >
+              <Text style={styles.chipText}>{p}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
       <View style={styles.seg}>
         {STUDIO_CHALLENGE_DURATIONS.map((d) => (
           <Pressable
@@ -258,11 +280,29 @@ export default function StudiosScreen() {
   const [showInvite, setShowInvite] = useState(false);
   const [showStartChallenge, setShowStartChallenge] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [nudged, setNudged] = useState(false);
+  const [nudgeBusy, setNudgeBusy] = useState(false);
 
   useEffect(() => {
     void getConfig('studios_enabled').then(setEnabled);
     void getConfig('studio_challenges_enabled').then(setChallengesEnabled);
   }, []);
+
+  const onNudge = async () => {
+    setNudgeBusy(true);
+    const res = await nudgeStudioDirector();
+    setNudgeBusy(false);
+    if (res.ok) {
+      setNudged(true);
+      capture('studio_challenge_nudged');
+      setToast('Your Director has been nudged');
+    } else if (res.reason === 'already_nudged') {
+      setNudged(true);
+      setToast('Already nudged today');
+    } else {
+      setToast('Could not send — check your connection');
+    }
+  };
 
   if (enabled === null || (enabled && loading && !studio)) {
     return (
@@ -360,10 +400,17 @@ export default function StudiosScreen() {
               </View>
             </Pressable>
           ) : (
-            <View style={styles.card}>
-              <Text style={styles.cardLabel}>Studio challenge</Text>
-              <Text style={styles.cardMeta}>Ask your Director to start one</Text>
-            </View>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.card}
+              disabled={nudgeBusy || nudged}
+              onPress={() => void onNudge()}
+            >
+              <View style={styles.cardRow}>
+                <Text style={styles.cardLabel}>Studio challenge</Text>
+                <Text style={styles.cardCta}>{nudged ? 'Nudged' : 'Nudge your Director'}</Text>
+              </View>
+            </Pressable>
           )
         ) : (
           <Pressable
@@ -388,6 +435,7 @@ export default function StudiosScreen() {
         name={studio.name}
       />
       <StartChallengeSheet visible={showStartChallenge} onClose={() => setShowStartChallenge(false)} />
+      <Toast message={toast ?? ''} visible={toast !== null} onHide={() => setToast(null)} />
     </SafeAreaView>
   );
 }
@@ -417,6 +465,9 @@ const styles = StyleSheet.create({
   cardMeta: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
   standingLine: { fontFamily: fonts.sans, fontSize: typeScale.body, color: colors.paper, textAlign: 'center' },
   standingBold: { fontFamily: fonts.sansSemiBold },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.ink },
+  chipText: { fontFamily: fonts.sansMedium, fontSize: typeScale.caption, color: colors.paper60 },
   seg: { flexDirection: 'row', backgroundColor: colors.ink, borderRadius: radius.pill, padding: 3 },
   segItem: { flex: 1, paddingVertical: 8, borderRadius: radius.pill, alignItems: 'center' },
   segItemOn: { backgroundColor: colors.paper },

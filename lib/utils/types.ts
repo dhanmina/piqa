@@ -652,6 +652,42 @@ export type Database = {
           },
         ]
       }
+      studio_challenge_nudges: {
+        Row: {
+          created_at: string
+          id: string
+          studio_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          studio_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          studio_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_challenge_nudges_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_challenge_nudges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studio_challenge_submissions: {
         Row: {
           captured_at: string
@@ -1299,11 +1335,16 @@ export type Database = {
       }
       is_admin: { Args: { p_uid?: string }; Returns: boolean }
       is_live_drop_thumb: { Args: { object_name: string }; Returns: boolean }
+      is_studio_challenge_participant: {
+        Args: { p_challenge_id: string }
+        Returns: boolean
+      }
       join_studio_by_code: { Args: { p_code: string }; Returns: Json }
       leave_studio: { Args: never; Returns: Json }
       mark_activity_seen: { Args: never; Returns: undefined }
       notify_appreciation: { Args: never; Returns: Json }
       notify_pending: { Args: never; Returns: Json }
+      nudge_studio_director: { Args: never; Returns: Json }
       photo_frame: { Args: { p_date: string }; Returns: string }
       photo_status: {
         Args: { p_is_potd: boolean; p_rank: number }

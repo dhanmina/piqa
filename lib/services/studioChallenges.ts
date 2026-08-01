@@ -102,6 +102,28 @@ export async function startStudioChallenge(
 }
 
 /**
+ * The escape valve for non-Directors: pings the Director instead of a dead
+ * end. Server enforces the once-per-day rate limit; this just surfaces it.
+ */
+export async function nudgeStudioDirector(): Promise<{ ok: boolean; reason?: string }> {
+  const { data, error } = await supabase.rpc("nudge_studio_director");
+  if (error) throw error;
+  return data as { ok: boolean; reason?: string };
+}
+
+/** A handful of already-used Subject lines, for the Director's theme presets. */
+export async function fetchThemePresets(count = 5): Promise<string[]> {
+  const { data, error } = await supabase.from("subjects").select("text").limit(60);
+  if (error || !data) return [];
+  const pool = data.map((r) => r.text as string);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, count);
+}
+
+/**
  * Patches the cached grid in place instead of invalidating — a heart toggle
  * already knows the new count, so refetching would just blank the screen for
  * a beat and then show the same thing.
