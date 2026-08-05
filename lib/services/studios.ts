@@ -5,6 +5,7 @@ export type StudioFace = {
   id: string;
   username: string;
   avatarUrl: string | null;
+  submittedToday: boolean;
 };
 
 export type Studio = {
@@ -21,7 +22,6 @@ export type Studio = {
 
 export type StudioMember = StudioFace & {
   role: "director" | "member";
-  submittedToday: boolean;
 };
 
 export const STUDIO_KEY = "studio:mine";
@@ -34,7 +34,7 @@ type RawStudio = {
   invite_code: string;
   is_director: boolean;
   member_count: number;
-  members_preview: { id: string; username: string; avatar_url: string | null }[];
+  members_preview: { id: string; username: string; avatar_url: string | null; submitted_today: boolean }[];
   standing_made: number;
   standing_of: number;
   streak_days: number;
@@ -63,6 +63,7 @@ export async function fetchStudio(): Promise<Studio | null> {
       id: m.id,
       username: m.username,
       avatarUrl: m.avatar_url,
+      submittedToday: m.submitted_today,
     })),
     standingMade: res.standing_made,
     standingOf: res.standing_of,

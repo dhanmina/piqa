@@ -39,7 +39,7 @@ import { colors, fonts, radius, space, typeScale } from '@/components/tokens';
 
 const PILE_MAX = 3;
 
-function MemberPile({ faces, total }: { faces: { id: string; username: string; avatarUrl: string | null }[]; total: number }) {
+function MemberPile({ faces, total }: { faces: { id: string; username: string; avatarUrl: string | null; submittedToday: boolean }[]; total: number }) {
   const shown = faces.slice(0, PILE_MAX);
   const overflow = total - shown.length;
   return (
@@ -47,6 +47,9 @@ function MemberPile({ faces, total }: { faces: { id: string; username: string; a
       {shown.map((f, i) => (
         <View key={f.id} style={[i > 0 && { marginLeft: -11 }, { zIndex: shown.length - i }]}>
           <Avatar uri={f.avatarUrl} username={f.username} size={32} ringColor={colors.ink} ringWidth={2} />
+          {f.submittedToday && (
+            <View style={styles.presenceDot} accessibilityLabel={`${f.username} shot today`} />
+          )}
         </View>
       ))}
       {overflow > 0 && (
@@ -445,6 +448,17 @@ const styles = StyleSheet.create({
   body: { flex: 1, justifyContent: 'center' },
   content: { padding: space.gutter, gap: 16 },
   pile: { flexDirection: 'row', alignItems: 'center' },
+  presenceDot: {
+    position: 'absolute',
+    right: -1,
+    bottom: -1,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.safelight,
+    borderWidth: 2,
+    borderColor: colors.ink,
+  },
   overflowBadge: {
     width: 32,
     height: 32,
