@@ -47,6 +47,8 @@ import { colors, fonts, icons, radius, space, typeScale } from '@/components/tok
 const longDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
+const categoryBadgeText = (category: string) => (category === 'open' ? 'OPEN FRAME' : category.toUpperCase());
+
 export default function GalleryScreen() {
   const router = useRouter();
   const { session } = useSession();
@@ -466,7 +468,7 @@ export default function GalleryScreen() {
             {data.drop.category && (
               <View style={styles.categoryBadge}>
                 <Mono size={typeScale.caption} color={colors.safelight}>
-                  {data.drop.category.toUpperCase()}
+                  {categoryBadgeText(data.drop.category)}
                 </Mono>
               </View>
             )}
