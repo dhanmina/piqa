@@ -45,6 +45,11 @@ export async function setHint(subjectId: string, hint: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function setAngles(subjectId: string, angles: string[]): Promise<void> {
+  const { error } = await supabase.rpc("admin_set_subject_angles" as never, { p_subject: subjectId, p_angles: angles } as never);
+  if (error) throw new Error(error.message);
+}
+
 export async function setPotdNote(submissionId: string, note: string): Promise<void> {
   const { error } = await supabase.rpc("admin_set_potd_note" as never, { p_submission: submissionId, p_note: note } as never);
   if (error) throw new Error(error.message);
@@ -60,6 +65,7 @@ export type Subject = {
   text: string;
   category: SubjectCategory;
   hint: string | null;
+  angles: string[] | null;
   is_sponsored: boolean;
   seq: number | null;
   used_at: string | null;

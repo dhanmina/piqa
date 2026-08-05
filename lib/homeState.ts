@@ -62,6 +62,9 @@ export type HomeDrop = {
   id: string;
   prompt: string;
   category: string;
+  /** Up to 3 alternate framings of the same Subject, shown at drop time so
+   *  no single literal interpretation blocks a Photographer that day. */
+  angles: string[] | null;
   drops_at: string;
   submit_closes_at: string;
   voting_closes_at: string;
