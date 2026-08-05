@@ -57,7 +57,7 @@ export async function setPotdNote(submissionId: string, note: string): Promise<v
 
 // ─── Subject library (the editorial calendar) ────────────────────────────────
 
-export const SUBJECT_CATEGORIES = ["object", "color", "light", "pov", "emotion", "absurd"] as const;
+export const SUBJECT_CATEGORIES = ["object", "color", "light", "pov", "emotion", "absurd", "open"] as const;
 export type SubjectCategory = (typeof SUBJECT_CATEGORIES)[number];
 
 export type Subject = {

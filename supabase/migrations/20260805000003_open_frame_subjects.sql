@@ -69,12 +69,26 @@ declare
   submit_close timestamptz;
   voting_close timestamptz;
   new_drop_id uuid;
-  every_n int := public.cfg_int('open_frame_every_n_days', 5);
+  every_n int;
   drop_count int;
 begin
   if exists (select 1 from public.subject_drops where region = p_region and drop_date = today_local) then
     return jsonb_build_object('ok', true, 'created', false, 'reason', 'exists');
   end if;
+
+  -- Read the cadence config defensively: cfg_int() does an unguarded
+  -- `(value #>> '{}')::int` cast, so a malformed config row (e.g. an admin
+  -- typo saving a non-numeric jsonb value via admin_set_config, which
+  -- accepts arbitrary jsonb with no type validation) would otherwise raise
+  -- at DECLARE-block evaluation time and take down the entire drop for the
+  -- day, not just Open Frame selection. Fall back to the documented default
+  -- on any error so a bad config value degrades to "no Open Frame today"
+  -- instead of "no Subject drops at all today."
+  begin
+    every_n := public.cfg_int('open_frame_every_n_days', 5);
+  exception when others then
+    every_n := 5;
+  end;
 
   select count(*) into drop_count from public.subject_drops where region = p_region;
 
@@ -124,3 +138,83 @@ $$;
 insert into public.config (key, value)
 values ('open_frame_every_n_days', '5')
 on conflict (key) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- admin_create_prompt() / admin_update_prompt() — widen the hardcoded
+-- category whitelist to allow 'open'. These are separate from the table's
+-- CHECK constraint (widened above) and were missed by that change: the
+-- admin Subject editor (src/app/admin-library.tsx) calls admin_update_prompt
+-- before admin_set_subject_angles/admin_set_subject_hint on every save, so
+-- without this fix no Open Frame subject (existing or new) could ever be
+-- saved through the admin UI — every save would fail with bad_category
+-- before angle-hints or hints could even be attempted. Re-created verbatim
+-- from the true-current bodies in 20260721000002_rename_subjects.sql:1817
+-- and :1848 (the last CREATE OR REPLACE of each across all migrations),
+-- with only the whitelist line changed.
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_create_prompt(p_text text, p_category text, p_is_sponsored boolean default false, p_seq integer default null::integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  uid uuid := auth.uid();
+  nid uuid;
+begin
+  if not public.is_admin(uid) then raise exception 'not_authorized'; end if;
+  if p_text is null or char_length(trim(p_text)) = 0 then
+    return jsonb_build_object('ok', false, 'reason', 'empty_text');
+  end if;
+  if p_category not in ('object', 'color', 'light', 'pov', 'emotion', 'absurd', 'open') then
+    return jsonb_build_object('ok', false, 'reason', 'bad_category');
+  end if;
+
+  insert into public.subjects (text, category, is_sponsored, seq)
+  values (trim(p_text), p_category, coalesce(p_is_sponsored, false), p_seq)
+  returning id into nid;
+
+  insert into public.audit_log (actor_id, action, entity, entity_id, after)
+  values (uid, 'prompt.create', 'prompt', nid::text,
+          jsonb_build_object('text', trim(p_text), 'category', p_category, 'is_sponsored', coalesce(p_is_sponsored, false), 'seq', p_seq));
+
+  return jsonb_build_object('ok', true, 'id', nid);
+end;
+$$;
+
+create or replace function public.admin_update_prompt(p_id uuid, p_text text, p_category text, p_is_sponsored boolean, p_seq integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  uid uuid := auth.uid();
+  before jsonb;
+begin
+  if not public.is_admin(uid) then raise exception 'not_authorized'; end if;
+  if p_text is null or char_length(trim(p_text)) = 0 then
+    return jsonb_build_object('ok', false, 'reason', 'empty_text');
+  end if;
+  if p_category not in ('object', 'color', 'light', 'pov', 'emotion', 'absurd', 'open') then
+    return jsonb_build_object('ok', false, 'reason', 'bad_category');
+  end if;
+
+  select jsonb_build_object('text', text, 'category', category, 'is_sponsored', is_sponsored, 'seq', seq)
+    into before
+  from public.subjects where id = p_id;
+  if before is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_found');
+  end if;
+
+  update public.subjects
+    set text = trim(p_text), category = p_category, is_sponsored = coalesce(p_is_sponsored, false), seq = p_seq
+    where id = p_id;
+
+  insert into public.audit_log (actor_id, action, entity, entity_id, before, after)
+  values (uid, 'prompt.update', 'prompt', p_id::text, before,
+          jsonb_build_object('text', trim(p_text), 'category', p_category, 'is_sponsored', coalesce(p_is_sponsored, false), 'seq', p_seq));
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
