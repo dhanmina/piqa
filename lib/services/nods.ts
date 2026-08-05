@@ -8,7 +8,6 @@ const NOD_LABELS: Record<string, string> = {
   fresh_perspective: "Love the angle",
   so_creative: "So creative",
   tells_a_story: "Tells a story",
-  moved_me: "Moved me",
 };
 
 export const NOD_TAGS = [
