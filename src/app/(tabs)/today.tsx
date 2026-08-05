@@ -328,6 +328,7 @@ export default function TodayScreen() {
           <ShotCard
             prompt={drop.prompt}
             hint={hint}
+            angles={drop.angles}
             golden={golden}
             closesAt={drop.submit_closes_at}
             quickDrawUntil={quickDrawUntil}

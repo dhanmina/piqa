@@ -29,6 +29,9 @@ type ShotCardProps = {
   loading?: boolean;
   /** Optional photography tip for today's Subject (learning loop). */
   hint?: string | null;
+  /** Up to 3 alternate ways to read today's Subject, shown from the moment
+   *  it drops so nobody is blocked by one literal interpretation. */
+  angles?: string[] | null;
   /** Weekly Golden Shot event — a gold treatment on the whole card. */
   golden?: boolean;
 };
@@ -47,6 +50,7 @@ export function ShotCard({
   submitted = false,
   loading = false,
   hint,
+  angles,
   golden = false,
 }: ShotCardProps) {
   const [quickDrawOver, setQuickDrawOver] = useState(false);
@@ -89,6 +93,17 @@ export function ShotCard({
             <Text style={styles.hint} numberOfLines={2}>
               {hint}
             </Text>
+          ) : null}
+          {angles && angles.length > 0 ? (
+            <View style={styles.anglesRow}>
+              {angles.map((angle) => (
+                <View key={angle} style={styles.angleChip}>
+                  <Text style={styles.angleChipText} numberOfLines={2}>
+                    {angle}
+                  </Text>
+                </View>
+              ))}
+            </View>
           ) : null}
 
           <View style={styles.countdownBlock}>
@@ -171,6 +186,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     maxWidth: 280,
+  },
+  anglesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 4,
+    maxWidth: 300,
+  },
+  angleChip: {
+    borderWidth: 1,
+    borderColor: colors.paper40,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  angleChipText: {
+    fontFamily: fonts.sans,
+    fontSize: typeScale.tabLabel,
+    color: colors.paper60,
   },
   countdownBlock: {
     alignItems: 'center',
