@@ -17,6 +17,7 @@ import {
   SUBJECT_CATEGORIES,
   createSubject,
   deleteSubject,
+  setAngles,
   setHint,
   updateSubject,
   type Subject,
@@ -53,6 +54,9 @@ function SubjectRow({
   const [text, setText] = useState(s.text);
   const [category, setCategory] = useState<SubjectCategory>(s.category);
   const [hint, setHintText] = useState(s.hint ?? '');
+  const [angle1, setAngle1] = useState(s.angles?.[0] ?? '');
+  const [angle2, setAngle2] = useState(s.angles?.[1] ?? '');
+  const [angle3, setAngle3] = useState(s.angles?.[2] ?? '');
   const [seq, setSeq] = useState(s.seq == null ? '' : String(s.seq));
   const [saving, setSaving] = useState(false);
 
@@ -62,6 +66,9 @@ function SubjectRow({
       const seqNum = seq.trim() === '' ? null : Number.parseInt(seq, 10);
       await updateSubject(s.id, text.trim(), category, Number.isNaN(seqNum as number) ? null : seqNum, s.is_sponsored);
       if ((hint.trim() || null) !== (s.hint ?? null)) await setHint(s.id, hint);
+      const nextAngles = [angle1, angle2, angle3].map((a) => a.trim()).filter((a) => a !== '');
+      const prevAngles = s.angles ?? [];
+      if (JSON.stringify(nextAngles) !== JSON.stringify(prevAngles)) await setAngles(s.id, nextAngles);
       setOpen(false);
       onSaveToast(S.libraryAdded);
       onChanged();
@@ -140,6 +147,30 @@ function SubjectRow({
             placeholder={S.libraryHintPlaceholder}
             placeholderTextColor={colors.paper40}
             accessibilityLabel={S.libraryHintPlaceholder}
+          />
+          <TextInput
+            style={styles.input}
+            value={angle1}
+            onChangeText={setAngle1}
+            placeholder="Angle 1 (optional)"
+            placeholderTextColor={colors.paper40}
+            accessibilityLabel="Angle 1 (optional)"
+          />
+          <TextInput
+            style={styles.input}
+            value={angle2}
+            onChangeText={setAngle2}
+            placeholder="Angle 2 (optional)"
+            placeholderTextColor={colors.paper40}
+            accessibilityLabel="Angle 2 (optional)"
+          />
+          <TextInput
+            style={styles.input}
+            value={angle3}
+            onChangeText={setAngle3}
+            placeholder="Angle 3 (optional)"
+            placeholderTextColor={colors.paper40}
+            accessibilityLabel="Angle 3 (optional)"
           />
           <View style={styles.seqRow}>
             <Mono size={typeScale.caption} color={colors.paper60}>{S.libraryQueueLabel}</Mono>
