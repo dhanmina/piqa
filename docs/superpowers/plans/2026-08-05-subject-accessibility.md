@@ -15,7 +15,7 @@
 - Banned UI words: "prompt" (use "Subject"/"Shot"), "vote"/"judge" for Curators. Angle-hint copy must read as photography guidance, not AI-prompt language.
 - No schema redesign — additive columns/values only, matching the project's standing "retention before revenue, additive only" rule.
 - Every RPC follows the existing `SECURITY DEFINER`, `set search_path = public`, explicit `revoke`/`grant` pattern used throughout `supabase/migrations/`.
-- `subjects`/`subject_drops` are the product-facing table names; the underlying Postgres tables are still physically named `prompts`/`prompt_drops` (not renamed — see project vocabulary decision). All new SQL in this plan uses the physical names `public.prompts`/`public.prompt_drops` to match every existing migration.
+- `subjects`/`subject_drops` are BOTH the product-facing names AND the current physical Postgres table names — `20260721000002_rename_subjects.sql` renamed the tables (`prompts`→`subjects`, `prompt_drops`→`subject_drops`). Only some *columns* were left unrenamed (e.g. `subject_drops.prompt_id`, `votes.voter_id`) — see project vocabulary decision. **Correction (found during Task 1 implementation, 2026-08-05): earlier drafts of this plan incorrectly referenced `public.prompts`/`public.prompt_drops` as current physical table names. All SQL in this plan uses `public.subjects`/`public.subject_drops`.**
 - Client-side admin RPC calls are cast `as never` until `supabase gen types` re-runs (existing pattern in `lib/services/admin.ts` — do not change this).
 
 ---
@@ -577,7 +577,11 @@ git commit -m "feat(subjects): add angle hint fields to the admin Subject editor
 
 **Interfaces:**
 - Consumes: nothing from earlier tasks (independent of Tasks 1-4)
-- Produces: `public.prompts.category` CHECK now allows `'open'`; ~12 new rows in `public.prompts` with `category = 'open'`
+- Produces: `public.subjects.category` CHECK now allows `'open'`; ~12 new rows in `public.subjects` with `category = 'open'`
+
+**Verified schema facts (do not re-derive, use as given):** the physical tables are `public.subjects` and `public.subject_drops` (renamed from `prompts`/`prompt_drops` by `20260721000002_rename_subjects.sql`; the `subject_drops.prompt_id` column itself keeps its old name — do not rename it). `public.config` has columns `key text primary key` and `value jsonb not null` (`supabase/migrations/20260711000001_init.sql:154-158`) — inserting a bare numeric string literal like `'5'` into `value` works because it casts as a JSON scalar, matching the existing seed rows (`('vote_cap', '50')` etc. at the same file's lines 160+). `public.cfg_int(p_key text, p_default int)` reads it back via `(value #>> '{}')::int` (`supabase/migrations/20260711000009_galleries.sql:30-38`).
+
+The **true current** `drop_prompt()` body (verified as the last `CREATE OR REPLACE FUNCTION public.drop_prompt` across all migrations, in `supabase/migrations/20260721000002_rename_subjects.sql:772-813`) is reproduced below — this supersedes the plan's earlier draft, which pointed at a stale pre-rename version.
 
 - [ ] **Step 1: Write the migration**
 
@@ -586,12 +590,12 @@ git commit -m "feat(subjects): add angle hint fields to the admin Subject editor
 -- pool on a fixed cadence (see drop_prompt() change in this same migration),
 -- so accessibility isn't only ever a bet on how a literal Subject is worded.
 
-alter table public.prompts drop constraint if exists prompts_category_check;
-alter table public.prompts add constraint prompts_category_check
+alter table public.subjects drop constraint if exists subjects_category_check;
+alter table public.subjects add constraint subjects_category_check
   check (category in ('object','color','light','pov','emotion','absurd','open'));
 
-insert into public.prompts (text, category, seq)
-select v.text, 'open', (select coalesce(max(seq), 0) from public.prompts) + v.ord
+insert into public.subjects (text, category, seq)
+select v.text, 'open', (select coalesce(max(seq), 0) from public.subjects) + v.ord
 from (values
   ('Open Frame. Anything, your eye', 1),
   ('Open Frame. Whatever caught your eye today', 2),
@@ -606,12 +610,12 @@ from (values
   ('Open Frame. Just shoot something you like', 11),
   ('Open Frame. A blank canvas kind of day', 12)
 ) as v(text, ord)
-where not exists (select 1 from public.prompts p where p.text = v.text);
+where not exists (select 1 from public.subjects s where s.text = v.text);
 ```
 
 - [ ] **Step 2: Add cadence logic to `drop_prompt()`**
 
-In the same migration file, re-create `drop_prompt()` (copy of the current body from `supabase/migrations/20260720000014_switch_region_to_ph.sql`, changed only where marked):
+In the same migration file, re-create `drop_prompt()` starting from the verified true-current body (`20260721000002_rename_subjects.sql:772-813`, reproduced here with the cadence logic added — changes marked):
 
 ```sql
 create or replace function public.drop_prompt(p_region text default 'PH')
@@ -627,21 +631,21 @@ declare
   submit_close timestamptz;
   voting_close timestamptz;
   new_drop_id uuid;
-  every_n int := public.cfg_int('open_frame_every_n_days', 5);
-  drop_count int;
+  every_n int := public.cfg_int('open_frame_every_n_days', 5);  -- NEW
+  drop_count int;  -- NEW
 begin
-  if exists (select 1 from public.prompt_drops where region = p_region and drop_date = today_local) then
+  if exists (select 1 from public.subject_drops where region = p_region and drop_date = today_local) then
     return jsonb_build_object('ok', true, 'created', false, 'reason', 'exists');
   end if;
 
-  select count(*) into drop_count from public.prompt_drops where region = p_region;
+  select count(*) into drop_count from public.subject_drops where region = p_region;  -- NEW
 
-  -- Every Nth drop (1-indexed: drop #5, #10, ... land on Open Frame), pull
-  -- from the 'open' pool first, same used_at cycling as the main pool.
+  -- NEW: every Nth drop (1-indexed: drop #5, #10, ... land on Open Frame),
+  -- pull from the 'open' pool first, same used_at cycling as the main pool.
   -- Falls through to the normal pick if the open pool is exhausted.
   if every_n > 0 and (drop_count + 1) % every_n = 0 then
     select id, text into chosen
-    from public.prompts
+    from public.subjects
     where category = 'open'
     order by used_at asc nulls first, seq asc nulls last, random()
     limit 1;
@@ -649,8 +653,8 @@ begin
 
   if chosen.id is null then
     select id, text into chosen
-    from public.prompts
-    where category != 'open'
+    from public.subjects
+    where category != 'open'  -- CHANGED: was an unconditional select with no where
     order by used_at asc nulls first, seq asc nulls last, random()
     limit 1;
   end if;
@@ -664,29 +668,29 @@ begin
   submit_close := ((today_local + time '18:00') at time zone 'Asia/Manila');
   voting_close := ((today_local + time '19:00') at time zone 'Asia/Manila');
 
-  insert into public.prompt_drops
+  insert into public.subject_drops
     (prompt_id, region, drop_date, drops_at, submit_closes_at, voting_closes_at, status)
   values
     (chosen.id, p_region, today_local, drops_at, submit_close, voting_close, 'scheduled')
   on conflict (region, drop_date) do nothing
   returning id into new_drop_id;
 
-  update public.prompts set used_at = today_local where id = chosen.id;
+  update public.subjects set used_at = today_local where id = chosen.id;
 
   return jsonb_build_object('ok', true, 'created', true, 'drop_id', new_drop_id, 'drops_at', drops_at);
 end;
 $$;
 ```
 
-Add the default config row so `cfg_int` has a documented value (mirrors how `streak_shield_max` etc. are seeded — find that `insert into public.config` block, e.g. in `supabase/migrations/20260712000002_streaks_rolling.sql`, and match its `insert ... on conflict (key) do nothing` shape exactly):
+Note `subject_drops.prompt_id` in the insert column list above is correct as written — that column was deliberately left unrenamed (see Global Constraints).
+
+Add the default config row so `cfg_int` has a documented value (mirrors the existing seed rows in `supabase/migrations/20260711000001_init.sql:160-164`, e.g. `('vote_cap', '50')` — match that exact `insert into public.config (key, value) values (...)` shape; add `on conflict (key) do nothing` since this migration runs after the initial seed):
 
 ```sql
 insert into public.config (key, value)
 values ('open_frame_every_n_days', '5')
 on conflict (key) do nothing;
 ```
-
-**Note for the implementer:** before writing this insert, run `grep -n "create table public.config" -A 8 supabase/migrations/20260711000001_init.sql` (or wherever `config` is defined) to confirm the exact column names (`key`/`value` assumed here from the `cfg_int('vote_cap', 50)` call pattern seen in `20260711000010_game_loop.sql`) and match them exactly.
 
 - [ ] **Step 3: Apply locally and verify**
 
@@ -697,7 +701,7 @@ supabase db reset --local
 Expected: no errors. Then:
 
 ```sql
-select category, count(*) from public.prompts group by category;
+select category, count(*) from public.subjects group by category;
 ```
 
 Expected: an `'open'` row with 12 (or however many survived the `where not exists` idempotency check).
@@ -709,7 +713,7 @@ Using `src/app/dev/time-machine` (or direct RPC calls in a local SQL console), c
 ```sql
 -- sanity check after simulating 5 drops:
 select pd.day_number, p.category, p.text
-from public.prompt_drops pd join public.prompts p on p.id = pd.prompt_id
+from public.subject_drops pd join public.subjects p on p.id = pd.prompt_id
 where pd.region = 'PH'
 order by pd.drop_date;
 ```
