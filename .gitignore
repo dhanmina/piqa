@@ -75,3 +75,6 @@ example
 
 # Local dev overrides
 .env.local
+
+# Brainstorming visual companion
+.superpowers/
