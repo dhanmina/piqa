@@ -152,25 +152,25 @@ function SubjectRow({
             style={styles.input}
             value={angle1}
             onChangeText={setAngle1}
-            placeholder="Angle 1 (optional)"
+            placeholder={S.libraryAngle1Placeholder}
             placeholderTextColor={colors.paper40}
-            accessibilityLabel="Angle 1 (optional)"
+            accessibilityLabel={S.libraryAngle1Placeholder}
           />
           <TextInput
             style={styles.input}
             value={angle2}
             onChangeText={setAngle2}
-            placeholder="Angle 2 (optional)"
+            placeholder={S.libraryAngle2Placeholder}
             placeholderTextColor={colors.paper40}
-            accessibilityLabel="Angle 2 (optional)"
+            accessibilityLabel={S.libraryAngle2Placeholder}
           />
           <TextInput
             style={styles.input}
             value={angle3}
             onChangeText={setAngle3}
-            placeholder="Angle 3 (optional)"
+            placeholder={S.libraryAngle3Placeholder}
             placeholderTextColor={colors.paper40}
-            accessibilityLabel="Angle 3 (optional)"
+            accessibilityLabel={S.libraryAngle3Placeholder}
           />
           <View style={styles.seqRow}>
             <Mono size={typeScale.caption} color={colors.paper60}>{S.libraryQueueLabel}</Mono>
