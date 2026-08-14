@@ -15,15 +15,14 @@
   <a href="#why-piqa-is-different">Why it's different</a> ·
   <a href="#tech-stack">Tech stack</a> ·
   <a href="#architecture">Architecture</a> ·
-  <a href="#getting-started">Getting started</a> ·
-  <a href="#roadmap">Roadmap</a>
+  <a href="#getting-started">Getting started</a>
 </p>
 
 ---
 
 ## How it works
 
-1. **📸 Today's Shot drops** — once a day, at a random time in your region's waking hours, everyone in the world gets the same photo challenge ("something red within reach").
+1. **Today's Shot drops** — once a day, at a random time in your region's waking hours, everyone in the world gets the same photo challenge ("something red within reach").
 2. **You shoot it** — in-app camera only, any time before midnight. No gallery uploads, no filters, no AI images. What you see is what was shot today.
 3. **The world curates** — photos face off in anonymous head-to-head pairs. No names, no follower counts, no likes to farm. Just two photos and a pick.
 4. **Morning reveal** — wake up to the gallery: the top ~20% of the day's shots, crowned by one Photo of the Day. Your streak, your hearts, your archive — then the app tells you to go live your life.
@@ -47,7 +46,8 @@ Five minutes a day. That's the whole app. On purpose.
 - **Backend:** [Supabase](https://supabase.com) — Postgres, Auth, Storage + CDN, Edge Functions, pg_cron
 - **Ranking:** live Elo for matchmaking → Bradley-Terry MLE fit at close (order-independent, late-submitter fair)
 - **Push:** Expo Push → FCM, fan-out jittered to avoid thundering herds
-- **Moderation:** NSFWJS on-device pre-upload scan + report/quarantine pipeline
+- **Moderation:** Google Cloud Vision SafeSearch (server-side, via edge function) + report/quarantine pipeline
+- **Observability:** Sentry (crash reporting) + PostHog (product analytics)
 - **Icons:** [Lucide](https://lucide.dev) · **Type:** Clash Display / Instrument Sans / IBM Plex Mono
 
 ## Architecture
@@ -58,15 +58,16 @@ Five minutes a day. That's the whole app. On purpose.
 │             │ ───────────────────▶ │                              │
 │  Today      │   thumbnail first,   │  Postgres (RLS everywhere)   │
 │  Gallery    │   full-res follows   │  Storage (signed URLs)       │
-│  ● Camera   │                      │                              │
-│  Archive    │ ◀─────────────────── │  Edge Functions:             │
-│  Profile    │   materialized       │   drop-prompt  (00:05 UTC)   │
-└─────────────┘   gallery JSON       │   get-matchup  (sets of 10)  │
-                                     │   close-day    (BT fit, 8am) │
+│  ● Camera   │                      │  Postgres RPC + pg_cron:     │
+│  Studios    │ ◀─────────────────── │   drop_prompt   (evening)    │
+│  Profile    │   materialized       │   get_matchup   (curate)     │
+└─────────────┘   gallery JSON       │   close_day     (BT fit)     │
+                                     │  Edge Functions: push,       │
+                                     │   moderation (SafeSearch)    │
                                      └──────────────────────────────┘
 ```
 
-The daily cycle follows the sun: one prompt per calendar day, three region buckets (APAC / EU-Africa / Americas), each with its own randomized drop inside local 9am–9pm. Voting runs from drop until 8am; the gallery reveals at 9am like a morning paper.
+The daily cycle follows the sun: one prompt per calendar day, a randomized drop each evening (region-parameterized in the schema, running in Asia/Manila for the current beta). Voting runs from drop until 8am; the gallery reveals at 9am like a morning paper.
 
 ## Dev setup
 
@@ -87,20 +88,19 @@ Requirements: Node 20+, Android device/emulator (test on a budget device, not ju
 ## Project structure
 
 ```
-app/
-  (tabs)/            today · gallery · archive · profile + nav layout
-  camera.tsx         full-screen capture (modal route)
-  photo/[id].tsx     full-res view
-components/
-  tokens.ts          Darkroom design system (ink · paper · safelight)
-  atoms/  molecules/  moments/
+src/
+  app/
+    (tabs)/           today · gallery · studios · profile + nav layout
+    camera.tsx        full-screen capture (modal route)
+    photo/[id].tsx    full-res view
+  components/
+    tokens.ts          Darkroom design system (ink · paper · safelight)
+    atoms/  molecules/  moments/  onboarding/
 lib/
   supabase.ts  types.ts (generated)
 supabase/
-  migrations/        schema + RLS
-  functions/         drop-prompt · get-matchup · close-day
-docs/
-  piqa-spec-final.md the complete product spec
+  migrations/         schema, RLS, RPCs (drop_prompt · get_matchup · close_day)
+  functions/          push · moderation (edge functions)
 ```
 
 ## Design principles
@@ -111,35 +111,13 @@ docs/
 4. **Shooting is free, the stage is scarce** — unlimited private capture, one public slot a day.
 5. **North star = retention, never session length.**
 
-The full rationale — personas, competitor post-mortems, ranking math, moderation pipeline — lives in [`docs/piqa-spec-final.md`](docs/piqa-spec-final.md).
-
-## Roadmap
-
-- [x] Product spec, design system, brand kit
-- [ ] MVP: capture → offline queue → submit → curate → morning gallery
-- [ ] Closed beta (Play Store, 12 testers / 14 days)
-- [ ] Public Android launch
-- [ ] Showcase walls · squads · collections
-- [ ] iOS
-
 ## Working rules (for me + Claude Code)
 
-- **The spec is law:** [`docs/piqa-spec-final.md`](docs/piqa-spec-final.md). Any feature idea gets checked against §0 Design Laws before a line is written. Feeds, visible rankings, and paid advantages are permanently out.
-- Build order = spec §20. `/dev/kit` component demo first; screens are assembly.
+- Any feature idea gets checked against the design laws above before a line is written. Feeds, visible rankings, and paid advantages are permanently out.
 - Every schema change: migration file + `npm run gen:types` in the same commit.
 - Thresholds (gallery %, caps, quorum, windows) live in the `config` table — never hardcode.
 - Offline path is sacred: no feature ships if it breaks capture-without-signal.
 
-## Pre-launch checklist
-
-- [ ] joinpiqa.com bought · @piqa handles claimed · IPOPHL classes 9/42 searched
-- [ ] Play Console account + `com.joinpiqa.piqa` reserved
-- [ ] 12 closed-test recruits confirmed (14-day requirement)
-- [ ] 60 prompts written (2-month buffer)
-- [ ] Privacy policy + ToS + community guidelines pages live
-- [ ] Data Safety form matches privacy policy
-- [ ] NSFWJS gate + report/block + account deletion verified on device
-
 ---
 
-<p align="center"><em>Got the shot?</em> 📸</p>
+<p align="center"><em>Got the shot?</em></p>
