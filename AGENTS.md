@@ -16,3 +16,7 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
   fingerprint matching, channel/branch, two-relaunch apply).
 - **Native change → build:** any native module / `app.json` plugin / permission /
   entitlement / `ios`/`android` change needs a new build. See `docs/native-build-plan.md`.
+
+## Git commits
+
+No `Co-Authored-By` trailer. Plain commit messages only.

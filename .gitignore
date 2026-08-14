@@ -49,8 +49,9 @@ logs/
 .env
 .env.*
 
-# Design-review artifacts (Claude-generated HTML audits) — reference only, not shipped/reviewed content
-docs/design-review/
+# Internal planning/runbook docs — private, kept local only
+docs/
+TODO.md
 !.env.example
 *.env
 secrets.json
