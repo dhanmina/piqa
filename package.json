@@ -70,6 +70,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "gen:types": "supabase gen types typescript --linked > lib/types.ts",
+    "test:db": "supabase test db --local supabase/tests/database",
     "postinstall": "patch-package"
   },
   "private": true
