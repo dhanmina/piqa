@@ -45,6 +45,7 @@ export async function signInWithGoogle(): Promise<void | null> {
     const { error } = await supabase.auth.signInWithIdToken({ provider: "google", token: idToken });
     if (error) throw error;
   } catch (e) {
+    console.warn(`[auth] google sign-in failed at "${step}":`, e);
     reportError(e, { flow: "google_signin", step });
     throw e;
   }
