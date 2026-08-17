@@ -1,3 +1,5 @@
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+
 import { supabase } from "./supabase";
 
 /**
@@ -7,4 +9,29 @@ import { supabase } from "./supabase";
 export async function myId(): Promise<string | null> {
   const { data } = await supabase.auth.getUser();
   return data.user?.id ?? null;
+}
+
+let googleConfigured = false;
+
+/**
+ * Google native sign-in: no redirect, no client secret — the SDK hands back an
+ * ID token and Supabase verifies it directly (signInWithIdToken). A new user
+ * lands on handle_new_user's existing email-derived username fallback, so
+ * there's no separate "claim your username" step to build.
+ *
+ * Returns null on a plain user cancel (not an error — don't toast it); throws
+ * on a real failure so the caller's existing friendlyError() path handles it.
+ */
+export async function signInWithGoogle(): Promise<void | null> {
+  if (!googleConfigured) {
+    GoogleSignin.configure({ webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID });
+    googleConfigured = true;
+  }
+  await GoogleSignin.hasPlayServices();
+  const result = await GoogleSignin.signIn();
+  if (result.type !== "success") return null; // user backed out of the picker
+  const idToken = result.data.idToken;
+  if (!idToken) throw new Error("Google sign-in did not return a token.");
+  const { error } = await supabase.auth.signInWithIdToken({ provider: "google", token: idToken });
+  if (error) throw error;
 }

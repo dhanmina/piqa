@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInpu
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getRememberedEmail, getRememberMe, setRememberedEmail, setRememberMe } from '@lib/utils/authPrefs';
+import { signInWithGoogle } from '@lib/services/auth';
 import { supabase } from '@lib/services/supabase';
 import { useUsernameStatus, usernameStatusMessage } from '@lib/username';
 import { Brandmark } from '@/components/atoms/Brandmark';
@@ -38,6 +39,7 @@ export default function AuthScreen() {
   const [remember, setRemember] = useState(true); // stay signed in across restarts; opt out on a shared device
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   // Refs let the keyboard's "next" jump email → password without leaving it.
@@ -179,6 +181,21 @@ export default function AuthScreen() {
     if (canSubmit && !busy) void submit();
   };
 
+  // Same account either way — Supabase creates the row on first Google login,
+  // so there's no separate sign-in-vs-sign-up branch here like the form above.
+  const onGoogle = async () => {
+    setGoogleBusy(true);
+    try {
+      await signInWithGoogle();
+      // A plain cancel (null) needs no toast; a real session change is picked
+      // up by the root auth listener, which navigates — nothing to do here either.
+    } catch (e) {
+      setToast(friendlyError(e instanceof Error ? e.message : String(e)));
+    } finally {
+      setGoogleBusy(false);
+    }
+  };
+
   const pwToggle = (
     <Pressable
       accessibilityRole="button"
@@ -245,6 +262,24 @@ export default function AuthScreen() {
               <Text style={styles.formTitle}>{title}</Text>
               <Text style={styles.formSub}>{sub}</Text>
             </View>
+
+            {(isSignin || isSignup) && (
+              <>
+                <Button
+                  label="Continue with Google"
+                  variant="ghost"
+                  fullWidth
+                  onPress={() => void onGoogle()}
+                  loading={googleBusy}
+                  disabled={busy || googleBusy}
+                />
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+              </>
+            )}
 
             {isSignup && (
               <View style={styles.usernameBlock}>
@@ -329,7 +364,13 @@ export default function AuthScreen() {
             )}
 
             <View style={styles.submitRow}>
-              <Button label={buttonLabel} onPress={() => void submit()} loading={busy} disabled={!canSubmit} fullWidth />
+              <Button
+                label={buttonLabel}
+                onPress={() => void submit()}
+                loading={busy}
+                disabled={!canSubmit || googleBusy}
+                fullWidth
+              />
             </View>
 
             {switchLine}
@@ -375,6 +416,9 @@ const styles = StyleSheet.create({
   },
   uStatusError: { color: colors.safelight },
   formHead: { gap: 4, marginBottom: space.hair },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30 },
+  dividerText: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
   formTitle: {
     fontFamily: fonts.sansSemiBold,
     fontSize: typeScale.title,
