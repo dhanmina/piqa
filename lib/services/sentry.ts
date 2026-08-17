@@ -31,6 +31,18 @@ if (DSN) {
 export const sentryEnabled = DSN !== undefined && DSN !== "";
 
 /**
+ * Manually report a caught error, for flows that must not crash the app (so
+ * Sentry's automatic capture never sees them) but are still worth tracking —
+ * e.g. a native sign-in SDK failing. No-op without a DSN, same fail-safe as
+ * everything else in this file. `context` lands as Sentry's "extra" data —
+ * pass enough to reproduce (which flow, which step), never PII.
+ */
+export function reportError(error: unknown, context?: Record<string, unknown>): void {
+  if (!DSN) return;
+  Sentry.captureException(error, context ? { extra: context } : undefined);
+}
+
+/**
  * Wrap the root component so Sentry captures render/runtime errors and ties them
  * to sessions. No-op passthrough when no DSN is configured.
  */
