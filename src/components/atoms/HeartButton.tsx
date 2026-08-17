@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, w
 
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { Mono } from '@/components/atoms/Mono';
-import { colors, motion, typeScale } from '@/components/tokens';
+import { colors, motion, space, typeScale } from '@/components/tokens';
 
 type HeartButtonProps = {
   liked: boolean;
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: space.xxsPlus,
     minHeight: 32,
   },
 });

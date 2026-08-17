@@ -216,7 +216,7 @@ export default function CurateScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14, padding: space.gutter },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: space.smPlus, padding: space.gutter },
   pairWrap: { flex: 1 },
   bigLine: {
     fontFamily: displayFamily,

@@ -23,7 +23,7 @@ import { displayFamily } from '@/components/fonts';
 import { OnboardingScreen } from '@/components/onboarding/OnboardingScreen';
 import { PermissionBlock } from '@/components/onboarding/PermissionBlock';
 import { SecondaryLink } from '@/components/onboarding/SecondaryLink';
-import { colors, fonts, iconStroke, typeScale } from '@/components/tokens';
+import { colors, fonts, iconStroke, space, typeScale } from '@/components/tokens';
 
 const LAST_STEP = 3;
 const LOOP_ICON_SIZE = 26;
@@ -160,7 +160,7 @@ export default function OnboardingFlow() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   hookStack: { alignItems: 'center', gap: 32 },
-  headlineGroup: { alignItems: 'center', gap: 10 },
+  headlineGroup: { alignItems: 'center', gap: space.xsPlus },
   hookHeadline: {
     fontFamily: displayFamily,
     fontSize: typeScale.display,

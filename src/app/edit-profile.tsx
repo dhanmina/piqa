@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   },
   avatarImage: { width: AVATAR_SIZE, height: AVATAR_SIZE },
   avatarHint: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
-  usernameSection: { gap: 10 },
+  usernameSection: { gap: space.xsPlus },
   sectionTitle: { letterSpacing: 1.5, paddingHorizontal: 4 },
   uStatus: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
   uStatusError: { color: colors.safelight },

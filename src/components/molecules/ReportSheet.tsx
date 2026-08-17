@@ -11,7 +11,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { REPORT_REASONS, reportSubmission } from '@lib/services/moderation';
 import { Button } from '@/components/atoms/Button';
 import { Sheet } from '@/components/molecules/Sheet';
-import { colors, fonts, typeScale } from '@/components/tokens';
+import { colors, fonts, space, typeScale } from '@/components/tokens';
 
 type Reason = (typeof REPORT_REASONS)[number];
 
@@ -76,12 +76,12 @@ export function ReportSheet({ visible, submissionId, onClose, onReported }: Prop
 }
 
 const styles = StyleSheet.create({
-  intro: { fontFamily: fonts.sans, fontSize: typeScale.sub, lineHeight: typeScale.sub * 1.4, color: colors.paper60, marginBottom: 6 },
-  reasonRow: { gap: 2, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.ink },
+  intro: { fontFamily: fonts.sans, fontSize: typeScale.sub, lineHeight: typeScale.sub * 1.4, color: colors.paper60, marginBottom: space.xxsPlus },
+  reasonRow: { gap: space.hair, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.ink },
   reasonLabel: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.paper },
   reasonDesc: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
   confirmBody: { gap: 12 },
   confirmReason: { fontFamily: fonts.sansSemiBold, fontSize: typeScale.title, color: colors.paper },
-  backRow: { alignItems: 'center', paddingVertical: 10 },
+  backRow: { alignItems: 'center', paddingVertical: space.xsPlus },
   backText: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper60 },
 });

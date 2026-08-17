@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   },
   declineButton: {
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: space.xsPlus,
   },
   declineText: {
     fontFamily: fonts.sansMedium,

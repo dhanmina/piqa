@@ -26,7 +26,7 @@ import { Brackets } from '@/components/molecules/Brackets';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, motion, photo, typeScale } from '@/components/tokens';
+import { colors, fonts, motion, photo, space, typeScale } from '@/components/tokens';
 
 type Captured = {
   uri: string;
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   },
   topActions: {
     flexDirection: 'row',
-    gap: 10,
+    gap: space.xsPlus,
   },
   // Viewfinder: a daily shot composes inside the print (FramedPhoto); a practice
   // shot in plain brackets — each matches what it becomes. Dark surround around.
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   brief: {
     alignSelf: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: space.xxsPlus,
     maxWidth: '88%',
   },
   briefPrompt: {
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 20,
-    gap: 18,
+    gap: space.mdPlus,
   },
   previewInfo: {
     gap: 8,

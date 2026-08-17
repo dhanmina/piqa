@@ -48,7 +48,7 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: 6,
+    gap: space.xxsPlus,
     alignSelf: 'stretch',
   },
   label: {
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     minHeight: space.target,
     backgroundColor: colors.ink2,
     borderRadius: radius.card,
-    paddingHorizontal: 14,
+    paddingHorizontal: space.smPlus,
     fontFamily: fonts.sans,
     fontSize: typeScale.body,
     color: colors.paper,
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: space.xxsPlus,
   },
   mono: {
     fontFamily: fonts.mono,

@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 6,
+    gap: space.xxsPlus,
     marginTop: 4,
     maxWidth: 300,
   },
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.paper40,
     borderRadius: radius.pill,
-    paddingHorizontal: 10,
+    paddingHorizontal: space.xsPlus,
     paddingVertical: 4,
   },
   angleChipText: {
@@ -214,16 +214,16 @@ const styles = StyleSheet.create({
   quick: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: space.xxsPlus,
     borderWidth: 1,
     borderColor: 'rgba(255, 90, 54, 0.4)',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: space.xxsPlus,
     borderRadius: radius.pill,
   },
   action: {
     alignSelf: 'stretch',
-    marginTop: 2,
+    marginTop: space.hair,
   },
   submittedNote: {
     fontFamily: fonts.sansMedium,

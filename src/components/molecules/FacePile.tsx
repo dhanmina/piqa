@@ -13,7 +13,7 @@ import { ChevronRight, UserPlus } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/atoms/Avatar';
-import { avatar, colors, fonts, icons, typeScale } from '@/components/tokens';
+import { avatar, colors, fonts, icons, space, typeScale } from '@/components/tokens';
 
 type Face = { id: string; username: string; avatar_url: string | null };
 
@@ -75,7 +75,7 @@ export function FacePile({ faces, onPress, max = 5 }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6, minHeight: SIZE + 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: space.xxsPlus, minHeight: SIZE + 8 },
   label: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper },
   pile: { flexDirection: 'row', alignItems: 'center' },
   spacer: { flex: 1 },

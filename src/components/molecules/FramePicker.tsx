@@ -91,8 +91,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    padding: 10,
+    gap: space.smPlus,
+    padding: space.xsPlus,
     borderRadius: radius.card,
     backgroundColor: colors.ink2,
     borderWidth: 1,
@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
   rowLocked: { opacity: 0.55 },
   // Fixed-width slot so avatars line up even though the ring changes the outer size.
   preview: { width: 56, alignItems: 'center' },
-  meta: { flex: 1, gap: 3 },
+  meta: { flex: 1, gap: space.hair },
   label: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.paper },
-  lockRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  lockRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
   unlock: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper40 },
 });

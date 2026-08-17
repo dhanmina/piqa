@@ -11,7 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Mono } from '@/components/atoms/Mono';
-import { colors, icons, motion, typeScale } from '@/components/tokens';
+import { colors, icons, motion, space, typeScale } from '@/components/tokens';
 
 type StreakFlameProps = {
   /** Days the flame has been alive (0 = not lit). */
@@ -102,8 +102,8 @@ export function StreakFlame({ days, alive = true, shields = 0, last7, daysThisWe
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dots: { flexDirection: 'row', alignItems: 'center', gap: 5, marginLeft: 4 },
-  shield: { flexDirection: 'row', alignItems: 'center', gap: 2, marginLeft: 4 },
+  dots: { flexDirection: 'row', alignItems: 'center', gap: space.xxs, marginLeft: 4 },
+  shield: { flexDirection: 'row', alignItems: 'center', gap: space.hair, marginLeft: 4 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   dotFilled: { backgroundColor: colors.safelight },
   dotEmpty: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.paper30 },

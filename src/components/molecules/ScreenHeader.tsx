@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: space.xxsPlus,
     // Content sits on the gutter; the right slot keeps a touch less inset. The
     // back chevron is pulled back onto the gutter via `back` below (its 48px box
     // centers the glyph, which otherwise floated ~13px inboard — too far right).

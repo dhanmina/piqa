@@ -75,7 +75,7 @@ export function LegalDoc({ title, effectiveDate, blocks }: LegalDocProps) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  content: { padding: space.gutter, paddingBottom: 56, gap: 14 },
+  content: { padding: space.gutter, paddingBottom: 56, gap: space.smPlus },
   date: { letterSpacing: 1, marginBottom: 4 },
   h: {
     fontFamily: fonts.sansSemiBold,
@@ -91,6 +91,6 @@ const styles = StyleSheet.create({
     color: colors.paper60,
   },
   list: { gap: 8 },
-  liRow: { flexDirection: 'row', gap: 10, paddingRight: 4 },
+  liRow: { flexDirection: 'row', gap: space.xsPlus, paddingRight: 4 },
   bullet: { fontFamily: fonts.sans, fontSize: typeScale.sub, lineHeight: 23, color: colors.paper40 },
 });

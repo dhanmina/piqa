@@ -351,14 +351,14 @@ const styles = StyleSheet.create({
     padding: space.gutter,
     gap: space.gutter * 2,
   },
-  hero: { alignItems: 'center', gap: 10 },
+  hero: { alignItems: 'center', gap: space.xsPlus },
   wordmark: {
     fontFamily: displayFamily,
     fontSize: 40,
     lineHeight: 44,
     letterSpacing: -1, // echoes the lockup's tight tracking
     color: colors.paper,
-    marginTop: 2,
+    marginTop: space.hair,
   },
   tagline: {
     fontFamily: fonts.sans,
@@ -367,14 +367,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   form: { gap: 16 },
-  usernameBlock: { gap: 6 },
+  usernameBlock: { gap: space.xxsPlus },
   uStatus: {
     fontFamily: fonts.sans,
     fontSize: typeScale.caption,
     color: colors.paper60,
   },
   uStatusError: { color: colors.safelight },
-  formHead: { gap: 4, marginBottom: 2 },
+  formHead: { gap: 4, marginBottom: space.hair },
   formTitle: {
     fontFamily: fonts.sansSemiBold,
     fontSize: typeScale.title,
@@ -398,15 +398,15 @@ const styles = StyleSheet.create({
     fontSize: typeScale.sub,
     color: colors.paper60,
     textAlign: 'center',
-    padding: 10,
+    padding: space.xsPlus,
   },
   switchAction: { fontFamily: fonts.sansMedium, color: colors.safelight },
-  resetSwitch: { alignItems: 'center', gap: 2 },
+  resetSwitch: { alignItems: 'center', gap: space.hair },
   switchLineMuted: {
     fontFamily: fonts.sans,
     fontSize: typeScale.caption,
     color: colors.paper60,
     textAlign: 'center',
-    padding: 6,
+    padding: space.xxsPlus,
   },
 });

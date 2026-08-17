@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { displayFamily } from '@/components/fonts';
-import { colors, fonts, iconStroke, typeScale } from '@/components/tokens';
+import { colors, fonts, iconStroke, space, typeScale } from '@/components/tokens';
 
 type PermissionBlockProps = {
   icon: LucideIcon;
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
   },
   textGroup: {
     alignItems: 'center',
-    gap: 6, // tight: headline to subhead, one unit
+    gap: space.xxsPlus, // tight: headline to subhead, one unit
   },
   title: {
     fontFamily: displayFamily,

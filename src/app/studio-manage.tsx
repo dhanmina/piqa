@@ -16,7 +16,7 @@ import { Field } from '@/components/atoms/Field';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { avatar, colors, fonts, typeScale } from '@/components/tokens';
+import { avatar, colors, fonts, space, typeScale } from '@/components/tokens';
 
 export default function StudioManageScreen() {
   const router = useRouter();
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 12 },
   spacer: { height: 20 },
   emptyLine: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
-  memberRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
+  memberRow: { flexDirection: 'row', alignItems: 'center', gap: space.xsPlus, paddingVertical: space.xxsPlus },
   memberName: { flex: 1, fontFamily: fonts.sans, fontSize: typeScale.body, color: colors.paper },
   confirmLine: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },
 });

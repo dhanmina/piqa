@@ -276,6 +276,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   actions: { gap: 12 },
-  toggleRow: { paddingBottom: 2 },
+  toggleRow: { paddingBottom: space.hair },
   links: { gap: 4, alignItems: 'flex-start', paddingTop: 8 },
 });

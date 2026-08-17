@@ -330,11 +330,11 @@ export default function AdminLibraryScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  content: { padding: space.gutter, paddingBottom: 64, gap: 26 },
+  content: { padding: space.gutter, paddingBottom: 64, gap: space.lgPlus },
   section: { gap: 8 },
   sectionTitle: { letterSpacing: 1.5, paddingHorizontal: 4 },
   card: { backgroundColor: colors.ink2, borderRadius: radius.card, overflow: 'hidden' },
-  addBody: { padding: 16, gap: 14 },
+  addBody: { padding: 16, gap: space.smPlus },
   input: {
     fontFamily: fonts.sans,
     fontSize: typeScale.sub,
@@ -359,15 +359,15 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: space.xxsPlus,
   },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xxsPlus },
   subjectCard: { backgroundColor: colors.ink2, borderRadius: radius.card, overflow: 'hidden' },
-  subjectHead: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  subjectHead: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: space.smPlus },
   subjectText: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper },
-  subMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  editBody: { paddingHorizontal: 14, paddingBottom: 14, gap: 12 },
-  seqRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  subMeta: { flexDirection: 'row', alignItems: 'center', gap: space.xxsPlus, flexWrap: 'wrap' },
+  editBody: { paddingHorizontal: space.smPlus, paddingBottom: space.smPlus, gap: 12 },
+  seqRow: { flexDirection: 'row', alignItems: 'center', gap: space.xsPlus },
   seqInput: {
     fontFamily: fonts.mono,
     fontSize: typeScale.sub,

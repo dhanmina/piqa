@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.ink,
   },
-  streakInfo: { gap: 14 },
+  streakInfo: { gap: space.smPlus },
   streakInfoLine: {
     fontFamily: fonts.sans,
     fontSize: typeScale.sub,
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    gap: 6,
+    gap: space.xxsPlus,
   },
   headerRow: {
     flexDirection: 'row',
@@ -648,9 +648,9 @@ const styles = StyleSheet.create({
     gap: 12,
     minHeight: 32,
   },
-  headerLeft: { gap: 6 },
+  headerLeft: { gap: space.xxsPlus },
   // Nudge the glyph down so it optically centers on the flame beside it.
-  bell: { paddingTop: 2 },
+  bell: { paddingTop: space.hair },
   bellDot: {
     position: 'absolute',
     top: 0,
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
   submittedAction: {
     alignSelf: 'stretch',
     alignItems: 'center', // center the eyebrow onto the hero's axis; the fullWidth button still stretches
-    gap: 10,
+    gap: space.xsPlus,
     marginTop: 4,
   },
   statusLine: {
@@ -725,11 +725,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: overlay.badge,
-    paddingHorizontal: 6,
+    paddingHorizontal: space.xxsPlus,
     paddingVertical: 4,
   },
   // Status + results time read as one unit, tightly stacked and centered under the print.
-  submittedStatus: { alignItems: 'center', gap: 6 },
+  submittedStatus: { alignItems: 'center', gap: space.xxsPlus },
   subNote: {
     textAlign: 'center',
     fontFamily: fonts.sans,
@@ -737,10 +737,10 @@ const styles = StyleSheet.create({
     color: colors.paper60,
   },
   doneResult: {
-    gap: 10,
+    gap: space.xsPlus,
   },
   resultPress: {
-    gap: 10, // keeps the tile → caption → hearts rhythm now that they share one tap target
+    gap: space.xsPlus, // keeps the tile → caption → hearts rhythm now that they share one tap target
   },
   resultCaption: {
     flexDirection: 'row',
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
   },
   countdownBlock: {
     alignItems: 'center',
-    gap: 6,
+    gap: space.xxsPlus,
     paddingVertical: space.gutter,
   },
   softLine: {
@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 10,
+    paddingVertical: space.xsPlus,
   },
   shooter: {
     fontFamily: displayFamily,
@@ -793,16 +793,16 @@ const styles = StyleSheet.create({
   },
   waitingSocial: {
     textAlign: 'center',
-    paddingVertical: 2,
+    paddingVertical: space.hair,
   },
   potdHearts: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: space.xxsPlus,
   },
   actionBlock: {
     alignItems: 'center', // eyebrow centered onto the column; the fullWidth button still stretches
-    gap: 10,
+    gap: space.xsPlus,
   },
   devLink: {
     alignItems: 'center',

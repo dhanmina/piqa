@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { Check } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, icons, motion, radius, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, motion, radius, space, typeScale } from '@/components/tokens';
 
 type ToggleProps = {
   label: string;
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: space.xsPlus,
     minHeight: 36,
   },
   well: {

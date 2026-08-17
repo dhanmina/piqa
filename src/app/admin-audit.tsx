@@ -34,7 +34,7 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
         style={styles.auditHead}
         onPress={() => setOpen((o) => !o)}
       >
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: space.hair }}>
           <View style={styles.actionRow}>
             <Mono size={typeScale.caption} color={colors.paper}>{entry.action}</Mono>
             <Mono size={10} color={colors.paper40}>· {entry.entity}</Mono>
@@ -108,9 +108,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   content: { padding: space.gutter, paddingBottom: 64, gap: 8 },
   auditCard: { backgroundColor: colors.ink2, borderRadius: radius.card, overflow: 'hidden' },
-  auditHead: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  auditBody: { paddingHorizontal: 14, paddingBottom: 14, gap: 10 },
+  auditHead: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: space.smPlus },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxsPlus },
+  auditBody: { paddingHorizontal: space.smPlus, paddingBottom: space.smPlus, gap: space.xsPlus },
   jsonBlock: { gap: 4 },
   error: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.safelight, textAlign: 'center', marginTop: 24 },
 });

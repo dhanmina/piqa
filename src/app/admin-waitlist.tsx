@@ -34,7 +34,7 @@ function WaitlistRow({
 
   return (
     <View style={styles.row}>
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: space.hair }}>
         <Text style={styles.email}>{entry.email}</Text>
         <Mono size={10} color={colors.paper40}>{date}</Mono>
       </View>
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: space.smPlus,
     minHeight: space.target,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.paper30,

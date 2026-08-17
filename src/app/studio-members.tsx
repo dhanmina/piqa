@@ -21,7 +21,7 @@ import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { Sheet } from '@/components/molecules/Sheet';
-import { colors, fonts, typeScale } from '@/components/tokens';
+import { colors, fonts, space, typeScale } from '@/components/tokens';
 
 export default function StudioMembersScreen() {
   const router = useRouter();
@@ -92,7 +92,7 @@ export default function StudioMembersScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   list: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: space.xsPlus },
   name: { flex: 1, fontFamily: fonts.sans, fontSize: typeScale.body, color: colors.paper },
   tag: { letterSpacing: 1 },
   mark: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, width: 20, textAlign: 'center' },

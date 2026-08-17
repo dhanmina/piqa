@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.sheetTop,
     borderTopRightRadius: radius.sheetTop,
     paddingHorizontal: space.gutter,
-    paddingTop: 10,
+    paddingTop: space.xsPlus,
   },
   grabber: {
     alignSelf: 'center',
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: colors.paper30,
-    marginBottom: 14,
+    marginBottom: space.smPlus,
   },
   title: {
     fontFamily: fonts.sansSemiBold,

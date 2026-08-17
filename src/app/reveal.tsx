@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   },
   noResult: {
     alignItems: 'center',
-    gap: 6,
+    gap: space.xxsPlus,
     paddingVertical: 24,
   },
   noResultText: {

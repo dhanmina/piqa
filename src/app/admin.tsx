@@ -236,7 +236,7 @@ export default function AdminScreen() {
                 <View key={`${c.date}-${c.region}`}>
                   {i > 0 && <View style={styles.divider} />}
                   <View style={styles.crownRow}>
-                    <View style={{ flex: 1, gap: 2 }}>
+                    <View style={{ flex: 1, gap: space.hair }}>
                       <Mono size={typeScale.caption} color={colors.paper}>
                         {c.shooter ? `@${c.shooter}` : S.hubCrownNoWinner}
                       </Mono>
@@ -263,7 +263,7 @@ export default function AdminScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  content: { padding: space.gutter, paddingBottom: 48, gap: 26 },
+  content: { padding: space.gutter, paddingBottom: 48, gap: space.lgPlus },
 
   // Stats strip
   statsStrip: {
@@ -288,10 +288,10 @@ const styles = StyleSheet.create({
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30 },
 
   // Today
-  todayInner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  todayInner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: space.smPlus },
   todayInnerPressed: { backgroundColor: colors.ink },
   todaySubject: { fontFamily: fonts.sansMedium, fontSize: typeScale.sub, color: colors.paper },
-  todayMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  todayMeta: { flexDirection: 'row', alignItems: 'center', gap: space.xxsPlus },
 
   // Actions
   actionRow: {
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: space.target,
-    paddingHorizontal: 14,
+    paddingHorizontal: space.smPlus,
   },
   actionRowPressed: { backgroundColor: colors.ink },
   actionLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
@@ -312,14 +312,14 @@ const styles = StyleSheet.create({
     height: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: space.xxsPlus,
   },
 
   // Engagement
-  engBody: { padding: 14, gap: 10 },
+  engBody: { padding: space.smPlus, gap: space.xsPlus },
   engRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   engDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginVertical: 4 },
-  engDayRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  engDayRow: { flexDirection: 'row', alignItems: 'center', gap: space.xsPlus },
   engBarWrap: { flex: 1, height: 4, backgroundColor: colors.ink, borderRadius: 2, overflow: 'hidden' },
   engBar: { height: 4, backgroundColor: colors.safelight, borderRadius: 2 },
 
@@ -328,9 +328,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: 14,
+    padding: space.smPlus,
   },
-  crownRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  crownRight: { flexDirection: 'row', alignItems: 'center', gap: space.xxsPlus },
 
   muted: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center', padding: 20 },
 });

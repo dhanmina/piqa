@@ -115,14 +115,22 @@ export const frame = {
   window: { left: '3.2%', right: '3.2%', top: '2.4%', bottom: '9.6%' }, // 24 / 24 / 24 / 96 of 750x1000
 } as const;
 
-/** 4pt sub-grid — tokens.ts already implied this (gutter=20, chrome=40 are
- *  both ×4), this just names the steps so screens stop hand-typing literals. */
+/** Base steps land on a 4pt grid (gutter=20, chrome=40 are both ×4); the
+ *  `*Plus` steps are the +2 half-tier that recurs just as often across
+ *  screens (row gaps, chip padding) — named here so it stops getting
+ *  hand-typed as a stray literal. */
 export const space = {
+  hair: 2, // smallest micro-gap (icon baseline nudges)
   xxs: 4,
+  xxsPlus: 6,
   xs: 8,
+  xsPlus: 10,
   sm: 12,
+  smPlus: 14,
   md: 16,
+  mdPlus: 18,
   lg: 24,
+  lgPlus: 26,
   compact: 36,
   gutter: 20,
   gridGap: 8,

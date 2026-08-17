@@ -6,7 +6,7 @@ import { Image } from 'expo-image';
 import { Brandmark } from '@/components/atoms/Brandmark';
 import { Mono } from '@/components/atoms/Mono';
 import { displayFamily } from '@/components/fonts';
-import { colors, typeScale } from '@/components/tokens';
+import { colors, space, typeScale } from '@/components/tokens';
 import { imageCacheKey } from '@lib/cache';
 
 export type RecapData = {
@@ -168,18 +168,18 @@ function StatRow({ label, value }: { label: string; value: number }) {
 }
 
 const statStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  row: { flexDirection: 'row', alignItems: 'baseline', gap: space.xxsPlus },
 });
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.ink,
-    padding: 14,
-    gap: 10,
+    padding: space.smPlus,
+    gap: space.xsPlus,
     aspectRatio: 4 / 5,
   },
   header: {
-    gap: 2,
+    gap: space.hair,
   },
   eyebrow: {
     letterSpacing: 1.6,
@@ -203,13 +203,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   streak: {
-    marginTop: 2,
+    marginTop: space.hair,
   },
   credit: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 2,
+    marginTop: space.hair,
   },
   shooter: {
     fontFamily: displayFamily,

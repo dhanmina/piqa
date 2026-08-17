@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  body: { flex: 1, gap: 3 },
+  body: { flex: 1, gap: space.hair },
   line: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   subject: { flexShrink: 1, fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },

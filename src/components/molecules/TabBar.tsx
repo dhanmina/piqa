@@ -9,7 +9,7 @@ import { getPendingItemForDrop, subscribeQueue } from '@lib/services/captureQueu
 import { isResultSeen, isRevealSeen } from '@lib/services/gallery';
 import { useHomeState } from '@lib/homeState';
 import { Shutter, type ShutterState } from '@/components/moments/Shutter';
-import { colors, fonts, iconStroke, typeScale } from '@/components/tokens';
+import { colors, fonts, iconStroke, space, typeScale } from '@/components/tokens';
 
 const TAB_META: Record<string, { label: string; icon: LucideIcon }> = {
   today: { label: 'Today', icon: House },
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 56, // 48dp+ target
     alignItems: 'center',
-    gap: 3,
+    gap: space.xxs,
   },
   label: {
     fontFamily: fonts.sans,

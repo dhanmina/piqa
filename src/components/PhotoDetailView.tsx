@@ -716,22 +716,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   // Heart + share sit together, right of the shooter, on the name/eyebrow baseline.
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: space.mdPlus },
   sharing: { opacity: 0.4 },
   // Kept in the tree so the snapshot has a laid-out card, but never on screen.
   shareStage: { position: 'absolute', left: -9999, top: 0 },
   // Name + status read as one unit — tight pairing, with the air below (overlay
   // paddingBottom) separating them from the rail.
-  identity: { flex: 1, gap: 3 },
-  nods: { gap: 6, marginTop: 2 },
-  potdNote: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.crown, lineHeight: typeScale.caption * 1.4, marginTop: 2 },
-  nodChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  identity: { flex: 1, gap: space.hair },
+  nods: { gap: space.xxsPlus, marginTop: space.hair },
+  potdNote: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.crown, lineHeight: typeScale.caption * 1.4, marginTop: space.hair },
+  nodChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xxsPlus },
   nodChip: {
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.paper30,
     borderRadius: 100,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: space.xsPlus,
+    paddingVertical: space.xxs,
   },
   nodChipText: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper },
   // alignSelf flex-start so the tap target hugs the name text — the identity block

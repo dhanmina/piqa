@@ -7,7 +7,7 @@ import Svg, { Path } from 'react-native-svg';
 import { imageCacheKey } from '@lib/cache';
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { Mono } from '@/components/atoms/Mono';
-import { colors, icons, overlay, photo, radius, typeScale } from '@/components/tokens';
+import { colors, icons, overlay, photo, radius, space, typeScale } from '@/components/tokens';
 
 type PhotoTileBadge = 'crown' | 'daily' | 'queued';
 
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     top: 8,
     left: 8,
     backgroundColor: overlay.badge,
-    paddingHorizontal: 6,
+    paddingHorizontal: space.xxsPlus,
     paddingVertical: 4,
   },
   queuedRow: {
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    gap: 5,
-    paddingTop: 6,
+    gap: space.xxsPlus,
+    paddingTop: space.xxsPlus,
   },
 });

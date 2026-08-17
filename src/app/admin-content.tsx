@@ -217,11 +217,11 @@ export default function AdminContentScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  content: { padding: space.gutter, paddingBottom: 48, gap: 26 },
+  content: { padding: space.gutter, paddingBottom: 48, gap: space.lgPlus },
   section: { gap: 8 },
   sectionTitle: { letterSpacing: 1.5, paddingHorizontal: 4 },
   card: { backgroundColor: colors.ink2, borderRadius: radius.card, overflow: 'hidden' },
-  rowPad: { padding: 16, gap: 14 },
+  rowPad: { padding: 16, gap: space.smPlus },
   subject: { fontFamily: fonts.sansMedium, fontSize: typeScale.title, color: colors.paper, lineHeight: 26 },
   metaRow: { flexDirection: 'row', alignItems: 'center' },
   help: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60, lineHeight: typeScale.caption * 1.4 },

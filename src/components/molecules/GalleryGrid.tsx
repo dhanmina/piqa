@@ -305,14 +305,14 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 2,
     backgroundColor: colors.ink2,
-    marginTop: 2,
+    marginTop: space.hair,
   },
   skelCaptionLine: {
     width: 60,
     height: 10,
     borderRadius: 2,
     backgroundColor: colors.ink2,
-    marginTop: 6,
+    marginTop: space.xxsPlus,
   },
   skelSectionLabel: {
     width: 90,
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   },
   potdCredit: {
     letterSpacing: 0.5,
-    paddingLeft: 2,
+    paddingLeft: space.hair,
   },
   potdFade: {
     position: 'absolute',
@@ -343,8 +343,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     bottom: frame.window.bottom,
-    paddingHorizontal: 14,
-    paddingBottom: 10,
+    paddingHorizontal: space.smPlus,
+    paddingBottom: space.xsPlus,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -372,8 +372,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 6,
-    paddingBottom: 2,
+    paddingTop: space.xxsPlus,
+    paddingBottom: space.hair,
   },
   tileCaptionLeft: {
     flex: 1,

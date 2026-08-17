@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.ink2,
     borderRadius: radius.card,
-    paddingHorizontal: 14,
+    paddingHorizontal: space.smPlus,
     minHeight: space.target,
     gap: 8,
   },

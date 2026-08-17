@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 
-import { colors, fonts, motion, radius, typeScale } from '@/components/tokens';
+import { colors, fonts, motion, radius, space, typeScale } from '@/components/tokens';
 
 type ToastProps = {
   message: string;
@@ -54,14 +54,14 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: space.xsPlus,
     backgroundColor: colors.ink2,
     borderRadius: radius.pill,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.paper30,
-    paddingLeft: 14,
-    paddingRight: 18,
-    paddingVertical: 10,
+    paddingLeft: space.smPlus,
+    paddingRight: space.mdPlus,
+    paddingVertical: space.xsPlus,
     maxWidth: '85%',
   },
   dot: {

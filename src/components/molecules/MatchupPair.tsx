@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { imageCacheKey } from '@lib/cache';
 import { IconButton } from '@/components/atoms/IconButton';
-import { colors, fonts, icons, overlay, radius, typeScale } from '@/components/tokens';
+import { colors, fonts, icons, overlay, radius, space, typeScale } from '@/components/tokens';
 
 type MatchupPairProps = {
   topUri: string;
@@ -186,9 +186,9 @@ const styles = StyleSheet.create({
   barRight: { justifyContent: 'flex-end' },
   progressPill: {
     flexDirection: 'row',
-    gap: 3,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    gap: space.hair,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xxsPlus,
     borderRadius: radius.pill,
     backgroundColor: overlay.chip,
   },
@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
     color: colors.paper,
     textAlign: 'center',
     maxWidth: '90%',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: space.smPlus,
+    paddingVertical: space.xxsPlus,
     borderRadius: radius.pill,
     backgroundColor: overlay.chip,
     overflow: 'hidden',
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     fontSize: typeScale.caption,
     color: colors.paper,
-    paddingHorizontal: 14,
+    paddingHorizontal: space.smPlus,
     paddingVertical: 8,
     borderRadius: radius.pill,
     backgroundColor: overlay.chip,

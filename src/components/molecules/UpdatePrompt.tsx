@@ -124,12 +124,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   actions: {
-    gap: 10,
+    gap: space.xsPlus,
     marginTop: 8,
   },
   laterButton: {
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: space.xsPlus,
   },
   laterText: {
     fontFamily: fonts.sansMedium,

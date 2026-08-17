@@ -293,7 +293,7 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
-  content: { padding: space.gutter, paddingBottom: 48, gap: 26 },
+  content: { padding: space.gutter, paddingBottom: 48, gap: space.lgPlus },
   section: { gap: 8 },
   sectionTitle: { letterSpacing: 1.5, paddingHorizontal: 4 },
   card: { backgroundColor: colors.ink2, borderRadius: radius.card, overflow: 'hidden' },
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: space.smPlus,
   },
   rowPressed: { backgroundColor: colors.ink },
   rowDisabled: { opacity: 0.4 },
@@ -314,10 +314,10 @@ const styles = StyleSheet.create({
   soonTag: {
     backgroundColor: colors.ink,
     borderRadius: radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: space.xs,
+    paddingVertical: space.xxs,
   },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginLeft: 14 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper30, marginLeft: space.smPlus },
   warn: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center' },
   deleteRow: { alignItems: 'center', paddingVertical: 12 },
   deleteText: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.heart },
