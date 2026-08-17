@@ -21,7 +21,8 @@ export type PushData = {
     | "streak"
     | "curate"
     | "nod"
-    | "studio_challenge_nudge";
+    | "studio_challenge_nudge"
+    | "weekly_recap";
   photoId?: string;
   userId?: string;
   dropId?: string;
@@ -119,6 +120,9 @@ export function useNotificationRouting(): void {
           break;
         case "studio_challenge_nudge":
           router.push("/(tabs)/studios");
+          break;
+        case "weekly_recap":
+          router.push("/weekly-recap");
           break;
       }
     };

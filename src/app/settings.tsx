@@ -265,6 +265,7 @@ export default function SettingsScreen() {
               <ToggleRow label="Appreciation" value={prefs.appreciation} disabled={prefsDisabled} onValueChange={() => toggle('appreciation')} />
               <ToggleRow label="New follower" value={prefs.social} disabled={prefsDisabled} onValueChange={() => toggle('social')} />
               <ToggleRow label="Closing soon (if you haven't shot today)" value={prefs.closingSoon} disabled={prefsDisabled} onValueChange={() => toggle('closingSoon')} />
+              <ToggleRow label="Weekly recap (Sunday mornings)" value={prefs.weeklyRecap} disabled={prefsDisabled} onValueChange={() => toggle('weeklyRecap')} />
               <ToggleRow label="Quiet hours (9PM–8AM)" value={prefs.quiet} disabled={prefsDisabled} onValueChange={() => toggle('quiet')} />
             </>
           )}
