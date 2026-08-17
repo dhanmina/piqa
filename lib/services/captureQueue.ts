@@ -32,6 +32,7 @@ import { capture } from "./analytics";
 import { getConfig } from "./config";
 import { classifyImage, NSFW_REJECTION_COPY } from "../utils/nsfw";
 import { supabase } from "./supabase";
+import { getWifiOnlySync } from "../uploadPrefs";
 
 // Image pipeline. Piqa is a photos app, so the full-res is sized to stay sharp
 // fullscreen on high-DPI phones (a 4:5 portrait fills ~1600px tall on a 3x
@@ -499,20 +500,48 @@ export async function retryBlocked(): Promise<void> {
   }
 }
 
+/**
+ * "Upload over Wi-Fi only" gate. Unknown network type falls through to
+ * "allow" — same rule the rest of this file follows for offline: never
+ * invent a blocked state from an uncertain read.
+ */
+async function canUploadNow(): Promise<boolean> {
+  if (!getWifiOnlySync()) return true;
+  try {
+    const state = await Network.getNetworkStateAsync();
+    return state.type === Network.NetworkStateType.WIFI;
+  } catch {
+    return true;
+  }
+}
+
 async function kick(): Promise<void> {
   if (running) return;
   running = true;
+  let wifiBlocked = false;
   try {
-    let next: QueueItem | undefined;
-    while (
-      (next = items.find((i) => i.status === "pending" && i.nextAttemptAt <= Date.now()))
-    ) {
-      await processItem(next);
+    if (await canUploadNow()) {
+      let next: QueueItem | undefined;
+      while (
+        (next = items.find((i) => i.status === "pending" && i.nextAttemptAt <= Date.now()))
+      ) {
+        await processItem(next);
+      }
+    } else {
+      wifiBlocked = true;
     }
   } finally {
     running = false;
   }
-  scheduleNextWake();
+  // Waiting on Wi-Fi isn't a per-item backoff — don't spin scheduleNextWake's
+  // timer for it. Resume comes from the network listener below (fires on any
+  // reconnect, including onto Wi-Fi) or from the Settings toggle waking us.
+  if (!wifiBlocked) scheduleNextWake();
+}
+
+/** Re-check the queue now — called after the Wi-Fi-only preference changes. */
+export function wakeCaptureQueue(): void {
+  void kick();
 }
 
 function scheduleNextWake() {

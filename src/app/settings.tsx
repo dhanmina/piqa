@@ -27,6 +27,9 @@ import { useSession } from '@lib/session';
 import { supabase } from '@lib/services/supabase';
 import { levelProgress } from '@lib/utils/xp';
 import { getConsentSync, setConsent } from '@lib/analyticsConsent';
+import { getWifiOnlySync, setWifiOnly } from '@lib/uploadPrefs';
+import { wakeCaptureQueue } from '@lib/services/captureQueue';
+import { clearCache, getCacheSize } from '@lib/services/cacheStorage';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
 import { FramePicker } from '@/components/molecules/FramePicker';
@@ -61,6 +64,13 @@ function ToggleRow({ label, value, onValueChange, disabled }: { label: string; v
       />
     </View>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
 }
 
 type RowProps = { label: string; value?: string; soon?: boolean; danger?: boolean; chevron?: boolean; onPress?: () => void };
@@ -184,6 +194,30 @@ export default function SettingsScreen() {
     if (!ok) Alert.alert("Couldn't export your data", 'Something went wrong. Please try again.');
   }, []);
 
+  // Local-only preference — the capture queue reads it directly, no server round trip.
+  const [wifiOnly, setWifiOnlyState] = useState(() => getWifiOnlySync());
+  const toggleWifiOnly = useCallback(async () => {
+    const next = !wifiOnly;
+    setWifiOnlyState(next);
+    await setWifiOnly(next);
+    wakeCaptureQueue();
+  }, [wifiOnly]);
+
+  // Re-read on focus so it reflects captures uploaded since the last visit.
+  const [cacheSize, setCacheSize] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setCacheSize(getCacheSize());
+    }, []),
+  );
+  const [clearingCache, setClearingCache] = useState(false);
+  const onClearCache = useCallback(async () => {
+    setClearingCache(true);
+    await clearCache();
+    setCacheSize(getCacheSize());
+    setClearingCache(false);
+  }, []);
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScreenHeader onBack={() => router.back()} title="Settings" />
@@ -230,6 +264,16 @@ export default function SettingsScreen() {
           />
           <View style={styles.divider} />
           <Row label="Sign out" onPress={() => setConfirmSignOut(true)} />
+        </Section>
+
+        <Section title="DATA & STORAGE">
+          <ToggleRow label="Upload over Wi-Fi only" value={wifiOnly} onValueChange={() => void toggleWifiOnly()} />
+          <View style={styles.divider} />
+          <Row
+            label={clearingCache ? 'Clearing…' : 'Clear cache'}
+            value={clearingCache ? undefined : formatBytes(cacheSize)}
+            onPress={clearingCache ? undefined : () => void onClearCache()}
+          />
         </Section>
 
         <Section title="SAFETY">
