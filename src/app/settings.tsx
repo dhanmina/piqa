@@ -257,6 +257,10 @@ export default function SettingsScreen() {
         <Section title="ACCOUNT">
           <Row label="Email" value={session?.user.email ?? '—'} />
           <View style={styles.divider} />
+          <Row label="Change password" chevron onPress={() => router.push('/change-password')} />
+          <View style={styles.divider} />
+          <Row label="Connected accounts" chevron onPress={() => router.push('/connected-accounts')} />
+          <View style={styles.divider} />
           <Row
             label={exporting ? 'Preparing…' : 'Download my data'}
             chevron={!exporting}
