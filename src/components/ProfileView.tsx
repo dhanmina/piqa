@@ -12,6 +12,7 @@ import { Image } from 'expo-image';
 import { CloudOff, Crown, MoreHorizontal, Settings, Share, Star, Trophy } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { imageCacheKey, signThumbs } from '@lib/cache';
@@ -22,7 +23,7 @@ import { useNodsReceived } from '@lib/hooks/nods';
 import { useFollowingPreview } from '@lib/hooks/useProfile';
 import { toggleStar } from '@lib/services/archive';
 import type { ProfileData, ProfileWin } from '@lib/services/profile';
-import { shareProfile } from '@lib/utils/share';
+import { profileShareUrl, shareProfile } from '@lib/utils/share';
 import { warmImage } from '@lib/utils/warmImage';
 import { levelProgress } from '@lib/utils/xp';
 import { ArchiveGrid } from '@/components/ArchiveGrid';
@@ -36,9 +37,10 @@ import { EmptyState } from '@/components/molecules/EmptyState';
 import { FacePile } from '@/components/molecules/FacePile';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
+import { Sheet } from '@/components/molecules/Sheet';
 import { StarredLightbox } from '@/components/molecules/StarredLightbox';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, frame, icons, space, typeScale } from '@/components/tokens';
+import { colors, fonts, frame, icons, radius, space, typeScale } from '@/components/tokens';
 
 type StarredItem = ProfileData['starred'][number];
 
@@ -58,6 +60,18 @@ type Props = {
   /** Self only — Wins-empty CTA routes to the Gallery tab to go star something. */
   onExploreGallery?: () => void;
 };
+
+function ShareProfileSheet({ visible, onClose, username }: { visible: boolean; onClose: () => void; username: string }) {
+  return (
+    <Sheet visible={visible} onClose={onClose} title="Share profile">
+      <View style={styles.qrWrap}>
+        <QRCode value={profileShareUrl(username)} size={200} color={colors.ink} backgroundColor={colors.paper} />
+      </View>
+      <Text style={styles.qrHint}>Scan to open @{username} in piqa.</Text>
+      <Button label="Share link" fullWidth onPress={() => void shareProfile(username)} />
+    </Sheet>
+  );
+}
 
 export function ProfileView({
   data,
@@ -148,6 +162,7 @@ export function ProfileView({
   // below) so switching away and back never remounts its image tree. Set at
   // the tap site (below), not in an effect, to avoid a cascading re-render.
   const [archiveVisited, setArchiveVisited] = useState(false);
+  const [showShareProfile, setShowShareProfile] = useState(false);
 
   // Measure the grid container so two columns + the gap never overflow into one.
   // Percentage widths ('48.8%') round up on high-density devices and push the
@@ -273,7 +288,7 @@ export function ProfileView({
               <IconButton
                 icon={Share}
                 accessibilityLabel="Share profile"
-                onPress={() => { if (data?.username) void shareProfile(data.username); }}
+                onPress={() => { if (data?.username) setShowShareProfile(true); }}
               />
               <IconButton
                 icon={Settings}
@@ -495,12 +510,22 @@ export function ProfileView({
       </Modal>
 
       <Toast message={starToast ?? ''} visible={starToast !== null} onHide={() => setStarToast(null)} />
+
+      {data?.username && (
+        <ShareProfileSheet
+          visible={showShareProfile}
+          onClose={() => setShowShareProfile(false)}
+          username={data.username}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
+  qrWrap: { alignSelf: 'center', padding: space.md, backgroundColor: colors.paper, borderRadius: radius.card, marginBottom: space.smPlus },
+  qrHint: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center', marginBottom: space.smPlus },
   content: { padding: space.gutter, gap: space.gutter },
   // Crest: avatar left, identity block right.
   crest: { flexDirection: 'row', alignItems: 'center', gap: space.smPlus, paddingTop: 4 },
