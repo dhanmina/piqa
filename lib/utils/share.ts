@@ -1,3 +1,4 @@
+import * as Linking from "expo-linking";
 import * as Sharing from "expo-sharing";
 import type React from "react";
 import { Share as RNShare, type View } from "react-native";
@@ -20,9 +21,16 @@ export function photoShareUrl(id: string): string {
   return `${DOMAIN}/photo/${id}`;
 }
 
-/** The public link to a user's profile. */
+/**
+ * The link shared for a user's profile. NOT the joinpiqa.com web URL above —
+ * that's dead (no landing page, no App Links/associatedDomains config), so
+ * sharing it 404s for the recipient. Uses the app's registered custom scheme
+ * instead, which Expo Router already routes to /u/[id] for free: works when
+ * tapped by someone who already has piqa installed. Linking.createURL handles
+ * the scheme correctly in both Expo Go (exp://) and standalone builds (piqa://).
+ */
 export function profileShareUrl(username: string): string {
-  return `${DOMAIN}/u/${username}`;
+  return Linking.createURL(`u/${username}`);
 }
 
 /**
