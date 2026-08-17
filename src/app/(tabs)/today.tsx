@@ -21,6 +21,8 @@ import { capture } from '@lib/services/analytics';
 import { markResultSeen } from '@lib/services/gallery';
 import { useSignedThumb } from '@lib/hooks/useCache';
 import { useHomeState, useTodayHint, useTodayGolden, useShotCountToday, useFriendShotCountToday } from '@lib/homeState';
+import type { HomeDrop, HomeSubmission, LastResult, YesterdayPotd } from '@lib/homeState';
+import type { FrameId } from '@lib/services/frames';
 import { useLast7Pattern } from '@lib/streak';
 import { Button } from '@/components/atoms/Button';
 import { Countdown } from '@/components/atoms/Countdown';
@@ -218,252 +220,71 @@ export default function TodayScreen() {
   let body: ReactElement;
   if (error && !data) {
     // Couldn't load with nothing cached → recoverable, not an endless skeleton.
-    body = (
-      <View style={styles.stateFill}>
-        <View style={styles.centerFill}>
-          <EmptyState
-            icon={CloudOff}
-            line="Couldn't load Today. Check your connection."
-            ctaLabel="Retry"
-            onCta={() => void refresh()}
-          />
-        </View>
-      </View>
-    );
+    body = <ErrorState onRetry={() => void refresh()} />;
   } else if (loading) {
     // Centred and photo-shaped: every real state resolves to a hero in this slot, so a
     // top-pinned 220px box guaranteed a jump the moment data landed.
-    body = (
-      <View style={styles.stateFill}>
-        <View style={styles.centerFill}>
-          <View style={styles.skeletonCard} />
-        </View>
-      </View>
-    );
+    body = <LoadingSkeleton />;
   } else if (submitted) {
     // (c) SUBMITTED — the print is the hero; status comes from the queue.
-    const queued = pending?.lastErrorKind === 'network';
-    const blocked = pending?.status === 'blocked';
-    const inRound = Boolean(submission); // uploaded + entered — now waiting on results
-    // The status line names the problem, the button names the fix — "Upload needs a
-    // retry" sitting on top of a "Retry upload" button said the cure twice, the cause never.
-    const statusLine = inRound
-      ? votingOpen
-        ? 'Shot submitted'
-        : 'Curators are picking'
-      : blocked
-        ? 'Upload didn\'t go through'
-        : queued
-          ? 'Shot saved · will upload'
-          : 'Shot saved · uploading';
     body = (
-      <View style={styles.stateFill}>
-        <View style={styles.submittedHero}>
-          {/* The brackets stay: they are the focus-lock submit moment (spec §11d),
-              not a status marker. Status is null here by definition — the day has
-              not closed, so close_day has not ruled on this photo yet. */}
-          <Brackets animated color={colors.paper}>
-            <View>
-              <FramedPhoto
-                photoUri={pending?.originalUri ?? signedSubFull}
-                placeholderUri={signedSubThumb}
-                dayNumber={drop?.day_number ?? submission?.day_number ?? 0}
-                frameId={dropFrame}
-                status={submission?.status ?? null}
-                width={heroPrintW}
-              />
-              {(queued || blocked) && (
-                <View style={styles.queuedBadge}>
-                  <RefreshCw size={11} strokeWidth={icons.strokeWidth} color={colors.paper60} />
-                  <Mono size={typeScale.tabLabel} color={colors.paper60}>
-                    queued
-                  </Mono>
-                </View>
-              )}
-            </View>
-          </Brackets>
-          {/* One status unit: the shot's state, then when results land. No Quick Draw
-              here — it's a past-tense reward for the result screen, and next to the
-              live Quick Draw prompt it just read as "why is this still here?". */}
-          <View style={styles.submittedStatus}>
-            <Text style={styles.statusLine}>{statusLine}</Text>
-            {inRound && resultsAt && <Text style={styles.subNote}>Results at {resultsAt}</Text>}
-            {inRound && friendShotCount != null && friendShotCount > 0 ? (
-              <Mono size={typeScale.caption} color={colors.paper40}>
-                {friendShotCount} friend{friendShotCount !== 1 ? 's' : ''} already shot today
-              </Mono>
-            ) : inRound && shotCount != null && shotCount > 1 ? (
-              <Mono size={typeScale.caption} color={colors.paper40}>
-                {shotCount} shots today
-              </Mono>
-            ) : null}
-            {inRound && resultsAt && (
-              <Mono size={typeScale.caption} color={colors.paper40} style={styles.openLoop}>
-                Tomorrow's subject drops at {clockTime(data?.next_drop_at ?? drop!.voting_closes_at)}
-              </Mono>
-            )}
-          </View>
-          {blocked && <Button label="Retry upload" variant="ghost" onPress={() => void retryBlocked()} fullWidth />}
-        </View>
-        {!blocked && votingOpen && (
-          <View style={styles.submittedAction}>
-            <Mono size={typeScale.caption} color={colors.paper60}>
-              VOTING IS OPEN
-            </Mono>
-            <Button
-              label="Curate today’s shots"
-              variant="ghost"
-              fullWidth
-              onPress={() => router.push('/curate')}
-            />
-          </View>
-        )}
-      </View>
+      <SubmittedHero
+        pending={pending}
+        signedSubFull={signedSubFull}
+        signedSubThumb={signedSubThumb}
+        dropFrame={dropFrame}
+        drop={drop}
+        submission={submission}
+        votingOpen={votingOpen}
+        friendShotCount={friendShotCount}
+        shotCount={shotCount}
+        heroPrintW={heroPrintW}
+        resultsAt={resultsAt}
+        nextDropAt={data?.next_drop_at ?? null}
+        onCurate={() => router.push('/curate')}
+        onRetryUpload={() => void retryBlocked()}
+      />
     );
-  } else if (drop?.is_live) {
+  } else if (drop && drop.is_live) {
     // (b) LIVE — Shoot stays the single loud Primary; curating is a quiet second.
     body = (
-      <View style={styles.stateFill}>
-        <View style={styles.liveHero}>
-          <ShotCard
-            prompt={drop.prompt}
-            hint={hint}
-            angles={drop.angles}
-            golden={golden}
-            closesAt={drop.submit_closes_at}
-            quickDrawUntil={quickDrawUntil}
-            onShoot={() => router.push('/camera')}
-          />
-          {friendShotCount != null && friendShotCount > 0 ? (
-            <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
-              {friendShotCount} friend{friendShotCount !== 1 ? 's' : ''} already shot today
-            </Mono>
-          ) : shotCount != null && shotCount > 0 ? (
-            <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
-              {shotCount} photographer{shotCount !== 1 ? 's' : ''} shooting today
-            </Mono>
-          ) : null}
-        </View>
-        {votingOpen && (
-          <View style={styles.submittedAction}>
-            <Mono size={typeScale.caption} color={colors.paper60}>
-              WHILE IT’S LIVE
-            </Mono>
-            <Button
-              label="Curate today’s shots"
-              variant="ghost"
-              fullWidth
-              onPress={() => router.push('/curate')}
-            />
-          </View>
-        )}
-      </View>
+      <LiveHero
+        drop={drop}
+        hint={hint}
+        golden={golden}
+        quickDrawUntil={quickDrawUntil}
+        friendShotCount={friendShotCount}
+        shotCount={shotCount}
+        votingOpen={votingOpen}
+        onShoot={() => router.push('/camera')}
+        onCurate={() => router.push('/curate')}
+      />
     );
   } else if (lastResult) {
     // (d) DONE / reveal-ready — the closed day's personal result, then teaser.
-    // Losses are never shown: a non-gallery shot is framed as picks earned.
-    // No numbers here, deliberately: this is a teaser, not a report. The gallery
-    // owns "how much" (hearts on your tile), Profile owns standing (level/XP bar),
-    // the streak flame already rewards showing up. A bare XP tick would only teach
-    // a picks→XP model the award formula doesn't honour (flat bonuses, daily cap).
-    // All four are labels, not sentences: the YOUR RESULT eyebrow already establishes
-    // possession, so "Your shot earned…" said "your" twice — and mixing labels with
-    // second-person prose gave the two BEST outcomes the coldest copy. One register.
-    //
-    // "Picked", not "hearts", and no "worldwide". This branch only ever fires for a shot
-    // that did NOT make the gallery — which means nobody could ever see it to react to it,
-    // so its heart (reaction) count is 0. The meaningful signal is `votes`: the blind
-    // curation picks it earned. Calling those "hearts" would tell someone whose shot
-    // didn't place that a crowd saw it and loved it. Nobody saw it. Curators chose it.
-    // It's also why only this branch carries a count: a non-gallery shot has no tile in the
-    // gallery, so Today is the one surface that will ever tell them.
-    const resultLine = lastResult.is_potd
-      ? 'Photo of the Day'
-      : lastResult.in_gallery
-        ? 'In the gallery'
-        : lastResult.votes > 0
-          ? `Picked ${lastResult.votes} ${lastResult.votes === 1 ? 'time' : 'times'} by curators`
-          : 'Safe in your archive';
     body = (
-      <View style={styles.stateFill}>
-        <View style={styles.waitingHero}>
-          <View style={styles.doneResult}>
-            <Mono size={typeScale.caption} color={colors.paper60}>
-              YOUR RESULT
-            </Mono>
-            {/* The print is the door into the gallery — same affordance as the PotD tile below. */}
-            {/* No gold brackets and no crown icon: the print already carries the
-                crown in its status slot, and the caption already says the words.
-                Three ways of saying "you won" is two too many. */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="See today's gallery"
-              style={styles.resultPress}
-              onPress={() => router.push('/(tabs)/gallery')}
-            >
-              <FramedPhoto
-                photoUri={signedResultThumb}
-                dayNumber={lastResult.day_number}
-                frameId={resultFrame}
-                status={lastResult.status}
-              />
-              <View style={styles.resultCaption}>
-                <Text style={styles.resultLine}>{resultLine}</Text>
-              </View>
-            </Pressable>
-          </View>
-
-          <NextShot at={data?.next_drop_at} onDone={() => void refresh()} />
-        </View>
-
-        {/* No "See the gallery" button: the action block's job is the destinations the
-            tab bar CAN'T reach (curate and practice have no tab, deliberately). The
-            gallery has one — plus the print above is its door, and the Gallery tab
-            wears the unseen-reveal dot. DONE is WAITING with a result, so it offers
-            exactly what WAITING offers — curate while a drop is votable (a new round
-            can be live while yesterday's result still shows), else a practice shot. */}
-        {whileYouWait}
-      </View>
+      <DoneReveal
+        lastResult={lastResult}
+        signedResultThumb={signedResultThumb}
+        resultFrame={resultFrame}
+        nextDropAt={data?.next_drop_at ?? null}
+        onRefresh={() => void refresh()}
+        onOpenGallery={() => router.push('/(tabs)/gallery')}
+        whileYouWait={whileYouWait}
+      />
     );
   } else {
     // (a) WAITING — anticipation, never absence.
     body = (
-      <View style={styles.stateFill}>
-        <View style={styles.waitingHero}>
-          {potd && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="View yesterday's gallery"
-              onPress={() => router.push('/(tabs)/gallery')}
-            >
-              <Mono size={typeScale.caption} color={colors.paper60} style={styles.waitingLabel}>
-                YESTERDAY'S WINNER
-              </Mono>
-              <View style={styles.potdSpacer} />
-              <FramedPhoto
-                photoUri={signedPotdThumb}
-                dayNumber={potd.day_number}
-                frameId="default"
-                status={potd.status}
-                width={heroPrintW}
-              />
-              <View style={styles.potdCaption}>
-                <Text style={styles.shooter}>{potd.shooter}</Text>
-                <View style={styles.potdHearts}>
-                  <HeartGlyph size={13} color={colors.paper60} />
-                  <Mono size={typeScale.caption} color={colors.paper60}>
-                    {potd.hearts}
-                  </Mono>
-                </View>
-              </View>
-            </Pressable>
-          )}
-
-          <NextShot at={data?.next_drop_at} onDone={() => void refresh()} />
-
-          {whileYouWait}
-        </View>
-      </View>
+      <WaitingState
+        potd={potd}
+        signedPotdThumb={signedPotdThumb}
+        heroPrintW={heroPrintW}
+        nextDropAt={data?.next_drop_at ?? null}
+        onRefresh={() => void refresh()}
+        onOpenGallery={() => router.push('/(tabs)/gallery')}
+        whileYouWait={whileYouWait}
+      />
     );
   }
 
@@ -617,6 +438,347 @@ function CountdownHuman({ until, onDone }: { until: string; onDone: () => void }
     <Mono weight="medium" size={typeScale.title} color={colors.paper}>
       {m > 0 ? `in ${m}m ${String(s).padStart(2, '0')}s` : 'Drops soon'}
     </Mono>
+  );
+}
+
+// The five body shapes described at the top of this file — pulled out of the
+// main render so each state's JSX (and the "why" comments that go with it)
+// reads as its own unit instead of one 250-line if/else chain. Styles stay
+// on the shared `styles` object below; nothing here owns its own StyleSheet.
+
+function LoadingSkeleton() {
+  return (
+    <View style={styles.stateFill}>
+      <View style={styles.centerFill}>
+        <View style={styles.skeletonCard} />
+      </View>
+    </View>
+  );
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View style={styles.stateFill}>
+      <View style={styles.centerFill}>
+        <EmptyState
+          icon={CloudOff}
+          line="Couldn't load Today. Check your connection."
+          ctaLabel="Retry"
+          onCta={onRetry}
+        />
+      </View>
+    </View>
+  );
+}
+
+function SubmittedHero({
+  pending,
+  signedSubFull,
+  signedSubThumb,
+  dropFrame,
+  drop,
+  submission,
+  votingOpen,
+  friendShotCount,
+  shotCount,
+  heroPrintW,
+  resultsAt,
+  nextDropAt,
+  onCurate,
+  onRetryUpload,
+}: {
+  pending: QueueItem | undefined;
+  signedSubFull: string | null;
+  signedSubThumb: string | null;
+  dropFrame: FrameId;
+  drop: HomeDrop | null;
+  submission: HomeSubmission | null;
+  votingOpen: boolean;
+  friendShotCount: number | null;
+  shotCount: number | null;
+  heroPrintW: number;
+  resultsAt: string | null;
+  nextDropAt: string | null;
+  onCurate: () => void;
+  onRetryUpload: () => void;
+}) {
+  const queued = pending?.lastErrorKind === 'network';
+  const blocked = pending?.status === 'blocked';
+  const inRound = Boolean(submission); // uploaded + entered — now waiting on results
+  // The status line names the problem, the button names the fix — "Upload needs a
+  // retry" sitting on top of a "Retry upload" button said the cure twice, the cause never.
+  const statusLine = inRound
+    ? votingOpen
+      ? 'Shot submitted'
+      : 'Curators are picking'
+    : blocked
+      ? 'Upload didn\'t go through'
+      : queued
+        ? 'Shot saved · will upload'
+        : 'Shot saved · uploading';
+  return (
+    <View style={styles.stateFill}>
+      <View style={styles.submittedHero}>
+        {/* The brackets stay: they are the focus-lock submit moment (spec §11d),
+            not a status marker. Status is null here by definition — the day has
+            not closed, so close_day has not ruled on this photo yet. */}
+        <Brackets animated color={colors.paper}>
+          <View>
+            <FramedPhoto
+              photoUri={pending?.originalUri ?? signedSubFull}
+              placeholderUri={signedSubThumb}
+              dayNumber={drop?.day_number ?? submission?.day_number ?? 0}
+              frameId={dropFrame}
+              status={submission?.status ?? null}
+              width={heroPrintW}
+            />
+            {(queued || blocked) && (
+              <View style={styles.queuedBadge}>
+                <RefreshCw size={11} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+                <Mono size={typeScale.tabLabel} color={colors.paper60}>
+                  queued
+                </Mono>
+              </View>
+            )}
+          </View>
+        </Brackets>
+        {/* One status unit: the shot's state, then when results land. No Quick Draw
+            here — it's a past-tense reward for the result screen, and next to the
+            live Quick Draw prompt it just read as "why is this still here?". */}
+        <View style={styles.submittedStatus}>
+          <Text style={styles.statusLine}>{statusLine}</Text>
+          {inRound && resultsAt && <Text style={styles.subNote}>Results at {resultsAt}</Text>}
+          {inRound && friendShotCount != null && friendShotCount > 0 ? (
+            <Mono size={typeScale.caption} color={colors.paper40}>
+              {friendShotCount} friend{friendShotCount !== 1 ? 's' : ''} already shot today
+            </Mono>
+          ) : inRound && shotCount != null && shotCount > 1 ? (
+            <Mono size={typeScale.caption} color={colors.paper40}>
+              {shotCount} shots today
+            </Mono>
+          ) : null}
+          {inRound && resultsAt && (
+            <Mono size={typeScale.caption} color={colors.paper40} style={styles.openLoop}>
+              Tomorrow's subject drops at {clockTime(nextDropAt ?? drop!.voting_closes_at)}
+            </Mono>
+          )}
+        </View>
+        {blocked && <Button label="Retry upload" variant="ghost" onPress={onRetryUpload} fullWidth />}
+      </View>
+      {!blocked && votingOpen && (
+        <View style={styles.submittedAction}>
+          <Mono size={typeScale.caption} color={colors.paper60}>
+            VOTING IS OPEN
+          </Mono>
+          <Button
+            label="Curate today’s shots"
+            variant="ghost"
+            fullWidth
+            onPress={onCurate}
+          />
+        </View>
+      )}
+    </View>
+  );
+}
+
+function LiveHero({
+  drop,
+  hint,
+  golden,
+  quickDrawUntil,
+  friendShotCount,
+  shotCount,
+  votingOpen,
+  onShoot,
+  onCurate,
+}: {
+  drop: HomeDrop;
+  hint: string | null;
+  golden: boolean;
+  quickDrawUntil: Date | undefined;
+  friendShotCount: number | null;
+  shotCount: number | null;
+  votingOpen: boolean;
+  onShoot: () => void;
+  onCurate: () => void;
+}) {
+  return (
+    <View style={styles.stateFill}>
+      <View style={styles.liveHero}>
+        <ShotCard
+          prompt={drop.prompt}
+          hint={hint}
+          angles={drop.angles}
+          golden={golden}
+          closesAt={drop.submit_closes_at}
+          quickDrawUntil={quickDrawUntil}
+          onShoot={onShoot}
+        />
+        {friendShotCount != null && friendShotCount > 0 ? (
+          <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
+            {friendShotCount} friend{friendShotCount !== 1 ? 's' : ''} already shot today
+          </Mono>
+        ) : shotCount != null && shotCount > 0 ? (
+          <Mono size={typeScale.caption} color={colors.paper40} style={styles.socialProof}>
+            {shotCount} photographer{shotCount !== 1 ? 's' : ''} shooting today
+          </Mono>
+        ) : null}
+      </View>
+      {votingOpen && (
+        <View style={styles.submittedAction}>
+          <Mono size={typeScale.caption} color={colors.paper60}>
+            WHILE IT’S LIVE
+          </Mono>
+          <Button
+            label="Curate today’s shots"
+            variant="ghost"
+            fullWidth
+            onPress={onCurate}
+          />
+        </View>
+      )}
+    </View>
+  );
+}
+
+// Losses are never shown: a non-gallery shot is framed as picks earned.
+// No numbers here, deliberately: this is a teaser, not a report. The gallery
+// owns "how much" (hearts on your tile), Profile owns standing (level/XP bar),
+// the streak flame already rewards showing up. A bare XP tick would only teach
+// a picks→XP model the award formula doesn't honour (flat bonuses, daily cap).
+// All four are labels, not sentences: the YOUR RESULT eyebrow already establishes
+// possession, so "Your shot earned…" said "your" twice — and mixing labels with
+// second-person prose gave the two BEST outcomes the coldest copy. One register.
+//
+// "Picked", not "hearts", and no "worldwide". This branch only ever fires for a shot
+// that did NOT make the gallery — which means nobody could ever see it to react to it,
+// so its heart (reaction) count is 0. The meaningful signal is `votes`: the blind
+// curation picks it earned. Calling those "hearts" would tell someone whose shot
+// didn't place that a crowd saw it and loved it. Nobody saw it. Curators chose it.
+// It's also why only this branch carries a count: a non-gallery shot has no tile in the
+// gallery, so Today is the one surface that will ever tell them.
+function DoneReveal({
+  lastResult,
+  signedResultThumb,
+  resultFrame,
+  nextDropAt,
+  onRefresh,
+  onOpenGallery,
+  whileYouWait,
+}: {
+  lastResult: LastResult;
+  signedResultThumb: string | null;
+  resultFrame: FrameId;
+  nextDropAt: string | null;
+  onRefresh: () => void;
+  onOpenGallery: () => void;
+  whileYouWait: ReactElement;
+}) {
+  const resultLine = lastResult.is_potd
+    ? 'Photo of the Day'
+    : lastResult.in_gallery
+      ? 'In the gallery'
+      : lastResult.votes > 0
+        ? `Picked ${lastResult.votes} ${lastResult.votes === 1 ? 'time' : 'times'} by curators`
+        : 'Safe in your archive';
+  return (
+    <View style={styles.stateFill}>
+      <View style={styles.waitingHero}>
+        <View style={styles.doneResult}>
+          <Mono size={typeScale.caption} color={colors.paper60}>
+            YOUR RESULT
+          </Mono>
+          {/* The print is the door into the gallery — same affordance as the PotD tile below. */}
+          {/* No gold brackets and no crown icon: the print already carries the
+              crown in its status slot, and the caption already says the words.
+              Three ways of saying "you won" is two too many. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="See today's gallery"
+            style={styles.resultPress}
+            onPress={onOpenGallery}
+          >
+            <FramedPhoto
+              photoUri={signedResultThumb}
+              dayNumber={lastResult.day_number}
+              frameId={resultFrame}
+              status={lastResult.status}
+            />
+            <View style={styles.resultCaption}>
+              <Text style={styles.resultLine}>{resultLine}</Text>
+            </View>
+          </Pressable>
+        </View>
+
+        <NextShot at={nextDropAt} onDone={onRefresh} />
+      </View>
+
+      {/* No "See the gallery" button: the action block's job is the destinations the
+          tab bar CAN'T reach (curate and practice have no tab, deliberately). The
+          gallery has one — plus the print above is its door, and the Gallery tab
+          wears the unseen-reveal dot. DONE is WAITING with a result, so it offers
+          exactly what WAITING offers — curate while a drop is votable (a new round
+          can be live while yesterday's result still shows), else a practice shot. */}
+      {whileYouWait}
+    </View>
+  );
+}
+
+function WaitingState({
+  potd,
+  signedPotdThumb,
+  heroPrintW,
+  nextDropAt,
+  onRefresh,
+  onOpenGallery,
+  whileYouWait,
+}: {
+  potd: YesterdayPotd | null;
+  signedPotdThumb: string | null;
+  heroPrintW: number;
+  nextDropAt: string | null;
+  onRefresh: () => void;
+  onOpenGallery: () => void;
+  whileYouWait: ReactElement;
+}) {
+  return (
+    <View style={styles.stateFill}>
+      <View style={styles.waitingHero}>
+        {potd && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="View yesterday's gallery"
+            onPress={onOpenGallery}
+          >
+            <Mono size={typeScale.caption} color={colors.paper60} style={styles.waitingLabel}>
+              YESTERDAY'S WINNER
+            </Mono>
+            <View style={styles.potdSpacer} />
+            <FramedPhoto
+              photoUri={signedPotdThumb}
+              dayNumber={potd.day_number}
+              frameId="default"
+              status={potd.status}
+              width={heroPrintW}
+            />
+            <View style={styles.potdCaption}>
+              <Text style={styles.shooter}>{potd.shooter}</Text>
+              <View style={styles.potdHearts}>
+                <HeartGlyph size={13} color={colors.paper60} />
+                <Mono size={typeScale.caption} color={colors.paper60}>
+                  {potd.hearts}
+                </Mono>
+              </View>
+            </View>
+          </Pressable>
+        )}
+
+        <NextShot at={nextDropAt} onDone={onRefresh} />
+
+        {whileYouWait}
+      </View>
+    </View>
   );
 }
 
