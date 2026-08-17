@@ -34,6 +34,17 @@ export function profileShareUrl(username: string): string {
 }
 
 /**
+ * The link shared for a Studio invite. Route groups like `(tabs)` are stripped
+ * from the public URL — Expo Router already resolves `studios` to the
+ * `(tabs)/studios` screen, same path the app's own internal navigation uses
+ * (as `/(tabs)/studios`). The screen reads the `code` query param to prefill
+ * the join sheet.
+ */
+export function studioInviteUrl(code: string): string {
+  return Linking.createURL("studios", { queryParams: { code } });
+}
+
+/**
  * Snapshot a composed ShareCard view to a PNG and hand it to the OS share sheet.
  * Image-only for now — the card is self-branded (its rail says PIQA), so it needs
  * no link, and there's no web target to link to yet. Captured at the view's size ×

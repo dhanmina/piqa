@@ -8,7 +8,7 @@
  * `studios_enabled` config flag; false shows the same empty-state copy already
  * designed for the tab, so the spot is held honestly rather than faked.
  */
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MoreHorizontal, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getConfig } from '@lib/services/config';
 import { capture } from '@lib/services/analytics';
+import { studioInviteUrl } from '@lib/utils/share';
 import { useStudio } from '@lib/hooks/studios';
 import { useStudioChallenge } from '@lib/hooks/studioChallenges';
 import { createStudio, joinStudioByCode } from '@lib/services/studios';
@@ -61,12 +62,36 @@ function MemberPile({ faces, total }: { faces: { id: string; username: string; a
   );
 }
 
-function CreateJoinSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const [mode, setMode] = useState<'create' | 'join'>('create');
+function CreateJoinSheet({
+  visible,
+  onClose,
+  initialMode = 'create',
+  initialCode = '',
+}: {
+  visible: boolean;
+  onClose: () => void;
+  /** Seeds the sheet on a Studio-invite deep link (?code=...), so the recipient
+   *  lands straight on a prefilled join screen instead of typing the code. */
+  initialMode?: 'create' | 'join';
+  initialCode?: string;
+}) {
+  const [mode, setMode] = useState<'create' | 'join'>(initialMode);
   const [name, setName] = useState('');
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(initialCode);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Re-seed from props on every open, not just first mount — the parent tab
+  // screen stays mounted once visited, so a second deep link with a new code
+  // wouldn't otherwise reach an already-instantiated sheet's initial state.
+  /* eslint-disable react-hooks/set-state-in-effect -- syncing to a prop
+     transition (visible flipping true), not new async work */
+  useEffect(() => {
+    if (!visible) return;
+    setMode(initialMode);
+    setCode(initialCode);
+  }, [visible, initialMode, initialCode]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Reset happens on the way out (not via an effect keyed on `visible`) — the
   // sheet stays mounted through its own close animation, so clearing fields
@@ -178,7 +203,9 @@ function InviteSheet({ visible, onClose, code, name }: { visible: boolean; onClo
         label="Share invite"
         fullWidth
         onPress={() => {
-          void Share.share({ message: `Join my Studio "${name}" on piqa — use code ${code} in the Studios tab.` });
+          void Share.share({
+            message: `Join my Studio "${name}" on piqa: ${studioInviteUrl(code)}\n\nOr enter code ${code} in the Studios tab.`,
+          });
           capture('studio_invite_shared');
         }}
       />
@@ -275,6 +302,7 @@ function StartChallengeSheet({ visible, onClose }: { visible: boolean; onClose: 
 
 export default function StudiosScreen() {
   const router = useRouter();
+  const { code: inviteCode } = useLocalSearchParams<{ code?: string }>();
   const { data: studio, loading, refresh } = useStudio();
   const { data: challenge } = useStudioChallenge();
   const [enabled, setEnabled] = useState<boolean | null>(null);
@@ -285,11 +313,29 @@ export default function StudiosScreen() {
   const [toast, setToast] = useState<string | null>(null);
   const [nudged, setNudged] = useState(false);
   const [nudgeBusy, setNudgeBusy] = useState(false);
+  const [inviteHandled, setInviteHandled] = useState(false);
 
   useEffect(() => {
     void getConfig('studios_enabled').then(setEnabled);
     void getConfig('studio_challenges_enabled').then(setChallengesEnabled);
   }, []);
+
+  // A Studio-invite deep link (?code=...) lands here once the studio data has
+  // settled. Already in one -> explain why the invite didn't do anything
+  // (useStudio() is single-studio, there's no join-a-second-one flow). Not in
+  // one yet -> open the join sheet prefilled, one tap instead of typing it.
+  /* eslint-disable react-hooks/set-state-in-effect -- reacting to useStudio()
+     settling, not new async work; a ref can't drive the toast/sheet re-render */
+  useEffect(() => {
+    if (!inviteCode || inviteHandled || !enabled || loading) return;
+    setInviteHandled(true);
+    if (studio) {
+      setToast("You're already in a Studio");
+    } else {
+      setShowCreateJoin(true);
+    }
+  }, [inviteCode, inviteHandled, enabled, loading, studio]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const onNudge = async () => {
     setNudgeBusy(true);
@@ -346,6 +392,8 @@ export default function StudiosScreen() {
         </View>
         <CreateJoinSheet
           visible={showCreateJoin}
+          initialMode={inviteCode ? 'join' : 'create'}
+          initialCode={inviteCode ?? ''}
           onClose={() => {
             setShowCreateJoin(false);
             void refresh();
