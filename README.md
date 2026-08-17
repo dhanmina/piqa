@@ -7,7 +7,8 @@
 <p align="center"><strong>One shot. Every day.</strong></p>
 
 <p align="center">
-  The fair daily photo game — blind-judged, finite, no feed, no followers, works offline.
+  A real photo, judged blind, against the whole world — not just your friends.
+  No AI images, no filters, no gallery uploads. No feed, no followers, works offline.
 </p>
 
 <p align="center">
@@ -33,6 +34,8 @@ Five minutes a day. That's the whole app. On purpose.
 
 | Everyone else                                  | Piqa                                                                            |
 | ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| Needs your friends to post too, or the feed goes dead | Judged against a global pool — works solo from day one                   |
+| Assumes real photos, then lets AI/filters slip in | Every capture is live and in-app — no AI images, no filters, no gallery uploads |
 | Infinite feed engineered to keep you scrolling | Finite by design — content runs out daily                                       |
 | Likes + followers decide what wins             | Blind pairwise voting + Bradley-Terry ranking — the _photo_ wins                |
 | Pay for boosts, swaps, exposure                | Money can never touch outcomes. Ever.                                           |
