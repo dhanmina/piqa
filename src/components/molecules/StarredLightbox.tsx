@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { imageCacheKey } from '@lib/cache';
 import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
-import { colors, typeScale } from '@/components/tokens';
+import { colors, overlay, typeScale } from '@/components/tokens';
 
 export type StarItem = { key: string; type: 'free' | 'daily'; uri: string | null; fullUri: string | null };
 
@@ -135,7 +135,7 @@ export function StarredLightbox({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  backdrop: { backgroundColor: 'rgba(12,11,10,0.96)' },
+  backdrop: { backgroundColor: overlay.scrimHeavy },
   close: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
   counter: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
 });

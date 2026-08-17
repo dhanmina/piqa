@@ -9,7 +9,7 @@
  */
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { CloudOff, Crown, Heart, MoreHorizontal, Settings, Share2, Star, Trophy } from 'lucide-react-native';
+import { CloudOff, Crown, MoreHorizontal, Settings, Share, Star, Trophy } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +27,7 @@ import { warmImage } from '@lib/utils/warmImage';
 import { levelProgress } from '@lib/utils/xp';
 import { ArchiveGrid } from '@/components/ArchiveGrid';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
+import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { FramedAvatar } from '@/components/molecules/FramedAvatar';
 import { Button } from '@/components/atoms/Button';
 import { IconButton } from '@/components/atoms/IconButton';
@@ -250,7 +251,7 @@ export function ProfileView({
                 shooting (likes/crowns/galleries) — never audience size. */}
             <View style={styles.tallyRow}>
               <View style={styles.tallyItem}>
-                <Heart size={11} strokeWidth={icons.strokeWidth} color={colors.heart} fill={colors.heart} />
+                <HeartGlyph size={11} strokeWidth={icons.strokeWidth} color={colors.heart} fill={colors.heart} />
                 <Mono size={typeScale.caption} color={colors.paper60}>{data?.hearts ?? 0}</Mono>
               </View>
               <Mono size={typeScale.caption} color={colors.paper40}>·</Mono>
@@ -270,7 +271,7 @@ export function ProfileView({
           {gearInCrest && (
             <View style={styles.crestActions}>
               <IconButton
-                icon={Share2}
+                icon={Share}
                 accessibilityLabel="Share profile"
                 onPress={() => { if (data?.username) void shareProfile(data.username); }}
               />

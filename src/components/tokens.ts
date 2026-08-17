@@ -14,7 +14,7 @@ export const colors = {
   ink2: '#201D19', // cards, sheets, skeletons
   paper: '#F2EDE4', // primary text — never #FFF
   paper60: 'rgba(242, 237, 228, 0.6)', // secondary text
-  paper40: 'rgba(242, 237, 228, 0.4)', // inactive tabs
+  paper40: 'rgba(242, 237, 228, 0.48)', // inactive tabs — bumped from .4 for WCAG AA (2026-07-29 audit)
   paper30: 'rgba(242, 237, 228, 0.3)', // disabled
   safelight: '#FF5A36', // THE accent: actions, streak, live
   crown: '#E3B341', // PotD only — once per day
@@ -63,6 +63,7 @@ export const overlay = {
   scrim: 'rgba(20, 18, 16, 0.6)', // full-screen backdrop behind sheets/modals
   chip: 'rgba(20, 18, 16, 0.55)', // floating chrome controls over media
   badge: 'rgba(20, 18, 16, 0.75)', // small badges/labels over a photo
+  scrimHeavy: 'rgba(20, 18, 16, 0.95)', // near-opaque backdrop — replaces hand-rolled near-blacks
 } as const;
 
 /** Bottom legibility fade for text/controls over a photo — one gradient
@@ -114,7 +115,15 @@ export const frame = {
   window: { left: '3.2%', right: '3.2%', top: '2.4%', bottom: '9.6%' }, // 24 / 24 / 24 / 96 of 750x1000
 } as const;
 
+/** 4pt sub-grid — tokens.ts already implied this (gutter=20, chrome=40 are
+ *  both ×4), this just names the steps so screens stop hand-typing literals. */
 export const space = {
+  xxs: 4,
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 24,
+  compact: 36,
   gutter: 20,
   gridGap: 8,
   target: 48, // minimum touch target
@@ -151,6 +160,17 @@ export function iconStroke(size: number): number {
   if (size <= 24) return icons.strokeWidth;
   return Math.max(1.5, +(icons.strokeWidth * (24 / size)).toFixed(2));
 }
+
+/** Avatar scale — 32/40/48/56/64, named so nothing hand-types a size again.
+ *  `avatarXL` is the edit-profile picker's own tier (legitimately larger). */
+export const avatar = {
+  sm: 32,
+  md: 40,
+  lg: 48,
+  xl: 56,
+  xxl: 64,
+  avatarXL: 104,
+} as const;
 
 /** Viewfinder bracket geometry (the signature motif). */
 export const brackets = {

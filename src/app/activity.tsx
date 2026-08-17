@@ -10,7 +10,7 @@
  */
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { Bell, Crown, Heart, Image as ImageIcon, type LucideIcon } from 'lucide-react-native';
+import { Bell, Crown, Image as ImageIcon, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,10 +20,11 @@ import { capture } from '@lib/services/analytics';
 import { useSession } from '@lib/session';
 import { PhotoDetailView } from '@/components/PhotoDetailView';
 import { Avatar } from '@/components/atoms/Avatar';
+import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
-import { colors, fonts, iconStroke, radius, space, typeScale } from '@/components/tokens';
+import { avatar, colors, fonts, iconStroke, radius, space, typeScale } from '@/components/tokens';
 
 /** Compact age: "now", "3h", "2d", "5w". Numbers stay in Mono (camera readout). */
 function timeAgo(iso: string): string {
@@ -54,10 +55,9 @@ function lineFor(item: ActivityItem): string {
   }
 }
 
-const GLYPH: Record<Exclude<ActivityItem['kind'], 'follow'>, { icon: LucideIcon; color: string }> = {
+const GLYPH: Record<Exclude<ActivityItem['kind'], 'follow' | 'appreciation'>, { icon: LucideIcon; color: string }> = {
   potd: { icon: Crown, color: colors.crown },
   win: { icon: ImageIcon, color: colors.safelight },
-  appreciation: { icon: Heart, color: colors.heart },
 };
 
 function Row({ item, onPress }: { item: ActivityItem; onPress: () => void }) {
@@ -69,13 +69,17 @@ function Row({ item, onPress }: { item: ActivityItem; onPress: () => void }) {
     >
       {/* Leading: the follower's face, or a kind glyph in a matching circle. */}
       {item.kind === 'follow' ? (
-        <Avatar username={item.actor?.username ?? '?'} uri={item.actor?.avatar_url} size={44} />
+        <Avatar username={item.actor?.username ?? '?'} uri={item.actor?.avatar_url} size={avatar.lg} />
+      ) : item.kind === 'appreciation' ? (
+        <View style={styles.glyph}>
+          <HeartGlyph size={20} strokeWidth={iconStroke(20)} color={colors.heart} fill={colors.heart} />
+        </View>
       ) : (
         <View style={styles.glyph}>
           {(() => {
             const g = GLYPH[item.kind];
             const Icon = g.icon;
-            return <Icon size={20} strokeWidth={iconStroke(20)} color={g.color} fill={item.kind === 'appreciation' ? g.color : 'transparent'} />;
+            return <Icon size={20} strokeWidth={iconStroke(20)} color={g.color} />;
           })()}
         </View>
       )}

@@ -20,9 +20,9 @@ import { Field } from '@/components/atoms/Field';
 import { Mono } from '@/components/atoms/Mono';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, space, typeScale } from '@/components/tokens';
+import { avatar, colors, fonts, space, typeScale } from '@/components/tokens';
 
-const AVATAR_SIZE = 104;
+const AVATAR_SIZE = avatar.avatarXL;
 
 export default function EditProfileScreen() {
   const router = useRouter();

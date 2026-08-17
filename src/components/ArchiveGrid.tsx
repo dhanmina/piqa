@@ -29,7 +29,7 @@ import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, frame, icons, motion, photo, radius, space, typeScale } from '@/components/tokens';
+import { colors, fonts, frame, icons, motion, overlay, photo, radius, space, typeScale } from '@/components/tokens';
 
 type Filter = 'all' | 'daily' | 'practice' | 'starred';
 
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   emptyFilter: { paddingVertical: GUTTER * 2, alignItems: 'center' },
   emptyFilterLine: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60, textAlign: 'center' },
   sheetMeta: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
-  viewer: { flex: 1, backgroundColor: 'rgba(12,11,10,0.97)', justifyContent: 'center', alignItems: 'center' },
+  viewer: { flex: 1, backgroundColor: overlay.scrimHeavy, justifyContent: 'center', alignItems: 'center' },
   viewerStage: { alignItems: 'center', justifyContent: 'center' },
   viewerClose: { position: 'absolute', top: 0, left: 0, paddingTop: 8, paddingLeft: 16 },
   viewerBarSafe: { position: 'absolute', left: 0, right: 0, bottom: 0 },

@@ -13,7 +13,7 @@ import { ChevronRight, UserPlus } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/atoms/Avatar';
-import { colors, fonts, icons, typeScale } from '@/components/tokens';
+import { avatar, colors, fonts, icons, typeScale } from '@/components/tokens';
 
 type Face = { id: string; username: string; avatar_url: string | null };
 
@@ -24,7 +24,7 @@ type Props = {
   max?: number;
 };
 
-const SIZE = 30;
+const SIZE = avatar.sm;
 const OVERLAP = 11; // how far each face tucks under the previous one
 
 export function FacePile({ faces, onPress, max = 5 }: Props) {

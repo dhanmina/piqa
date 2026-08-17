@@ -7,7 +7,7 @@ import { useFrameCatalog } from '@lib/hooks/frames';
 import type { FrameId } from '@lib/services/frames';
 import { Mono } from '@/components/atoms/Mono';
 import { FramedAvatar } from '@/components/molecules/FramedAvatar';
-import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
+import { avatar, colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
 
 type FramePickerProps = {
   equipped: FrameId;
@@ -61,7 +61,7 @@ export function FramePicker({ equipped, owned, avatarUri, username, level, onEqu
             onPress={onPress}
           >
             <View style={styles.preview}>
-              <FramedAvatar uri={avatarUri} username={username} frameId={f.id} level={level} size={52} />
+              <FramedAvatar uri={avatarUri} username={username} frameId={f.id} level={level} size={avatar.lg} />
             </View>
 
             <View style={styles.meta}>

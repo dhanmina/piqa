@@ -11,7 +11,7 @@
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
-import { ArrowLeft, Calendar, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
+import { Calendar, CloudOff, Image as ImageIcon, Search, Users } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -539,7 +539,6 @@ export default function GalleryScreen() {
               setShowPast(false);
             }}
           >
-            <ArrowLeft size={16} strokeWidth={icons.strokeWidth} color={colors.safelight} />
             <Text style={styles.pastLatestText}>Back to the latest</Text>
           </Pressable>
         )}

@@ -14,7 +14,7 @@
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { MoreHorizontal, Share, X } from 'lucide-react-native';
+import { Flag, Share, X } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ListRenderItemInfo } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -48,7 +48,7 @@ import { ReportSheet } from '@/components/molecules/ReportSheet';
 import { ShareCard } from '@/components/molecules/ShareCard';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fade, fonts, frame, icons, space, typeScale } from '@/components/tokens';
+import { avatar, colors, fade, fonts, frame, icons, overlay, space, typeScale } from '@/components/tokens';
 
 export type PhotoDetailData = {
   id: string;
@@ -615,7 +615,7 @@ export function PhotoDetailView({
       <View style={[styles.headerFloat, { top: insets.top + 8 }]} pointerEvents="box-none">
         <IconButton icon={X} variant="chrome" accessibilityLabel="Close" onPress={onClose} />
         {!isOwn && (
-          <IconButton icon={MoreHorizontal} variant="chrome" accessibilityLabel="Report photo" onPress={() => setShowReport(true)} />
+          <IconButton icon={Flag} variant="chrome" accessibilityLabel="Report photo" onPress={() => setShowReport(true)} />
         )}
       </View>
 
@@ -634,7 +634,7 @@ export function PhotoDetailView({
                   openProfile(r.id);
                 }}
               >
-                <Avatar username={r.username} uri={r.avatar_url} size={36} />
+                <Avatar username={r.username} uri={r.avatar_url} size={avatar.sm} />
                 <Text style={styles.reactorName} numberOfLines={1}>
                   {r.username}
                 </Text>
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
   flyHeart: { position: 'absolute', left: 0, top: 0 },
   root: { flex: 1, backgroundColor: colors.ink },
   // Dimmed, see-through backdrop so the print reads as a floating card (archive feel).
-  lightboxRoot: { backgroundColor: 'rgba(12,11,10,0.95)' },
+  lightboxRoot: { backgroundColor: overlay.scrimHeavy },
   stage: { flex: 1, justifyContent: 'center' },
   stageCentered: { alignItems: 'center' }, // center the fixed-width print in lightbox mode
   // Lightbox meta bar, pinned to the screen bottom (archive pattern): shooter left,
@@ -747,10 +747,10 @@ const styles = StyleSheet.create({
   // Fullscreen paging stage: a true near-black so the framed print reads as a
   // hero object and the ink2 rail/border separates from the ground (the shared
   // lightbox dim sits only ~one step off ink2, which made the frame edge vanish).
-  pagingBackdrop: { backgroundColor: '#080706' },
+  pagingBackdrop: { backgroundColor: overlay.scrimHeavy },
   // Paging mode bar — an ABSOLUTE overlay pinned to the bottom, so its per-photo
   // height (nod chips, "why it won") never resizes the stage and shifts the print.
-  pagingBarSafe: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(8,7,6,0.92)' },
+  pagingBarSafe: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: overlay.scrimHeavy },
   pagingBar: {
     padding: space.gutter,
     gap: 4,

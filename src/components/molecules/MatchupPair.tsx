@@ -106,12 +106,12 @@ export const MatchupPair = React.memo(function MatchupPair({ topUri, bottomUri, 
       {/* Anchors: soft scrims give the floating chrome consistent contrast. */}
       <LinearGradient
         pointerEvents="none"
-        colors={['rgba(12,11,10,0.55)', 'rgba(12,11,10,0)']}
+        colors={['rgba(20,18,16,0.55)', 'rgba(20,18,16,0)']}
         style={[styles.topScrim, { height: insets.top + 72 }]}
       />
       <LinearGradient
         pointerEvents="none"
-        colors={['rgba(12,11,10,0)', 'rgba(12,11,10,0.5)']}
+        colors={['rgba(20,18,16,0)', 'rgba(20,18,16,0.5)']}
         style={[styles.bottomScrim, { height: insets.bottom + 68 }]}
       />
 
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ink,
     overflow: 'hidden', // clip the pick lift + blurred matte to the half
   },
-  matte: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(12,11,10,0.5)' },
+  matte: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,18,16,0.5)' },
   glow: { borderWidth: 2.5, borderColor: colors.safelight },
   dim: { backgroundColor: colors.ink },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.paper40 },

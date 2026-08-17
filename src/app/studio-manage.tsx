@@ -16,7 +16,7 @@ import { Field } from '@/components/atoms/Field';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { Sheet } from '@/components/molecules/Sheet';
 import { Toast } from '@/components/molecules/Toast';
-import { colors, fonts, typeScale } from '@/components/tokens';
+import { avatar, colors, fonts, typeScale } from '@/components/tokens';
 
 export default function StudioManageScreen() {
   const router = useRouter();
@@ -81,7 +81,7 @@ export default function StudioManageScreen() {
         ) : (
           removable.map((m) => (
             <View key={m.id} style={styles.memberRow}>
-              <Avatar uri={m.avatarUrl} username={m.username} size={36} />
+              <Avatar uri={m.avatarUrl} username={m.username} size={avatar.sm} />
               <Text style={styles.memberName} numberOfLines={1}>@{m.username}</Text>
               <Button label="Remove" variant="text" compact onPress={() => void onRemove(m.id)} />
             </View>
