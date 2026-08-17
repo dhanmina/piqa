@@ -17,8 +17,28 @@ import { colors, fonts, icons, space, typeScale } from '@/components/tokens';
 
 type Mode = 'signin' | 'signup' | 'forgot' | 'reset';
 
-// Turn raw Supabase auth strings into something a person can act on.
-function friendlyError(raw: string): string {
+// AuthError (extends Error) and PostgrestError (a plain object, from .rpc()
+// calls like email_exists) both carry message/code but don't share a base
+// class — check shape, not instanceof, so both are read correctly.
+function hasMessage(e: unknown): e is { message: string; code?: string } {
+  return typeof e === 'object' && e !== null && 'message' in e && typeof (e as { message: unknown }).message === 'string';
+}
+
+// Turn a raw Supabase auth error into something a person can act on. Takes the
+// error itself (not just its message) so the identity-linking cases below can
+// match on `.code` — a string like "manual linking is disabled" doesn't
+// reliably say WHY, but the code always does.
+function friendlyError(err: unknown): string {
+  const raw = hasMessage(err) ? err.message : String(err);
+  const code = hasMessage(err) ? err.code : undefined;
+  // Google (or any social provider) sign-in where the email already belongs to
+  // an existing account: GoTrue only auto-links onto it when that account's
+  // email is confirmed. If it isn't (or manual linking is off, our default —
+  // see supabase/config.toml), it throws one of these instead of silently
+  // merging into a stranger-controlled account.
+  if (code === 'manual_linking_disabled' || code === 'identity_already_exists') {
+    return 'That email already has a piqa account. Sign in with your password instead.';
+  }
   const m = raw.toLowerCase();
   if (m.includes('invalid login')) return "That email or password doesn't match.";
   if (m.includes('already registered') || m.includes('already been registered')) return 'That email already has an account. Try signing in.';
@@ -136,7 +156,7 @@ export default function AuthScreen() {
           password,
           options: { data: { username: name } },
         });
-        if (error) return setToast(friendlyError(error.message));
+        if (error) return setToast(friendlyError(error));
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'Asia/Manila';
         await supabase.from('profiles').update({ timezone }).eq('id', data.session!.user.id);
         await setRememberedEmail(email.trim());
@@ -146,12 +166,12 @@ export default function AuthScreen() {
         // Product choice: tell the user up front if there's no account (see the
         // email_exists migration for the enumeration tradeoff).
         const { data: exists, error: exErr } = await supabase.rpc('email_exists', { p_email: em });
-        if (exErr) return setToast(friendlyError(exErr.message));
+        if (exErr) return setToast(friendlyError(exErr));
         if (!exists) return setToast('No account found for that email.');
         // Sends the recovery email. The template must include {{ .Token }} so the
         // code below can be entered; the same address is verified in the next step.
         const { error } = await supabase.auth.resetPasswordForEmail(em);
-        if (error) return setToast(friendlyError(error.message));
+        if (error) return setToast(friendlyError(error));
         setToast('Reset code sent. Check your email.');
         setMode('reset');
         setPassword('');
@@ -159,9 +179,9 @@ export default function AuthScreen() {
       } else if (isReset) {
         // The recovery code opens a short-lived session; then set the new password.
         const { error: vErr } = await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'recovery' });
-        if (vErr) return setToast(friendlyError(vErr.message));
+        if (vErr) return setToast(friendlyError(vErr));
         const { error: uErr } = await supabase.auth.updateUser({ password });
-        if (uErr) return setToast(friendlyError(uErr.message));
+        if (uErr) return setToast(friendlyError(uErr));
         await setRememberMe(true); // just recovered — don't sign them straight back out
         setToast('Password updated. You’re in.');
         // Session is now live → the root guard flips to the tabs.
@@ -169,7 +189,7 @@ export default function AuthScreen() {
         await setRememberMe(remember);
         await setRememberedEmail(remember ? email : null);
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-        if (error) setToast(friendlyError(error.message));
+        if (error) setToast(friendlyError(error));
       }
     } finally {
       setBusy(false);
@@ -190,7 +210,7 @@ export default function AuthScreen() {
       // A plain cancel (null) needs no toast; a real session change is picked
       // up by the root auth listener, which navigates — nothing to do here either.
     } catch (e) {
-      setToast(friendlyError(e instanceof Error ? e.message : String(e)));
+      setToast(friendlyError(e));
     } finally {
       setGoogleBusy(false);
     }
