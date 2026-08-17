@@ -50,7 +50,6 @@ export default function CurateScreen() {
   }
 
   const loadSet = useCallback(async () => {
-    setPhase('loading');
     try {
       await senderRef.current?.drain(); // let prior picks land so pairs don't repeat
       const next = await fetchMatchupSet();
@@ -66,6 +65,9 @@ export default function CurateScreen() {
   }, []);
 
   useEffect(() => {
+    // Fetch-on-mount: loadSet sets state once its data lands, which this lint
+    // rule flags for any effect-reachable setState regardless of await timing.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadSet();
   }, [loadSet]);
 
@@ -164,7 +166,15 @@ export default function CurateScreen() {
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.center}>
-          <EmptyState icon={Aperture} line="Couldn’t load the shots" ctaLabel="Try again" onCta={() => void loadSet()} />
+          <EmptyState
+            icon={Aperture}
+            line="Couldn’t load the shots"
+            ctaLabel="Try again"
+            onCta={() => {
+              setPhase('loading');
+              void loadSet();
+            }}
+          />
         </View>
       </SafeAreaView>
     );
@@ -180,7 +190,14 @@ export default function CurateScreen() {
           </Text>
           {remaining > 0 ? (
             <>
-              <Button label="Curate another set" fullWidth onPress={() => void loadSet()} />
+              <Button
+                label="Curate another set"
+                fullWidth
+                onPress={() => {
+                  setPhase('loading');
+                  void loadSet();
+                }}
+              />
               <Button label="Back to Today" variant="text" onPress={close} />
             </>
           ) : (
