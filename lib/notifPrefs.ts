@@ -4,7 +4,7 @@ import { fetchKey } from "./cache";
 import { supabase } from "./services/supabase";
 
 /**
- * Per-user notification preferences (see docs/notification-plan.md). Five
+ * Per-user notification preferences (see docs/notification-plan.md). Six
  * category toggles + a quiet-hours switch (21:00–08:00 local). Read/written via
  * RPC (get_/update_notification_prefs) since the columns aren't in the profile
  * update grant. The server honors these in send_push before delivering.
@@ -15,11 +15,12 @@ export type NotifPrefs = {
   wins: boolean; // your photo placed (PotD / gallery / top 10)
   appreciation: boolean; // daily batch of hearts + nods
   social: boolean; // new follower
+  closingSoon: boolean; // submissions closing soon — you haven't shot today's yet
   quiet: boolean; // mute 21:00–08:00 local
 };
 
 const DEFAULTS: NotifPrefs = {
-  daily: true, results: true, wins: true, appreciation: true, social: true, quiet: true,
+  daily: true, results: true, wins: true, appreciation: true, social: true, closingSoon: true, quiet: true,
 };
 
 export function useNotifPrefs() {
@@ -43,6 +44,7 @@ export function useNotifPrefs() {
     const { error } = await supabase.rpc("update_notification_prefs" as never, {
       p_daily: next.daily, p_results: next.results, p_wins: next.wins,
       p_appreciation: next.appreciation, p_social: next.social, p_quiet: next.quiet,
+      p_closing_soon: next.closingSoon,
     } as never);
     if (error) console.warn("update_notification_prefs failed:", error);
   }, []);
