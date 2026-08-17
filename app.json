@@ -65,7 +65,6 @@
       ],
       "./plugins/withAndroidHighRefreshRate",
       "./plugins/withOptionalHardwareFeatures",
-      "expo-localization",
       "@react-native-google-signin/google-signin",
       "expo-apple-authentication"
     ],
