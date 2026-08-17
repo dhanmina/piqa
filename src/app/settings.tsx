@@ -120,11 +120,8 @@ export default function SettingsScreen() {
   const buildNumber = Application.nativeBuildVersion; // "6" on Android, null in dev/web
   const version = buildNumber ? `${semver} (${buildNumber})` : semver;
 
-  // OTA canary — shown to everyone during ALPHA so testers can screenshot/report
-  // which update they're on. "base" = running the build's baked-in bundle (no OTA
-  // applied yet), else the short id of the live OTA. TODO(launch): hide this row
-  // for non-admins before the public launch (it's dev-facing). The same signal is
-  // also in PostHog as `ota_update_id`, so hiding it later loses no visibility.
+  // OTA canary — dev-facing, so only admins see it. The same signal is also in
+  // PostHog as `ota_update_id`, so hiding it here loses no visibility.
   const otaBuild = Updates.isEmbeddedLaunch ? 'base' : (Updates.updateId?.slice(0, 8) ?? 'ota');
 
   // Contact opens the mail app pre-addressed to support. Subject is tagged with the
@@ -243,8 +240,14 @@ export default function SettingsScreen() {
           <ToggleRow label="Analytics" value={analyticsOn} onValueChange={() => void toggleAnalytics()} />
           <View style={styles.divider} />
           <Row label="Version" value={version} />
+          {isAdmin ? (
+            <>
+              <View style={styles.divider} />
+              <Row label="Build" value={otaBuild} />
+            </>
+          ) : null}
           <View style={styles.divider} />
-          <Row label="Build" value={otaBuild} />
+          <Row label="How piqa works" chevron onPress={() => router.push('/help')} />
           <View style={styles.divider} />
           <Row label="Terms of Service" chevron onPress={() => router.push('/legal/terms')} />
           <View style={styles.divider} />
