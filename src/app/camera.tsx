@@ -16,6 +16,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { enqueueCapture } from '@lib/services/captureQueue';
+import { getGridEnabledSync, getMirrorEnabledSync } from '@lib/cameraPrefs';
 import { useHomeState } from '@lib/homeState';
 import { Button } from '@/components/atoms/Button';
 import { IconButton } from '@/components/atoms/IconButton';
@@ -58,6 +59,10 @@ export default function CameraScreen() {
 
   const [facing, setFacing] = useState<CameraType>('back');
   const [flash, setFlash] = useState<FlashMode>('off');
+  // Read once at mount — this screen is always a fresh mount when opened, so
+  // there's no need to react to a Settings change made while it's open.
+  const [gridEnabled] = useState(() => getGridEnabledSync());
+  const [mirrorEnabled] = useState(() => getMirrorEnabledSync());
   const [captured, setCaptured] = useState<Captured | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -290,11 +295,20 @@ export default function CameraScreen() {
                 style={StyleSheet.absoluteFill}
                 facing={facing}
                 flash={flash}
+                mirror={facing === 'front' && mirrorEnabled}
                 // We own the shutter feedback (ring press + instant haptic + the
                 // jump to review). The native black-flash only added a competing
                 // beat that read as lag.
                 animateShutter={false}
               />
+              {gridEnabled ? (
+                <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                  <View style={[styles.gridLineV, { left: '33.33%' }]} />
+                  <View style={[styles.gridLineV, { left: '66.66%' }]} />
+                  <View style={[styles.gridLineH, { top: '33.33%' }]} />
+                  <View style={[styles.gridLineH, { top: '66.66%' }]} />
+                </View>
+              ) : null}
             </View>
           </Brackets>
         </View>
@@ -364,6 +378,22 @@ const styles = StyleSheet.create({
     aspectRatio: photo.aspect,
     backgroundColor: colors.ink2,
     overflow: 'hidden',
+  },
+  // Rule-of-thirds lines — a composition aid, not part of the shot (an absolute-
+  // fill sibling over the CameraView, since it takes no overlay children).
+  gridLineV: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: colors.paper30,
+  },
+  gridLineH: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.paper30,
   },
   // Editorial brief above the viewfinder — no chip, just an eyebrow + the prompt.
   brief: {

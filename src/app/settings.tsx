@@ -30,6 +30,7 @@ import { getConsentSync, setConsent } from '@lib/analyticsConsent';
 import { getWifiOnlySync, setWifiOnly } from '@lib/uploadPrefs';
 import { wakeCaptureQueue } from '@lib/services/captureQueue';
 import { clearCache, getCacheSize } from '@lib/services/cacheStorage';
+import { getGridEnabledSync, getMirrorEnabledSync, setGridEnabled, setMirrorEnabled } from '@lib/cameraPrefs';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
 import { FramePicker } from '@/components/molecules/FramePicker';
@@ -194,6 +195,20 @@ export default function SettingsScreen() {
     if (!ok) Alert.alert("Couldn't export your data", 'Something went wrong. Please try again.');
   }, []);
 
+  // Local-only camera preferences — the camera screen reads them fresh on each open.
+  const [gridEnabled, setGridEnabledState] = useState(() => getGridEnabledSync());
+  const toggleGrid = useCallback(async () => {
+    const next = !gridEnabled;
+    setGridEnabledState(next);
+    await setGridEnabled(next);
+  }, [gridEnabled]);
+  const [mirrorEnabled, setMirrorEnabledState] = useState(() => getMirrorEnabledSync());
+  const toggleMirror = useCallback(async () => {
+    const next = !mirrorEnabled;
+    setMirrorEnabledState(next);
+    await setMirrorEnabled(next);
+  }, [mirrorEnabled]);
+
   // Local-only preference — the capture queue reads it directly, no server round trip.
   const [wifiOnly, setWifiOnlyState] = useState(() => getWifiOnlySync());
   const toggleWifiOnly = useCallback(async () => {
@@ -233,6 +248,12 @@ export default function SettingsScreen() {
           <Row label="Edit profile" chevron onPress={() => router.push('/edit-profile')} />
           <View style={styles.divider} />
           <Row label="Profile frame" chevron onPress={() => setShowFrames(true)} />
+        </Section>
+
+        <Section title="CAMERA & CAPTURE">
+          <ToggleRow label="Grid overlay" value={gridEnabled} onValueChange={() => void toggleGrid()} />
+          <View style={styles.divider} />
+          <ToggleRow label="Mirror front camera" value={mirrorEnabled} onValueChange={() => void toggleMirror()} />
         </Section>
 
         <Section title="NOTIFICATIONS">
