@@ -9,6 +9,7 @@
  * latest drop, this screen immediately redirects to Today.
  */
 import * as Haptics from 'expo-haptics';
+import * as StoreReview from 'expo-store-review';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -19,6 +20,7 @@ import { useGallery } from '@lib/hooks/useGallery';
 import { useSession } from '@lib/session';
 import { capture } from '@lib/services/analytics';
 import { isRevealSeen, markRevealSeen, markResultSeen } from '@lib/services/gallery';
+import { getReviewPrompted, setReviewPrompted } from '@lib/utils/onboarding';
 import { useFrameForDate } from '@lib/hooks/frames';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
@@ -104,6 +106,22 @@ export default function RevealScreen() {
     const t = setTimeout(() => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }, PHASE_2_DELAY + 150);
+    return () => clearTimeout(t);
+  }, [showReveal, myPhotoInGallery]);
+
+  // Store review ask — once ever, device-local, after the grid has settled so
+  // it never competes with the crown/result animation. A gallery placement
+  // (PotD or not) is the happy moment the ask is worth spending on.
+  useEffect(() => {
+    if (!showReveal || !myPhotoInGallery) return;
+    const t = setTimeout(() => {
+      void (async () => {
+        if (await getReviewPrompted()) return;
+        await setReviewPrompted();
+        if (!(await StoreReview.isAvailableAsync())) return;
+        await StoreReview.requestReview();
+      })();
+    }, PHASE_3_DELAY + 1200);
     return () => clearTimeout(t);
   }, [showReveal, myPhotoInGallery]);
 
