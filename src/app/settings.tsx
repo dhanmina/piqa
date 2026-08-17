@@ -277,7 +277,7 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title="ACCOUNT">
-          <Row label="Email" value={session?.user.email ?? '—'} />
+          <Row label="Email" value={session?.user.email ?? '—'} chevron onPress={() => router.push('/change-email')} />
           <View style={styles.divider} />
           <Row label="Change password" chevron onPress={() => router.push('/change-password')} />
           <View style={styles.divider} />
