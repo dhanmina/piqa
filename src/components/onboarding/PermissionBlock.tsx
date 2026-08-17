@@ -2,13 +2,15 @@ import type { LucideIcon } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { displayFamily } from '@/components/fonts';
-import { colors, fonts, typeScale } from '@/components/tokens';
+import { colors, fonts, iconStroke, typeScale } from '@/components/tokens';
 
 type PermissionBlockProps = {
   icon: LucideIcon;
   title: string;
   subtitle: string;
 };
+
+const ICON_SIZE = 32;
 
 /**
  * The reason-before-dialog message for a permission screen: a small safelight icon
@@ -19,7 +21,7 @@ type PermissionBlockProps = {
 export function PermissionBlock({ icon: Icon, title, subtitle }: PermissionBlockProps) {
   return (
     <View style={styles.wrap}>
-      <Icon size={32} strokeWidth={2.25} color={colors.safelight} />
+      <Icon size={ICON_SIZE} strokeWidth={iconStroke(ICON_SIZE)} color={colors.safelight} />
       <View style={styles.textGroup}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>

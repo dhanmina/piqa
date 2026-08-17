@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/atoms/Avatar';
 import { displayFamily } from '@/components/fonts';
-import { colors, fonts, typeScale } from '@/components/tokens';
+import { avatar, colors, fonts, typeScale } from '@/components/tokens';
 
 type Props = {
   /** Raw username — rendered as a @handle and used for the avatar's fallback initial. */
@@ -15,6 +15,8 @@ type Props = {
   /** Trailing control — a follow/unfollow button, a "YOU" tag, etc. */
   trailing?: ReactNode;
   onPress?: () => void;
+  /** Search's row is deliberately the next tier up (avatar.xl) — its own legitimate outlier. */
+  avatarSize?: number;
 };
 
 /**
@@ -22,10 +24,10 @@ type Props = {
  * Shared list row so the Following list, search, and any future people list read
  * identically instead of each hand-rolling one.
  */
-export const UserRow = React.memo(function UserRow({ username, avatarUri, subtitle, trailing, onPress }: Props) {
+export const UserRow = React.memo(function UserRow({ username, avatarUri, subtitle, trailing, onPress, avatarSize = avatar.lg }: Props) {
   return (
     <Pressable accessibilityRole="button" style={styles.row} onPress={onPress} disabled={!onPress}>
-      <Avatar username={username} uri={avatarUri} size={48} />
+      <Avatar username={username} uri={avatarUri} size={avatarSize} />
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
           @{username}

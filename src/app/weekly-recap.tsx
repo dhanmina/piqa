@@ -4,8 +4,9 @@
  * snapshotted with react-native-view-shot for the OS share sheet.
  */
 import { useRouter } from 'expo-router';
+import { X } from 'lucide-react-native';
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { View as ViewType } from 'react-native';
 
@@ -14,6 +15,7 @@ import { useSession } from '@lib/session';
 import { useWeeklyRecap } from '@lib/hooks/useWeeklyRecap';
 import { shareRecap } from '@lib/utils/share';
 import { Button } from '@/components/atoms/Button';
+import { IconButton } from '@/components/atoms/IconButton';
 import { Mono } from '@/components/atoms/Mono';
 import { WeeklyRecapCard } from '@/components/molecules/WeeklyRecapCard';
 import { colors, space, typeScale } from '@/components/tokens';
@@ -41,9 +43,16 @@ export default function WeeklyRecapScreen() {
     }
   }, []);
 
+  const closeChip = (
+    <View style={styles.header}>
+      <IconButton icon={X} variant="chrome" accessibilityLabel="Close" onPress={() => router.back()} />
+    </View>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
+        {closeChip}
         <View style={styles.center}>
           <Mono size={typeScale.sub} color={colors.paper60}>Loading your week...</Mono>
         </View>
@@ -54,12 +63,12 @@ export default function WeeklyRecapScreen() {
   if (!recap || recap.shot_count === 0) {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
+        {closeChip}
         <View style={styles.center}>
           <Mono size={typeScale.body} color={colors.paper60}>No prints this week</Mono>
           <Mono size={typeScale.caption} color={colors.paper40} style={styles.emptyHint}>
             Shoot when you&apos;re ready
           </Mono>
-          <Button label="Back" variant="ghost" onPress={() => router.back()} />
         </View>
       </SafeAreaView>
     );
@@ -67,6 +76,7 @@ export default function WeeklyRecapScreen() {
 
     return (
     <SafeAreaView style={styles.root} edges={['top']}>
+      {closeChip}
       <View style={styles.content}>
         <WeeklyRecapCard
           ref={cardRef}
@@ -88,9 +98,6 @@ export default function WeeklyRecapScreen() {
             onPress={onShare}
             disabled={sharing}
           />
-          <Pressable onPress={() => router.back()} style={styles.backLink}>
-            <Mono size={typeScale.caption} color={colors.paper60}>Back</Mono>
-          </Pressable>
         </View>
       </View>
     </SafeAreaView>
@@ -101,6 +108,10 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.ink,
+  },
+  header: {
+    paddingHorizontal: space.gutter,
+    paddingTop: space.xs,
   },
   content: {
     flex: 1,
@@ -124,9 +135,5 @@ const styles = StyleSheet.create({
   actions: {
     width: '100%',
     gap: 12,
-  },
-  backLink: {
-    alignItems: 'center',
-    paddingVertical: 8,
   },
 });

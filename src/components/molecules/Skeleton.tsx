@@ -10,9 +10,10 @@ type SkeletonProps = {
 };
 
 /**
- * A flat ink2 skeleton placeholder — no shimmer, per spec §11d. Replaces the
- * identical skeleton styles duplicated across following.tsx, blocked.tsx,
- * search.tsx, and archive.tsx.
+ * A flat ink2 skeleton placeholder — no shimmer, per spec §11d. Adopted by
+ * ArchiveGrid and activity.tsx (2026-08-17). following.tsx, blocked.tsx, and
+ * search.tsx each still hand-roll their own near-identical RowSkeleton — not
+ * yet consolidated onto this component.
  */
 export function Skeleton({ width, height = 12, borderRadius = radius.card / 3, style }: SkeletonProps) {
   return (

@@ -8,13 +8,12 @@ import { plural } from '@lib/utils/format';
 import { follow, unfollow } from '@lib/services/profile';
 import { searchUsers, type SearchUser } from '@lib/services/search';
 import { useSession } from '@lib/session';
-import { Avatar } from '@/components/atoms/Avatar';
 import { Button } from '@/components/atoms/Button';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
-import { displayFamily } from '@/components/fonts';
-import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
+import { UserRow as SharedUserRow } from '@/components/molecules/UserRow';
+import { avatar, colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
 
 const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
@@ -38,31 +37,28 @@ function UserRow({ user, isSelf, onPress }: { user: SearchUser; isSelf: boolean;
   };
 
   return (
-    <Pressable accessibilityRole="button" style={styles.userRow} onPress={onPress}>
-      <Avatar username={user.username} uri={user.avatar_url} size={56} />
-      <View style={styles.userInfo}>
-        <Text style={styles.username} numberOfLines={1}>
-          {user.username}
-        </Text>
-        <Text style={styles.userSub} numberOfLines={1}>
-          {compact.format(followers)} {plural(followers, 'follower')} · {compact.format(user.hearts || 0)}{' '}
-          {plural(user.hearts || 0, 'heart')}
-        </Text>
-      </View>
-      {isSelf ? (
-        <Mono size={typeScale.caption} weight="medium" color={colors.paper60}>
-          YOU
-        </Mono>
-      ) : (
-        <Button
-          label={isFollowing ? 'Following' : 'Follow'}
-          variant={isFollowing ? 'ghost' : 'primary'}
-          compact
-          loading={busy}
-          onPress={() => void onToggle()}
-        />
-      )}
-    </Pressable>
+    <SharedUserRow
+      username={user.username}
+      avatarUri={user.avatar_url}
+      avatarSize={avatar.xl}
+      onPress={onPress}
+      subtitle={`${compact.format(followers)} ${plural(followers, 'follower')} · ${compact.format(user.hearts || 0)} ${plural(user.hearts || 0, 'heart')}`}
+      trailing={
+        isSelf ? (
+          <Mono size={typeScale.caption} weight="medium" color={colors.paper60}>
+            YOU
+          </Mono>
+        ) : (
+          <Button
+            label={isFollowing ? 'Following' : 'Follow'}
+            variant={isFollowing ? 'ghost' : 'primary'}
+            compact
+            loading={busy}
+            onPress={() => void onToggle()}
+          />
+        )
+      }
+    />
   );
 }
 
@@ -198,21 +194,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 12,
-  },
-  userInfo: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: 2,
-  },
-  username: {
-    fontFamily: displayFamily,
-    fontSize: typeScale.body,
-    color: colors.paper,
-  },
-  userSub: {
-    fontFamily: fonts.sans,
-    fontSize: typeScale.caption,
-    color: colors.paper60,
   },
   skelAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.ink2 },
   skelInfo: { flex: 1, gap: 8 },

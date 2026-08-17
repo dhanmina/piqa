@@ -23,15 +23,16 @@ import { displayFamily } from '@/components/fonts';
 import { OnboardingScreen } from '@/components/onboarding/OnboardingScreen';
 import { PermissionBlock } from '@/components/onboarding/PermissionBlock';
 import { SecondaryLink } from '@/components/onboarding/SecondaryLink';
-import { colors, fonts, typeScale } from '@/components/tokens';
+import { colors, fonts, iconStroke, typeScale } from '@/components/tokens';
 
 const LAST_STEP = 3;
+const LOOP_ICON_SIZE = 26;
 
 /** One row of the loop: an icon and a single line, left-aligned within the group. */
 function LoopRow({ icon: Icon, tint, text }: { icon: LucideIcon; tint: string; text: string }) {
   return (
     <View style={styles.loopRow}>
-      <Icon size={26} strokeWidth={2.25} color={tint} />
+      <Icon size={LOOP_ICON_SIZE} strokeWidth={iconStroke(LOOP_ICON_SIZE)} color={tint} />
       <Text style={styles.loopText}>{text}</Text>
     </View>
   );
