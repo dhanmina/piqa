@@ -67,7 +67,14 @@ export function Sheet({ visible, onClose, title, children }: SheetProps) {
           onLayout={onLayout}
           style={[styles.sheet, sheetStyle, { paddingBottom: space.gutter * 1.5 + insets.bottom }]}
         >
-          <View style={styles.grabber} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close sheet"
+            hitSlop={{ top: space.lg, bottom: space.lg, left: space.lg, right: space.lg }}
+            onPress={onClose}
+          >
+            <View style={styles.grabber} />
+          </Pressable>
           {title && (
             <>
               <Text style={styles.title} numberOfLines={1}>

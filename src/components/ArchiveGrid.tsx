@@ -28,6 +28,7 @@ import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { FramedPhoto } from '@/components/molecules/FramedPhoto';
 import { PhotoTile } from '@/components/molecules/PhotoTile';
+import { Skeleton } from '@/components/molecules/Skeleton';
 import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, frame, icons, motion, overlay, photo, radius, space, typeScale } from '@/components/tokens';
 
@@ -215,10 +216,10 @@ export function ArchiveGrid() {
     return (
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <View style={styles.chips}>
-          <View style={styles.skelChip} />
-          <View style={styles.skelChip} />
-          <View style={styles.skelChipWide} />
-          <View style={styles.skelChip} />
+          <Skeleton width={64} height={34} borderRadius={radius.pill} />
+          <Skeleton width={64} height={34} borderRadius={radius.pill} />
+          <Skeleton width={104} height={34} borderRadius={radius.pill} />
+          <Skeleton width={64} height={34} borderRadius={radius.pill} />
         </View>
         <View style={styles.grid}>
           {Array.from({ length: 4 }).map((_, i) => (
@@ -455,8 +456,6 @@ const styles = StyleSheet.create({
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cell: {},
-  skelChip: { width: 64, height: 34, borderRadius: radius.pill, backgroundColor: colors.ink2 },
-  skelChipWide: { width: 104, height: 34, borderRadius: radius.pill, backgroundColor: colors.ink2 },
   skelTile: { width: '100%', aspectRatio: photo.aspect, backgroundColor: colors.ink2 },
   starToggle: {
     position: 'absolute',

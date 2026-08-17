@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Bell, Crown, Image as ImageIcon, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { markActivitySeen, useActivity, type ActivityItem } from '@lib/activity';
@@ -24,6 +24,7 @@ import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { Mono } from '@/components/atoms/Mono';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
+import { Skeleton } from '@/components/molecules/Skeleton';
 import { avatar, colors, fonts, iconStroke, radius, space, typeScale } from '@/components/tokens';
 
 /** Compact age: "now", "3h", "2d", "5w". Numbers stay in Mono (camera readout). */
@@ -110,6 +111,20 @@ function Row({ item, onPress }: { item: ActivityItem; onPress: () => void }) {
   );
 }
 
+/** Flat, still placeholder row — no spin (spec: exactly three moments animate). */
+function SkeletonRow() {
+  return (
+    <View style={styles.row}>
+      <Skeleton width={44} height={44} borderRadius={22} />
+      <View style={styles.body}>
+        <Skeleton width="70%" height={13} />
+        <Skeleton width="40%" height={11} />
+      </View>
+      <Skeleton width={40} height={50} borderRadius={radius.photo} />
+    </View>
+  );
+}
+
 export default function ActivityScreen() {
   const router = useRouter();
   const { session } = useSession();
@@ -166,8 +181,10 @@ export default function ActivityScreen() {
       <ScreenHeader onBack={() => router.back()} title="Activity" />
 
       {items === null ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.paper60} />
+        <View style={styles.list}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonRow key={i} />
+          ))}
         </View>
       ) : items.length === 0 ? (
         <View style={styles.center}>
@@ -183,9 +200,7 @@ export default function ActivityScreen() {
           onRefresh={refresh}
           onEndReachedThreshold={0.4}
           onEndReached={loadMore}
-          ListFooterComponent={
-            loadingMore ? <ActivityIndicator style={styles.footer} color={colors.paper60} /> : null
-          }
+          ListFooterComponent={loadingMore ? <SkeletonRow /> : null}
         />
       )}
 
@@ -243,5 +258,4 @@ const styles = StyleSheet.create({
   subject: { flexShrink: 1, fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper60 },
   thumb: { width: 40, height: 50, borderRadius: radius.photo, backgroundColor: colors.ink2 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.safelight },
-  footer: { paddingVertical: 16 },
 });
