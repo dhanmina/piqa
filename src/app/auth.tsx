@@ -206,7 +206,11 @@ export default function AuthScreen() {
   const onGoogle = async () => {
     setGoogleBusy(true);
     try {
-      await signInWithGoogle();
+      const result = await signInWithGoogle();
+      // Google has no remember-me toggle, so always remember — otherwise a
+      // stale "0" from a prior password-form opt-out (no UI to undo it here)
+      // silently signs the user back out on the next cold launch.
+      if (result !== null) await setRememberMe(true);
       // A plain cancel (null) needs no toast; a real session change is picked
       // up by the root auth listener, which navigates — nothing to do here either.
     } catch (e) {
