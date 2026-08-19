@@ -40,8 +40,9 @@ Deno.serve(async (req) => {
   let body: RevenueCatEvent;
   try {
     body = await req.json();
-  } catch {
-    return new Response("invalid json", { status: 400 });
+  } catch (e) {
+    console.error("revenuecat-webhook: invalid json", e);
+    return Response.json({ ok: true, skipped: "invalid_json" });
   }
 
   const event = body.event;
