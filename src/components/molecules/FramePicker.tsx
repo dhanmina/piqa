@@ -55,11 +55,17 @@ export function FramePicker({
   const catalog = useFrameCatalog();
 
   // Default frame(s) first, then the rest by label — a stable, readable order.
+  // unlock_kind='manual' frames (e.g. the retired Golden/Blue Hour pack) are
+  // fully hidden here, not just non-purchasable — existing owners keep them
+  // equipped and rendered everywhere else, they just don't clutter the equip
+  // sheet's current lineup.
   const frames = useMemo(() => {
-    return [...catalog.values()].sort((a, b) => {
-      if ((a.unlockKind === 'default') !== (b.unlockKind === 'default')) return a.unlockKind === 'default' ? -1 : 1;
-      return a.label.localeCompare(b.label);
-    });
+    return [...catalog.values()]
+      .filter((f) => f.unlockKind !== 'manual')
+      .sort((a, b) => {
+        if ((a.unlockKind === 'default') !== (b.unlockKind === 'default')) return a.unlockKind === 'default' ? -1 : 1;
+        return a.label.localeCompare(b.label);
+      });
   }, [catalog]);
 
   return (
