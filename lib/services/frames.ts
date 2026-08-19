@@ -18,6 +18,9 @@ export type FrameDef = {
   profileSvg: string | null;
   unlockKind: string;
   unlockLabel: string | null;
+  /** RevenueCat/Play product id this frame is granted by. null for anything not
+   *  unlock_kind='purchase'. */
+  productId: string | null;
   eventStart: string | null;
   eventEnd: string | null;
 };
@@ -41,6 +44,7 @@ export const DEFAULT_FRAME_DEF: FrameDef = {
   profileSvg: null,
   unlockKind: "default",
   unlockLabel: null,
+  productId: null,
   eventStart: null,
   eventEnd: null,
 };
@@ -58,6 +62,7 @@ type FrameRow = {
   profile_svg?: string | null;
   unlock_kind?: string | null;
   unlock_label?: string | null;
+  product_id?: string | null;
   event_start?: string | null;
   event_end?: string | null;
 };
@@ -76,6 +81,7 @@ function rowToDef(r: FrameRow): FrameDef {
     profileSvg: r.profile_svg ?? null,
     unlockKind: r.unlock_kind ?? 'manual',
     unlockLabel: r.unlock_label ?? null,
+    productId: r.product_id ?? null,
     eventStart: r.event_start ?? null,
     eventEnd: r.event_end ?? null,
   };
@@ -113,6 +119,10 @@ export function asStatus(v: string | null | undefined): PhotoStatus {
 
 export function frameOwned(def: FrameDef, owned: FrameId[]): boolean {
   return def.unlockKind === "default" || owned.includes(def.id);
+}
+
+export function framePurchasable(def: FrameDef, owned: FrameId[]): boolean {
+  return def.unlockKind === "purchase" && def.productId !== null && !frameOwned(def, owned);
 }
 
 export function frameClaimable(def: FrameDef, today: Date = new Date()): boolean {
