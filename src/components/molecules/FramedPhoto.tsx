@@ -2,7 +2,8 @@ import React from 'react';
 import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import Svg, { Circle, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Animated, { Easing, useAnimatedProps, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop, Text as SvgText } from 'react-native-svg';
 
 import { imageCacheKey } from '@lib/cache';
 import { useFrameDef } from '@lib/hooks/frames';
@@ -22,7 +23,7 @@ import { colors, fonts, frame } from '@/components/tokens';
  *
  * Adding a new SHAPE is a code change; adding a FRAME that reuses a shape is data.
  */
-function MarkerGlyph({ shape }: { shape: MarkerShape }) {
+function MarkerGlyph({ shape, accentColor }: { shape: MarkerShape; accentColor: string }) {
   switch (shape) {
     case 'crown':
       return (
@@ -38,6 +39,20 @@ function MarkerGlyph({ shape }: { shape: MarkerShape }) {
           fill={colors.heart}
         />
       );
+    // Tier 1-3 catalog markers (Task 3, 2026-08-20). All 9 ship as a solid
+    // placeholder dot filled with the frame's own accent color -- one real
+    // case per shape (a code change, per spec §2/§5), final vector art is a
+    // later Figma pass swapped into these cases with no other changes needed.
+    case 'focus':
+    case 'flash':
+    case 'grain':
+    case 'bokeh':
+    case 'silhouette':
+    case 'reflection':
+    case 'doubleexposure':
+    case 'aurora':
+    case 'seasons':
+      return <Circle cx={178} cy={950} r={9} fill={accentColor} />;
     default:
       // The default frame's advance mark — the spec triangle at x169-187.
       return <Path d="M169 940 L187 951 L169 962 Z" fill={colors.paper} fillOpacity={0.75} />;
@@ -102,6 +117,50 @@ function StatusGlyph({ status }: { status: PhotoStatus }) {
       strokeDasharray="75 20"
       strokeLinecap="round"
     />
+  );
+}
+
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+const AnimatedLine = Animated.createAnimatedComponent(Line);
+
+/**
+ * Tier 3's hairline treatment. The print's border is a straight line, not a
+ * ring — there is no "conic sweep" to rotate. The honest analog: the
+ * gradient's own x1/x2 slides back and forth along the line on a loop (the
+ * highlight visibly travels), plus a second, wider, lower-opacity duplicate
+ * line pulsing underneath as a glow halo (no blur filters — react-native-svg
+ * does not reliably support them on Android).
+ */
+function ShimmerHairline({ gradId, stops }: { gradId: string; stops: string[] }) {
+  const sweep = useSharedValue(0);
+  const glow = useSharedValue(0);
+
+  React.useEffect(() => {
+    sweep.value = withRepeat(withTiming(1, { duration: 2800, easing: Easing.inOut(Easing.ease) }), -1, true);
+    glow.value = withRepeat(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.ease) }), -1, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const gradProps = useAnimatedProps(() => ({
+    x1: `${24 + sweep.value * 20}%`,
+    x2: `${76 + sweep.value * 20}%`,
+  }));
+  const glowProps = useAnimatedProps(() => ({
+    strokeOpacity: 0.15 + glow.value * 0.3,
+  }));
+
+  return (
+    <>
+      <Defs>
+        <AnimatedLinearGradient id={gradId} animatedProps={gradProps} y1="0%" y2="0%">
+          {stops.map((c, i) => (
+            <Stop key={c + i} offset={i / (stops.length - 1)} stopColor={c} />
+          ))}
+        </AnimatedLinearGradient>
+      </Defs>
+      <AnimatedLine x1={24} y1={904} x2={726} y2={904} stroke={stops[0]} strokeWidth={7} animatedProps={glowProps} />
+      <Line x1={24} y1={904} x2={726} y2={904} stroke={`url(#${gradId})`} strokeWidth={2} />
+    </>
   );
 }
 
@@ -175,15 +234,32 @@ export const FramedPhoto = React.memo(function FramedPhoto({
           fillRule="evenodd"
         />
 
-        <Line
-          x1={24}
-          y1={904}
-          x2={726}
-          y2={904}
-          stroke={def.hairlineColor}
-          strokeWidth={2}
-          strokeOpacity={def.hairlineOpacity}
-        />
+        {def.ringGradient ? (
+          def.shimmer ? (
+            <ShimmerHairline gradId={`hairline-${frameId}`} stops={def.ringGradient} />
+          ) : (
+            <>
+              <Defs>
+                <LinearGradient id={`hairline-${frameId}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                  {def.ringGradient.map((c, i) => (
+                    <Stop key={c + i} offset={i / (def.ringGradient!.length - 1)} stopColor={c} />
+                  ))}
+                </LinearGradient>
+              </Defs>
+              <Line x1={24} y1={904} x2={726} y2={904} stroke={`url(#hairline-${frameId})`} strokeWidth={2} />
+            </>
+          )
+        ) : (
+          <Line
+            x1={24}
+            y1={904}
+            x2={726}
+            y2={904}
+            stroke={def.hairlineColor}
+            strokeWidth={2}
+            strokeOpacity={def.hairlineOpacity}
+          />
+        )}
 
         <SvgText
           x={40}
@@ -197,7 +273,7 @@ export const FramedPhoto = React.memo(function FramedPhoto({
           PIQA
         </SvgText>
 
-        <MarkerGlyph shape={def.markerShape} />
+        <MarkerGlyph shape={def.markerShape} accentColor={def.suffixColor ?? def.hairlineColor} />
 
         <SvgText
           x={205}
