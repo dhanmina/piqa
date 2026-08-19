@@ -22,7 +22,7 @@ type Entry = { value: unknown; at: number };
 
 const store = new Map<string, Entry>();
 const inflight = new Map<string, Promise<unknown>>();
-export const errors = new Map<string, boolean>(); // last fetch for a key failed
+export const errors = new Map<string, string>(); // last fetch for a key failed, keyed to its error message
 export const subscribers = new Map<string, Set<() => void>>();
 // Bumped every time a key is invalidated. A fetch captures the generation at its
 // start and only commits its result if the generation still matches — so a fetch
@@ -196,7 +196,7 @@ export async function fetchKey<T>(key: string, fetcher: () => Promise<T>): Promi
       const ms = Date.now() - t0;
       console.warn(`[cache] fetchKey(${key}): failed after ${ms}ms`, err);
       if ((generation.get(key) ?? 0) === gen) {
-        errors.set(key, true); // surface an error state instead of loading forever
+        errors.set(key, err instanceof Error ? err.message : String(err)); // surface an error state instead of loading forever
         emit(key);
       }
       throw err;

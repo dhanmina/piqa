@@ -7,7 +7,6 @@
  * Shown once per device (gated by `firstShotComplete` flag). Device-local.
  */
 import { useRouter } from 'expo-router';
-import { Camera as CameraIcon } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { setFirstShotComplete } from '@lib/utils/onboarding';

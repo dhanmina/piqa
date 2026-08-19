@@ -6,7 +6,7 @@ import { errors, emit, fetchKey, peek, peekSigned, signThumb, subscribers } from
 export type Cached<T> = {
   data: T | null;
   loading: boolean;
-  error: boolean;
+  error: string | false;
   refresh: () => Promise<void>;
 };
 
@@ -51,8 +51,9 @@ export function useCached<T>(key: string, fetcher: () => Promise<T>, ttlMs: numb
   }, [key]);
 
   const entry = peek<T>(key);
-  const failed = errors.get(key) === true && !entry;
-  return { data: (entry?.value as T) ?? null, loading: !entry && !failed, error: failed, refresh };
+  const errMsg = errors.get(key);
+  const failed = errMsg !== undefined && !entry;
+  return { data: (entry?.value as T) ?? null, loading: !entry && !failed, error: failed ? errMsg : false, refresh };
 }
 
 export function useSignedThumb(path: string | null | undefined) {

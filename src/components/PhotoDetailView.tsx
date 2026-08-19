@@ -221,7 +221,6 @@ export function PhotoDetailView({
   const activeNods = active?.nods ?? nods;
   const activePlaceholder = active?.placeholderUri ?? placeholderUri;
   const activeCategory = active?.category ?? category;
-  const activeContentLabel = active?.contentLabel ?? contentLabel;
 
   // This is the one view that says the frame's marks out loud — the print shows
   // the glyph, and here it's spelled out in words. Derive from active photo in paging mode.

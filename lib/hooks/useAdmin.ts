@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { useCached } from "./useCache";
+import { useCached, type Cached } from "./useCache";
 import { supabase } from "../services/supabase";
 import type {
   AdminToday,
@@ -35,7 +35,7 @@ export function useIsAdmin(): boolean {
 
 // Generic hook for parameterless admin read-RPCs, routed through useCached
 // with a 30s TTL so tab switches within the admin screen are instant.
-function useAdminQuery<T>(key: string, rpc: string) {
+function useAdminQuery<T>(key: string, rpc: string): Cached<T | null> {
   const { data, loading, error, refresh } = useCached<T | null>(
     key,
     useCallback(

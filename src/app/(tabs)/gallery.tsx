@@ -488,7 +488,7 @@ export default function GalleryScreen() {
               THE WHOLE GALLERY
             </Mono>
             <Text style={styles.noCrownBody}>
-              Every shot that made today's drop.
+              Every shot that made today&apos;s drop.
             </Text>
           </View>
         )}

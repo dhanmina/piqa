@@ -1,6 +1,6 @@
 import { Eye, EyeOff } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getRememberedEmail, getRememberMe, setRememberedEmail, setRememberMe } from '@lib/utils/authPrefs';

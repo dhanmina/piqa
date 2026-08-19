@@ -55,7 +55,7 @@ type Props = {
   onMore?: () => void;
   onSettings?: () => void;
   followBusy?: boolean;
-  error?: boolean;
+  error?: string | boolean;
   onRetry?: () => void;
   /** Self only — Wins-empty CTA routes to the Gallery tab to go star something. */
   onExploreGallery?: () => void;

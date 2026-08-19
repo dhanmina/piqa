@@ -25,7 +25,6 @@ import type { HomeDrop, HomeSubmission, LastResult, YesterdayPotd } from '@lib/h
 import type { FrameId } from '@lib/services/frames';
 import { useLast7Pattern } from '@lib/streak';
 import { Button } from '@/components/atoms/Button';
-import { Countdown } from '@/components/atoms/Countdown';
 import { HeartGlyph } from '@/components/atoms/HeartGlyph';
 import { Mono } from '@/components/atoms/Mono';
 import { StreakFlame } from '@/components/atoms/StreakFlame';
@@ -559,7 +558,7 @@ function SubmittedHero({
           ) : null}
           {inRound && resultsAt && (
             <Mono size={typeScale.caption} color={colors.paper40} style={styles.openLoop}>
-              Tomorrow's subject drops at {clockTime(nextDropAt ?? drop!.voting_closes_at)}
+              Tomorrow&apos;s subject drops at {clockTime(nextDropAt ?? drop!.voting_closes_at)}
             </Mono>
           )}
         </View>
@@ -752,7 +751,7 @@ function WaitingState({
             onPress={onOpenGallery}
           >
             <Mono size={typeScale.caption} color={colors.paper60} style={styles.waitingLabel}>
-              YESTERDAY'S WINNER
+              YESTERDAY&apos;S WINNER
             </Mono>
             <View style={styles.potdSpacer} />
             <FramedPhoto

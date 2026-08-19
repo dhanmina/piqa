@@ -51,7 +51,7 @@ export function ReportSheet({ visible, submissionId, onClose, onReported }: Prop
     <Sheet visible={visible} onClose={close} title={reason ? 'Report this photo?' : 'Report this photo'}>
       {!reason ? (
         <>
-          <Text style={styles.intro}>Reporting is anonymous. Pick what's wrong and we'll take a look.</Text>
+          <Text style={styles.intro}>Reporting is anonymous. Pick what&apos;s wrong and we&apos;ll take a look.</Text>
           {REPORT_REASONS.map((r) => (
             <Pressable key={r.value} accessibilityRole="button" style={styles.reasonRow} onPress={() => setReason(r)}>
               <Text style={styles.reasonLabel}>{r.label}</Text>
@@ -63,7 +63,7 @@ export function ReportSheet({ visible, submissionId, onClose, onReported }: Prop
         <View style={styles.confirmBody}>
           <Text style={styles.confirmReason}>{reason.label}</Text>
           <Text style={styles.intro}>
-            We'll review this photo. It won't show up for you again, and the shooter won't know who reported it.
+            We&apos;ll review this photo. It won&apos;t show up for you again, and the shooter won&apos;t know who reported it.
           </Text>
           <Button label="Submit report" variant="primary" fullWidth loading={busy} onPress={() => void submit()} />
           <Pressable accessibilityRole="button" style={styles.backRow} disabled={busy} onPress={() => setReason(null)}>

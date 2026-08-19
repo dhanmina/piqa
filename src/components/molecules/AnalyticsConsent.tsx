@@ -44,7 +44,7 @@ export function AnalyticsConsent() {
         <View style={styles.card}>
           <Text style={styles.title}>Help make piqa better</Text>
           <Text style={styles.body}>
-            We'd like to collect anonymous usage data to understand how you use
+            We&apos;d like to collect anonymous usage data to understand how you use
             the app and fix issues faster. This never includes your photos,
             profile info, or anything tied to your identity.
           </Text>
