@@ -69,6 +69,9 @@ export function FramePicker({
         const isEquipped = equipped === f.id;
         const isPurchasable = framePurchasable(f, owned);
         const isBuying = buying === f.productId;
+        // Only show buy-style UI (text and accessibility label) if both purchasable AND onBuy is supplied.
+        // Without onBuy, falls through to plain locked rendering per the doc comment.
+        const showBuyRow = isPurchasable && Boolean(onBuy);
 
         const onPress = isOwned
           ? () => onEquip(f.id)
@@ -84,7 +87,7 @@ export function FramePicker({
             accessibilityLabel={
               isOwned
                 ? `Equip the ${f.label} frame`
-                : isPurchasable
+                : showBuyRow
                   ? `Buy the ${f.label} frame`
                   : `${f.label} frame, locked`
             }
@@ -102,7 +105,7 @@ export function FramePicker({
                 <Mono size={typeScale.caption} color={isEquipped ? colors.safelight : colors.paper60}>
                   {isEquipped ? 'EQUIPPED' : 'TAP TO EQUIP'}
                 </Mono>
-              ) : isPurchasable ? (
+              ) : showBuyRow ? (
                 <View style={styles.lockRow}>
                   <Text style={styles.unlock}>
                     {isBuying ? 'Buying…' : (f.productId && priceFor?.(f.productId)) || f.unlockLabel || 'Buy'}
