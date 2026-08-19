@@ -12,7 +12,7 @@ import * as Updates from 'expo-updates';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,6 +21,12 @@ import { S } from '@lib/utils/admin-strings';
 import { equipFrame } from '@lib/services/frames';
 import type { FrameId } from '@lib/services/frames';
 import { useNotifPrefs } from '@lib/notifPrefs';
+import {
+  getFramePackages,
+  purchaseFrameProduct,
+  purchasesEnabled,
+  restoreAndSyncPurchases,
+} from '@lib/services/purchases';
 import { deleteAccount, exportMyData } from '@lib/services/profile';
 import { useProfile } from '@lib/hooks/useProfile';
 import { useSession } from '@lib/session';
@@ -175,6 +181,47 @@ export default function SettingsScreen() {
     if (ok) await refresh();
     else setPendingEquip(null);
   }, [refresh]);
+  // Prices come from RevenueCat (store-localized), fetched once the frame sheet is
+  // open. Keyed by product id so FramePicker can look one up per row without knowing
+  // anything about RevenueCat's own package identifiers.
+  const [prices, setPrices] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!showFrames || !purchasesEnabled) return;
+    let alive = true;
+    void getFramePackages().then((pkgs) => {
+      if (!alive) return;
+      const next: Record<string, string> = {};
+      for (const [productId, pkg] of pkgs) next[productId] = pkg.product.priceString;
+      setPrices(next);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [showFrames]);
+
+  const [buying, setBuying] = useState<string | null>(null);
+  const onBuy = useCallback(async (productId: string) => {
+    setBuying(productId);
+    const result = await purchaseFrameProduct(productId);
+    setBuying(null);
+    if (result.ok) await refresh();
+    else if (result.reason !== 'cancelled') {
+      Alert.alert("Couldn't complete purchase", 'Something went wrong. Please try again.');
+    }
+  }, [refresh]);
+
+  const [restoring, setRestoring] = useState(false);
+  const onRestore = useCallback(async () => {
+    setRestoring(true);
+    const ok = await restoreAndSyncPurchases();
+    setRestoring(false);
+    await refresh();
+    Alert.alert(
+      ok ? 'Purchases restored' : "Couldn't restore purchases",
+      ok ? 'Any past purchases have been unlocked.' : 'Please try again.',
+    );
+  }, [refresh]);
+
   const onDelete = useCallback(async () => {
     setBusy(true);
     const ok = await deleteAccount();
@@ -249,6 +296,15 @@ export default function SettingsScreen() {
           <View style={styles.divider} />
           <Row label="Profile frame" chevron onPress={() => setShowFrames(true)} />
         </Section>
+
+        {purchasesEnabled && (
+          <Section title="SHOP">
+            <Row
+              label={restoring ? 'Restoring…' : 'Restore purchases'}
+              onPress={restoring ? undefined : () => void onRestore()}
+            />
+          </Section>
+        )}
 
         <Section title="CAMERA & CAPTURE">
           <ToggleRow label="Grid overlay" value={gridEnabled} onValueChange={() => void toggleGrid()} />
@@ -341,6 +397,9 @@ export default function SettingsScreen() {
           level={levelProgress(data?.xp ?? 0).level}
           busy={equipping}
           onEquip={(id) => void onEquip(id)}
+          onBuy={(productId) => void onBuy(productId)}
+          buying={buying}
+          priceFor={(productId) => prices[productId] ?? null}
         />
       </Sheet>
 
