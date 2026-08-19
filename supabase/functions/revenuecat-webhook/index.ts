@@ -71,11 +71,19 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", serviceKey);
 
+  // RevenueCat's webhook payload carries price as event.price (a number, USD)
+  // on INITIAL_PURCHASE/NON_RENEWING_PURCHASE events -- confirmed against
+  // RevenueCat's webhook event schema docs. Falls back to null (counts as $0
+  // toward VIP spend) if a future event type ever omits it, rather than
+  // failing the whole grant over a missing price.
+  const amountUsd = typeof event.price === "number" ? event.price : null;
+
   const { data, error } = await supabase.rpc("grant_purchase", {
     p_event_id: event.id,
     p_user: event.app_user_id,
     p_product: event.product_id,
     p_raw: body,
+    p_amount_usd: amountUsd,
   });
 
   if (error) {

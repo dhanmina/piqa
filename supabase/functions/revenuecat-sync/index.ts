@@ -23,7 +23,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-type Purchase = { product_id: string; status: string };
+type Purchase = { product_id: string; status: string; revenue_in_usd?: { gross: number } };
 type PurchasesPage = { items: Purchase[]; next_page: string | null };
 
 function subFromJwt(token: string): string | null {
@@ -79,11 +79,17 @@ Deno.serve(async (req) => {
   const failed: string[] = [];
   const unknown: string[] = [];
   for (const productId of productIds) {
+    const entries = purchases.filter((p) => p.product_id === productId);
+    // Sum every entry's gross for this product -- a product can appear more
+    // than once in the purchase history (e.g. a consumable repurchased), and
+    // every dollar should count toward lifetime VIP spend.
+    const amountUsd = entries.reduce((sum, p) => sum + (p.revenue_in_usd?.gross ?? 0), 0);
     const { data, error } = await supabase.rpc("grant_purchase", {
       p_event_id: null,
       p_user: uid,
       p_product: productId,
-      p_raw: { source: "sync", entries: purchases.filter((p) => p.product_id === productId) },
+      p_raw: { source: "sync", entries },
+      p_amount_usd: amountUsd,
     });
     if (error) {
       console.error("revenuecat-sync: grant_purchase failed", productId, error);
