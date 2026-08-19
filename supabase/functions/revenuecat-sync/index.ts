@@ -56,8 +56,12 @@ Deno.serve(async (req) => {
       return new Response("revenuecat lookup failed", { status: 502 });
     }
     const page = (await res.json()) as PurchasesPage;
-    purchases.push(...page.items);
-    url = page.next_page;
+    purchases.push(...(page.items ?? []));
+    // next_page is a relative path in RevenueCat's v2 API, not an absolute URL —
+    // fetch() needs an absolute one. new URL(x, base) resolves a relative path
+    // against base and passes an already-absolute one through unchanged, so this
+    // is correct regardless of which shape a given response actually sends.
+    url = page.next_page ? new URL(page.next_page, "https://api.revenuecat.com").toString() : null;
   }
 
   // Only owned, non-refunded purchases grant anything.
@@ -67,7 +71,13 @@ Deno.serve(async (req) => {
   const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", serviceKey);
 
   const granted: string[] = [];
+  // RPC-error ids (transient/transport failures — worth a 500 if every attempt
+  // fails, since retrying might help) tracked separately from unknown-product/user
+  // ids (a data/config problem — retrying never helps, and the caller still needs
+  // to know its purchase wasn't recognized rather than being told "ok" with nothing
+  // granted).
   const failed: string[] = [];
+  const unknown: string[] = [];
   for (const productId of productIds) {
     const { data, error } = await supabase.rpc("grant_purchase", {
       p_event_id: null,
@@ -80,13 +90,26 @@ Deno.serve(async (req) => {
       failed.push(productId);
       continue;
     }
-    const result = data as { ok: boolean; granted?: string[] };
-    if (result.ok && result.granted) granted.push(...result.granted);
+    const result = data as { ok: boolean; granted?: string[]; reason?: string };
+    if (result.ok) {
+      if (result.granted) granted.push(...result.granted);
+    } else if (result.reason === "unknown_product" || result.reason === "unknown_user") {
+      // unknown_user shouldn't be reachable via this path (uid comes from the
+      // caller's own JWT, which should always resolve to a real profile), but
+      // handled defensively the same way as unknown_product just in case.
+      console.error("revenuecat-sync: unrecognized grant_purchase result", productId, result.reason);
+      unknown.push(productId);
+    }
   }
 
   if (productIds.length > 0 && failed.length === productIds.length) {
     return new Response("all grant attempts failed", { status: 500 });
   }
 
-  return Response.json({ ok: true, granted, ...(failed.length > 0 ? { failed } : {}) });
+  return Response.json({
+    ok: true,
+    granted,
+    ...(failed.length > 0 ? { failed } : {}),
+    ...(unknown.length > 0 ? { unknown } : {}),
+  });
 });

@@ -30,6 +30,14 @@ type RevenueCatEvent = {
 // BILLING_ISSUE, ...) is subscription-only noise until Phase 3b exists.
 const GRANT_EVENT_TYPES = new Set(["INITIAL_PURCHASE", "NON_RENEWING_PURCHASE"]);
 
+// grant_purchase()'s p_user is a uuid column. RevenueCat can send a non-UUID
+// app_user_id (e.g. an unaliased anonymous id, "$RCAnonymousID:..."), which would
+// fail at Postgres's argument-parsing layer before grant_purchase's own body ever
+// runs — that surfaces as an RPC transport error, indistinguishable from a real DB
+// outage, and would 500-retry forever for no reason. Caught here instead, before
+// the RPC call, so it can be acked like every other permanently-unprocessable case.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 Deno.serve(async (req) => {
   const secret = Deno.env.get("REVENUECAT_WEBHOOK_SECRET") ?? "";
   const auth = req.headers.get("Authorization") ?? "";
@@ -55,6 +63,11 @@ Deno.serve(async (req) => {
     return Response.json({ ok: true, skipped: "not_a_grant_event" });
   }
 
+  if (!UUID_RE.test(event.app_user_id)) {
+    console.error("revenuecat-webhook: non-uuid app_user_id, cannot process", event.app_user_id);
+    return Response.json({ ok: true, skipped: "invalid_app_user_id" });
+  }
+
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", serviceKey);
 
@@ -66,12 +79,17 @@ Deno.serve(async (req) => {
   });
 
   if (error) {
+    // A real RPC/transport failure — the only case RevenueCat should retry.
     console.error("revenuecat-webhook: grant_purchase failed", error);
     return new Response("grant failed", { status: 500 });
   }
 
   const result = data as { ok: boolean; reason?: string };
-  if (!result.ok) {
+  if (!result.ok && result.reason === "unknown_user") {
+    // Valid UUID, but no matching account (e.g. deleted since purchase). Retrying
+    // can't fix this — log it (it's a real signal something's off) and ack.
+    console.error("revenuecat-webhook: unknown user", event.app_user_id);
+  } else if (!result.ok) {
     console.error("revenuecat-webhook: unknown product", event.product_id);
   }
 
