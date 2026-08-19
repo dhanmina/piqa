@@ -1,0 +1,24 @@
+-- LAUNCH-GATE TODO, not yet actionable: none of the 9 frames added in
+-- 20260820000001_frame_tiers_catalog.sql have a revenuecat_product_id yet.
+-- Per 20260819120000's finding, RevenueCat's v2 Customer API (used by
+-- revenuecat-sync) returns RevenueCat's INTERNAL product id, not the store
+-- SKU already stored in frames.product_id below -- without this backfill,
+-- revenuecat-sync will return unknown_product for every one of these 9
+-- frames once real purchases start, and the client will report the
+-- purchase as failed even though the user was charged and the webhook
+-- (which DOES use the store SKU correctly) already granted the frame.
+--
+-- This migration intentionally does nothing yet -- the real RevenueCat
+-- internal ids do not exist until each frame's Play Console + RevenueCat
+-- product is created (manual, dashboard-side, same prerequisite Phase 3a's
+-- pack needed -- see [[piqa-revenuecat-gotcha]]). Once those 9 products
+-- exist, run one UPDATE per frame following this template, sourced from
+-- RevenueCat's dashboard or a live API response (never guessed):
+--
+--   update public.frames set revenuecat_product_id = '<rc-internal-id>'
+--   where id = '<frame-id>';
+--
+-- Affected frame ids (all currently product_id-only, revenuecat_product_id
+-- null): focus, flash, grain, bokeh, silhouette, reflection,
+-- doubleexposure, aurora, seasons.
+select 1; -- no-op; this file exists to keep the requirement in migration history, not to run anything
