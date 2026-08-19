@@ -28,6 +28,7 @@ import {
   restoreAndSyncPurchases,
 } from '@lib/services/purchases';
 import { deleteAccount, exportMyData } from '@lib/services/profile';
+import { reportError } from '@lib/services/sentry';
 import { useProfile } from '@lib/hooks/useProfile';
 import { useSession } from '@lib/session';
 import { supabase } from '@lib/services/supabase';
@@ -188,12 +189,14 @@ export default function SettingsScreen() {
   useEffect(() => {
     if (!showFrames || !purchasesEnabled) return;
     let alive = true;
-    void getFramePackages().then((pkgs) => {
-      if (!alive) return;
-      const next: Record<string, string> = {};
-      for (const [productId, pkg] of pkgs) next[productId] = pkg.product.priceString;
-      setPrices(next);
-    });
+    void getFramePackages()
+      .then((pkgs) => {
+        if (!alive) return;
+        const next: Record<string, string> = {};
+        for (const [productId, pkg] of pkgs) next[productId] = pkg.product.priceString;
+        setPrices(next);
+      })
+      .catch((e) => reportError(e, { flow: 'settings_frame_prices_effect' }));
     return () => {
       alive = false;
     };

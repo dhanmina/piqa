@@ -30,7 +30,7 @@ export function configurePurchases(uid: string): void {
     Purchases.configure({ apiKey: API_KEY, appUserID: uid });
     configured = true;
   } else {
-    void Purchases.logIn(uid);
+    void Purchases.logIn(uid).catch((e) => reportError(e, { flow: "configure_purchases_login" }));
   }
 }
 
@@ -38,7 +38,7 @@ export function configurePurchases(uid: string): void {
  *  isn't attributed the previous user's purchases. */
 export function logOutPurchases(): void {
   if (!API_KEY || !configured) return;
-  void Purchases.logOut();
+  void Purchases.logOut().catch((e) => reportError(e, { flow: "logout_purchases" }));
 }
 
 /** All packages in the current offering, keyed by the underlying store product id
@@ -63,7 +63,19 @@ export async function purchaseFrameProduct(productId: string): Promise<PurchaseR
     if (!pkg) return { ok: false, reason: "error" };
     await Purchases.purchasePackage(pkg);
     const synced = await syncPurchases();
-    return synced ? { ok: true } : { ok: false, reason: "error" };
+    // The HTTP call succeeding isn't enough — if the sync ran but didn't recognize
+    // this product (grant_purchase returned unknown_product/unknown_user), nothing
+    // was actually granted, and that's a purchase failure from the user's point of
+    // view even though no exception was thrown anywhere.
+    if (!synced || synced.unknown?.length) {
+      reportError(new Error("revenuecat_sync did not confirm the purchase"), {
+        flow: "purchase_frame_sync",
+        productId,
+        unknown: synced?.unknown,
+      });
+      return { ok: false, reason: "error" };
+    }
+    return { ok: true };
   } catch (e) {
     const err = e as { userCancelled?: boolean };
     if (err.userCancelled) return { ok: false, reason: "cancelled" };
@@ -78,18 +90,26 @@ export async function restoreAndSyncPurchases(): Promise<boolean> {
   if (!API_KEY) return false;
   try {
     await Purchases.restorePurchases();
-    return await syncPurchases();
+    const synced = await syncPurchases();
+    return synced?.ok === true;
   } catch (e) {
     reportError(e, { flow: "restore_purchases" });
     return false;
   }
 }
 
-async function syncPurchases(): Promise<boolean> {
+type SyncResponse = { ok: boolean; granted?: string[]; failed?: string[]; unknown?: string[] };
+
+/** Calls revenuecat-sync and returns its parsed response, or null if the HTTP call
+ *  itself failed. `ok: true` only means the sync ran — callers that care whether a
+ *  *specific* product was actually granted must also check `unknown` (a product id
+ *  the sync ran for but grant_purchase didn't recognize, i.e. still not owned). */
+async function syncPurchases(): Promise<SyncResponse | null> {
   const { data, error } = await supabase.functions.invoke("revenuecat-sync");
   if (error) {
     reportError(error, { flow: "revenuecat_sync" });
-    return false;
+    return null;
   }
-  return (data as { ok?: boolean } | null)?.ok === true;
+  const body = data as SyncResponse | null;
+  return body?.ok === true ? body : null;
 }

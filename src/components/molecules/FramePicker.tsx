@@ -68,7 +68,7 @@ export function FramePicker({
         const isOwned = frameOwned(f, owned);
         const isEquipped = equipped === f.id;
         const isPurchasable = framePurchasable(f, owned);
-        const isBuying = buying === f.productId;
+        const isBuying = buying != null && buying === f.productId;
         // Only show buy-style UI (text and accessibility label) if both purchasable AND onBuy is supplied.
         // Without onBuy, falls through to plain locked rendering per the doc comment.
         const showBuyRow = isPurchasable && Boolean(onBuy);
