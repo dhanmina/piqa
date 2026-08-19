@@ -250,6 +250,7 @@ export function ProfileView({
             frameId={data?.equippedFrame ?? 'default'}
             level={prog.level}
             size={76}
+            vipTier={data?.vipTier}
           />
           <View style={styles.crestText}>
             <View style={styles.nameRow}>

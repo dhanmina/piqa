@@ -34,6 +34,7 @@ export type ProfileData = {
   starred: { key: string; type: "free" | "daily"; uri: string | null; fullUri: string | null }[];
   equippedFrame: FrameId;
   ownedFrames: FrameId[];
+  vipTier: number;
   badges: string[];
   isSelf: boolean;
   isFollowing: boolean;
@@ -63,6 +64,7 @@ type RawProfile = {
   }[];
   equipped_frame: string;
   owned_frames: string[];
+  vip_tier: number;
   badges: string[];
   is_self: boolean;
   is_following: boolean;
@@ -164,6 +166,7 @@ export async function fetchProfile(
     })),
     equippedFrame: asFrameId(p.equipped_frame),
     ownedFrames: (p.owned_frames ?? []).map(asFrameId),
+    vipTier: p.vip_tier ?? 0,
     badges: p.badges ?? [],
     isSelf: p.is_self,
     isFollowing: p.is_following,

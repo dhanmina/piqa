@@ -23,6 +23,9 @@ type FramedAvatarProps = {
   level: number;
   /** The whole framed box (avatar + ring + ornament). */
   size: number;
+  /** Independent of the equipped frame — a loyalty signal, not a cosmetic
+   *  choice. Omit (or 0) to render no badge. */
+  vipTier?: number;
 };
 
 // The avatar fills the ring (r=28 in the profile_svg contract's -6..70 / 76-unit box).
@@ -46,6 +49,31 @@ function MarkerBadge({ cx, cy, color }: { cx: number; cy: number; color: string 
   );
 }
 
+const VIP_COLORS: Record<number, string> = { 1: '#C7CDD6', 2: '#3D8B8B', 3: '#9C6BC7' };
+
+/** Opposite the frame marker (12 o'clock, frame marker is 6 o'clock) so the two
+ *  never collide -- see the plan's "two badges" decision. Same fixed-neutral-
+ *  border convention as MarkerBadge, own icon: a tier-count dot cluster, not a
+ *  photography glyph, since VIP tier isn't a photography concept.
+ *
+ *  Geometry mirrors markerCy exactly: badge fully inside the ring, its OUTER
+ *  edge (here, the top edge, since "outer" is the direction away from the
+ *  avatar center) tangent to the ring's own outer edge from the inside.
+ *  cy - BADGE_R = 11 - 7 = 4 = the ring's own top edge (32 - 28). */
+function VipBadge({ tier }: { tier: number }) {
+  const color = VIP_COLORS[tier] ?? VIP_COLORS[1];
+  const cx = 32;
+  const cy = 32 - (28 - BADGE_R);
+  return (
+    <>
+      <Circle cx={cx} cy={cy} r={BADGE_R} fill={colors.ink2} stroke={BADGE_BORDER} strokeWidth={1.4} />
+      {Array.from({ length: tier }).map((_, i) => (
+        <Circle key={i} cx={cx - (tier - 1) + i * 2} cy={cy} r={1.1} fill={color} />
+      ))}
+    </>
+  );
+}
+
 /**
  * An avatar wearing its owner's PROFILE frame. The frame art is ADMIN-MANAGED: a
  * frame's `profileSvg` (from the frames table) is a self-contained SVG rendered here
@@ -57,7 +85,7 @@ function MarkerBadge({ cx, cy, color }: { cx: number; cy: number; color: string 
  * Contract: viewBox "-6 -6 76 76", avatar at center (32,32) r28. Reference art in
  * assets/frames/profile/*.svg.
  */
-export function FramedAvatar({ uri, username, frameId, level, size }: FramedAvatarProps) {
+export function FramedAvatar({ uri, username, frameId, level, size, vipTier = 0 }: FramedAvatarProps) {
   const def = useFrameDef(frameId);
   const ring = avatarRing(def, level);
   const avatarSize = Math.round(size * AVATAR_RATIO);
@@ -88,7 +116,12 @@ export function FramedAvatar({ uri, username, frameId, level, size }: FramedAvat
     <View style={[styles.box, { width: size, height: size }]}>
       <Avatar uri={uri} username={username} size={avatarSize} />
       {def.profileSvg ? (
-        <SvgXml xml={def.profileSvg} width={size} height={size} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <>
+          <SvgXml xml={def.profileSvg} width={size} height={size} style={StyleSheet.absoluteFill} pointerEvents="none" />
+          <Svg style={StyleSheet.absoluteFill} viewBox="-6 -6 76 76" pointerEvents="none">
+            {vipTier > 0 && <VipBadge tier={vipTier} />}
+          </Svg>
+        </>
       ) : def.ringGradient ? (
         <Svg style={StyleSheet.absoluteFill} viewBox="-6 -6 76 76" pointerEvents="none">
           <Defs>
@@ -123,6 +156,7 @@ export function FramedAvatar({ uri, username, frameId, level, size }: FramedAvat
           ) : (
             <MarkerBadge cx={markerCx} cy={markerCy} color={def.suffixColor ?? def.ringGradient[0]} />
           )}
+          {vipTier > 0 && <VipBadge tier={vipTier} />}
         </Svg>
       ) : (
         <Svg style={StyleSheet.absoluteFill} viewBox="-6 -6 76 76" pointerEvents="none">
@@ -137,6 +171,7 @@ export function FramedAvatar({ uri, username, frameId, level, size }: FramedAvat
             // The default faint ring (assets/frames/profile/avatar-ring-default.svg).
             <Circle cx={32} cy={32} r={28} fill="none" stroke={colors.paper} strokeWidth={1.5} opacity={0.18} />
           )}
+          {vipTier > 0 && <VipBadge tier={vipTier} />}
         </Svg>
       )}
     </View>
