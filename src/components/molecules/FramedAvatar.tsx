@@ -1,6 +1,7 @@
 import { useEffect, useId } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedProps,
   useSharedValue,
@@ -98,6 +99,14 @@ export function FramedAvatar({ uri, username, frameId, level, size, vipTier = 0 
     if (!def.shimmer) return;
     rotate.value = withRepeat(withTiming(360, { duration: 3200, easing: Easing.linear }), -1);
     glow.value = withRepeat(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.ease) }), -1, true);
+    // Infinite loops must be explicitly stopped -- on unmount (e.g. FramePicker's
+    // equip sheet rendering every catalog frame at once, then closing) and when
+    // def.shimmer flips false (equipping a non-shimmer frame), otherwise these
+    // keep ticking on an orphaned SharedValue with no consumer, a real crash risk.
+    return () => {
+      cancelAnimation(rotate);
+      cancelAnimation(glow);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [def.shimmer]);
 

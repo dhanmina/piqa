@@ -2,7 +2,14 @@ import React from 'react';
 import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { Easing, useAnimatedProps, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedProps,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop, Text as SvgText } from 'react-native-svg';
 
 import { imageCacheKey } from '@lib/cache';
@@ -138,6 +145,14 @@ function ShimmerHairline({ gradId, stops }: { gradId: string; stops: string[] })
   React.useEffect(() => {
     sweep.value = withRepeat(withTiming(1, { duration: 2800, easing: Easing.inOut(Easing.ease) }), -1, true);
     glow.value = withRepeat(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.ease) }), -1, true);
+    // This component only mounts while shimmer is active, so unmount is the
+    // only place these infinite loops need stopping -- but they DO need
+    // stopping, or they keep ticking on an orphaned SharedValue after the
+    // photo scrolls out of view / the screen unmounts.
+    return () => {
+      cancelAnimation(sweep);
+      cancelAnimation(glow);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
