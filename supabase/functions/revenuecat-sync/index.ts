@@ -52,6 +52,7 @@ Deno.serve(async (req) => {
   const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", serviceKey);
 
   const granted: string[] = [];
+  const failed: string[] = [];
   for (const productId of productIds) {
     const { data, error } = await supabase.rpc("grant_purchase", {
       p_event_id: null,
@@ -61,11 +62,16 @@ Deno.serve(async (req) => {
     });
     if (error) {
       console.error("revenuecat-sync: grant_purchase failed", productId, error);
+      failed.push(productId);
       continue;
     }
     const result = data as { ok: boolean; granted?: string[] };
     if (result.ok && result.granted) granted.push(...result.granted);
   }
 
-  return Response.json({ ok: true, granted });
+  if (productIds.length > 0 && failed.length === productIds.length) {
+    return new Response("all grant attempts failed", { status: 500 });
+  }
+
+  return Response.json({ ok: true, granted, ...(failed.length > 0 ? { failed } : {}) });
 });
