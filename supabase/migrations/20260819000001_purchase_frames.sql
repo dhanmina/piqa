@@ -55,6 +55,10 @@ declare
   granted text[] := '{}';
   r record;
 begin
+  if current_setting('role') <> 'service_role' then
+    raise exception 'forbidden';
+  end if;
+
   if p_event_id is not null and exists (
     select 1 from public.purchase_events where revenuecat_event_id = p_event_id
   ) then
@@ -66,16 +70,17 @@ begin
   end if;
 
   for r in select id from public.frames where product_id = p_product loop
-    if not exists (
-      select 1 from public.user_frames where user_id = p_user and frame_id = r.id
-    ) then
-      insert into public.user_frames (user_id, frame_id) values (p_user, r.id);
+    insert into public.user_frames (user_id, frame_id) values (p_user, r.id)
+    on conflict (user_id, frame_id) do nothing;
+
+    if found then
       granted := array_append(granted, r.id);
     end if;
   end loop;
 
   insert into public.purchase_events (revenuecat_event_id, user_id, product_id, raw_event)
-  values (eid, p_user, p_product, p_raw);
+  values (eid, p_user, p_product, p_raw)
+  on conflict (revenuecat_event_id) do nothing;
 
   return jsonb_build_object('ok', true, 'granted', to_jsonb(granted));
 end;
@@ -83,6 +88,11 @@ $$;
 
 revoke execute on function public.grant_purchase(text, uuid, text, jsonb) from public, anon, authenticated;
 grant  execute on function public.grant_purchase(text, uuid, text, jsonb) to service_role;
+
+-- service_role needs to read frames, user_frames, and purchase_events for the function to work
+grant select on public.frames to service_role;
+grant select, insert on public.user_frames to service_role;
+grant select, insert on public.purchase_events to service_role;
 
 -- ---------------------------------------------------------------------------
 -- 4. The first purchasable cosmetic: a two-frame pack. Colors/suffix only —
@@ -95,7 +105,7 @@ insert into public.frames
    suffix_color, ring_color, unlock_kind, unlock_label, product_id)
 values
   ('goldenhour', 'Golden Hour', '#E8A33D', 0.5, '#F2EDE4', '· GOLDEN HOUR',
-   '#E8A33D', '#E8A33D', 'purchase', 'Golden Hour pack', 'piqa_frame_pack_01'),
+   '#E8A33D', '#E8A33D', 'purchase', 'Golden & Blue Hour pack', 'piqa_frame_pack_01'),
   ('bluehour', 'Blue Hour', '#3D6FE8', 0.5, '#F2EDE4', '· BLUE HOUR',
-   '#3D6FE8', '#3D6FE8', 'purchase', 'Golden Hour pack', 'piqa_frame_pack_01')
+   '#3D6FE8', '#3D6FE8', 'purchase', 'Golden & Blue Hour pack', 'piqa_frame_pack_01')
 on conflict (id) do nothing;

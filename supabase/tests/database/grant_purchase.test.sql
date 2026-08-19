@@ -15,6 +15,8 @@ on conflict (id) do nothing;
 insert into auth.users (id, email) values
   ('20000000-0000-0000-0000-000000000001', 'grant-purchase-a@test.piqa');
 
+set role service_role;
+
 select is(
   (public.grant_purchase('evt-unknown', '20000000-0000-0000-0000-000000000001', 'no_such_product', '{}'::jsonb) ->> 'ok')::boolean,
   false,
