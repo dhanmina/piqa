@@ -4,6 +4,7 @@ import { getNetworkStateAsync } from "expo-network";
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
 
 import { identify, resetAnalytics } from "./services/analytics";
+import { configurePurchases, logOutPurchases } from "./services/purchases";
 import { getRememberMe } from "./utils/authPrefs";
 import { clearPersistedCache, hydrateCache } from "./cache";
 import { supabase } from "./services/supabase";
@@ -42,12 +43,16 @@ export function SessionProvider({ children }: PropsWithChildren) {
       setState({ session, loading: false });
       // Tie analytics to the user — only on actual sign-in, not on silent
       // token refreshes which fire ~every 30min in the background.
-      if (session && event === "SIGNED_IN") identify(session.user.id);
+      if (session && event === "SIGNED_IN") {
+        identify(session.user.id);
+        configurePurchases(session.user.id);
+      }
       // Session owns only the cache lifecycle; the navigator triggers prefetch
       // (it layers above session, so importing prefetch here would cycle).
       // Sign-out wipes the prior account's cache so the next one starts clean.
       if (event === "SIGNED_OUT") {
         resetAnalytics();
+        logOutPurchases();
         void clearPersistedCache();
       }
     });
@@ -89,7 +94,10 @@ export function SessionProvider({ children }: PropsWithChildren) {
       }
       initDone = true;
       if (!mounted) return;
-      if (session) identify(session.user.id); // cold-launch signed-in
+      if (session) {
+        identify(session.user.id); // cold-launch signed-in
+        configurePurchases(session.user.id);
+      }
       setState({ session, loading: false });
     });
 
