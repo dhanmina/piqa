@@ -85,7 +85,13 @@ Deno.serve(async (req) => {
     // every dollar should count toward lifetime VIP spend.
     const amountUsd = entries.reduce((sum, p) => sum + (p.revenue_in_usd?.gross ?? 0), 0);
     const { data, error } = await supabase.rpc("grant_purchase", {
-      p_event_id: null,
+      // A stable, deterministic id per user+product (not null) so repeat syncs of
+      // an already-owned product (e.g. Restore Purchases tapped more than once, or
+      // called again after a reinstall) hit grant_purchase()'s existing
+      // revenuecat_event_id dedup check instead of generating a fresh random
+      // 'sync:<uuid>' id every call -- otherwise the same purchase's amount_usd
+      // gets re-summed into lifetime VIP spend on every sync.
+      p_event_id: `sync:${uid}:${productId}`,
       p_user: uid,
       p_product: productId,
       p_raw: { source: "sync", entries },
