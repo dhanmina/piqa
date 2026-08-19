@@ -2,7 +2,7 @@ import { Check, Lock } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { frameOwned } from '@lib/services/frames';
+import { frameOwned, framePurchasable } from '@lib/services/frames';
 import { useFrameCatalog } from '@lib/hooks/frames';
 import type { FrameId } from '@lib/services/frames';
 import { Mono } from '@/components/atoms/Mono';
@@ -20,6 +20,14 @@ type FramePickerProps = {
   level: number;
   onEquip: (id: FrameId) => void;
   busy?: boolean;
+  /** Called with a frame's RevenueCat/Play product id when a locked purchasable
+   *  row is tapped. Omit to render purchasable rows as plain locked rows. */
+  onBuy?: (productId: string) => void;
+  /** The product id currently mid-purchase, so its row can show a busy state. */
+  buying?: string | null;
+  /** Store-localized price string for a product id, or null while offerings are
+   *  still loading (falls back to the frame's unlockLabel). */
+  priceFor?: (productId: string) => string | null;
 };
 
 /**
@@ -29,9 +37,21 @@ type FramePickerProps = {
  *
  * Driven entirely by the catalog (data), so a frame added from the dashboard shows
  * up here with no code change. A locked frame is shown, not hidden — the point of a
- * frame is seeing what it takes to earn it.
+ * frame is seeing what it takes to earn it. A locked purchasable frame shows a price
+ * instead of an unlock condition, and tapping it buys instead of doing nothing.
  */
-export function FramePicker({ equipped, owned, avatarUri, username, level, onEquip, busy }: FramePickerProps) {
+export function FramePicker({
+  equipped,
+  owned,
+  avatarUri,
+  username,
+  level,
+  onEquip,
+  busy,
+  onBuy,
+  buying,
+  priceFor,
+}: FramePickerProps) {
   const catalog = useFrameCatalog();
 
   // Default frame(s) first, then the rest by label — a stable, readable order.
@@ -47,16 +67,28 @@ export function FramePicker({ equipped, owned, avatarUri, username, level, onEqu
       {frames.map((f) => {
         const isOwned = frameOwned(f, owned);
         const isEquipped = equipped === f.id;
+        const isPurchasable = framePurchasable(f, owned);
+        const isBuying = buying === f.productId;
 
-        const onPress = isOwned ? () => onEquip(f.id) : undefined;
+        const onPress = isOwned
+          ? () => onEquip(f.id)
+          : isPurchasable && onBuy && f.productId
+            ? () => onBuy(f.productId as string)
+            : undefined;
 
         return (
           <Pressable
             key={f.id}
             accessibilityRole="button"
-            accessibilityState={{ selected: isEquipped, disabled: !onPress || busy || isEquipped }}
-            accessibilityLabel={isOwned ? `Equip the ${f.label} frame` : `${f.label} frame, locked`}
-            disabled={!onPress || busy || isEquipped}
+            accessibilityState={{ selected: isEquipped, disabled: !onPress || busy || isEquipped || isBuying }}
+            accessibilityLabel={
+              isOwned
+                ? `Equip the ${f.label} frame`
+                : isPurchasable
+                  ? `Buy the ${f.label} frame`
+                  : `${f.label} frame, locked`
+            }
+            disabled={!onPress || busy || isEquipped || isBuying}
             style={[styles.row, isEquipped && styles.rowEquipped, !isOwned && styles.rowLocked]}
             onPress={onPress}
           >
@@ -70,6 +102,12 @@ export function FramePicker({ equipped, owned, avatarUri, username, level, onEqu
                 <Mono size={typeScale.caption} color={isEquipped ? colors.safelight : colors.paper60}>
                   {isEquipped ? 'EQUIPPED' : 'TAP TO EQUIP'}
                 </Mono>
+              ) : isPurchasable ? (
+                <View style={styles.lockRow}>
+                  <Text style={styles.unlock}>
+                    {isBuying ? 'Buying…' : (f.productId && priceFor?.(f.productId)) || f.unlockLabel || 'Buy'}
+                  </Text>
+                </View>
               ) : (
                 <View style={styles.lockRow}>
                   <Lock size={11} strokeWidth={icons.strokeWidth} color={colors.paper40} />
