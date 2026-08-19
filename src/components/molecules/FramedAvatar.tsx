@@ -82,7 +82,7 @@ export function FramedAvatar({ uri, username, frameId, level, size }: FramedAvat
   // version tried that; ~85% of the badge hung outside the circle). See
   // spec §2.2.
   const markerCx = 32;
-  const markerCy = 32 + 28 + BADGE_R - 3;
+  const markerCy = 32 + (28 - BADGE_R);
 
   return (
     <View style={[styles.box, { width: size, height: size }]}>
