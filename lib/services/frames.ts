@@ -15,6 +15,11 @@ export type FrameDef = {
   suffixText: string | null;
   suffixColor: string | null;
   ringColor: string | null;
+  /** Ordered hex stops for a gradient ring/hairline. null = flat, single-color
+   *  ring via ringColor (tier 1). 2 stops = tier 2/3's two-tone. 4 = Seasons. */
+  ringGradient: string[] | null;
+  /** Tier 3's animated treatment: rotating gradient sweep + glow + shimmer. */
+  shimmer: boolean;
   profileSvg: string | null;
   unlockKind: string;
   unlockLabel: string | null;
@@ -41,6 +46,8 @@ export const DEFAULT_FRAME_DEF: FrameDef = {
   suffixText: null,
   suffixColor: null,
   ringColor: null,
+  ringGradient: null,
+  shimmer: false,
   profileSvg: null,
   unlockKind: "default",
   unlockLabel: null,
@@ -59,6 +66,8 @@ type FrameRow = {
   suffix_text?: string | null;
   suffix_color?: string | null;
   ring_color?: string | null;
+  ring_gradient?: string[] | null;
+  shimmer?: boolean | null;
   profile_svg?: string | null;
   unlock_kind?: string | null;
   unlock_label?: string | null;
@@ -78,6 +87,8 @@ function rowToDef(r: FrameRow): FrameDef {
     suffixText: r.suffix_text ?? null,
     suffixColor: r.suffix_color ?? null,
     ringColor: r.ring_color ?? r.suffix_color ?? null,
+    ringGradient: r.ring_gradient ?? null,
+    shimmer: r.shimmer ?? false,
     profileSvg: r.profile_svg ?? null,
     unlockKind: r.unlock_kind ?? 'manual',
     unlockLabel: r.unlock_label ?? null,
