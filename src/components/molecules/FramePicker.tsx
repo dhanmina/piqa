@@ -1,13 +1,12 @@
 import { Check, Lock } from 'lucide-react-native';
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { frameOwned, framePurchasable } from '@lib/services/frames';
 import { useFrameCatalog } from '@lib/hooks/frames';
-import type { FrameId } from '@lib/services/frames';
-import { Mono } from '@/components/atoms/Mono';
+import type { FrameDef, FrameId } from '@lib/services/frames';
 import { FramedAvatar } from '@/components/molecules/FramedAvatar';
-import { avatar, colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
+import { avatar, colors, fonts, icons, space, typeScale } from '@/components/tokens';
 
 type FramePickerProps = {
   equipped: FrameId;
@@ -53,104 +52,134 @@ export function FramePicker({
   priceFor,
 }: FramePickerProps) {
   const catalog = useFrameCatalog();
+  const { height: winH } = useWindowDimensions();
 
-  // Default frame(s) first, then the rest by label — a stable, readable order.
   // unlock_kind='manual' frames (e.g. the retired Golden/Blue Hour pack) are
   // fully hidden here, not just non-purchasable — existing owners keep them
   // equipped and rendered everywhere else, they just don't clutter the equip
   // sheet's current lineup.
+  //
+  // One continuous grid, ordered rather than labeled: default/earned frames
+  // first (no price — the earn condition already shows in their own caption),
+  // then purchase tiers cheapest first, alpha within each group. Each locked
+  // cell's own caption already carries its price, so a tier header above it
+  // would just repeat that.
   const frames = useMemo(() => {
-    return [...catalog.values()]
-      .filter((f) => f.unlockKind !== 'manual')
+    const visible = [...catalog.values()].filter((f) => f.unlockKind !== 'manual');
+    const byLabel = (a: FrameDef, b: FrameDef) => a.label.localeCompare(b.label);
+
+    const yours = visible
+      .filter((f) => f.unlockKind !== 'purchase')
       .sort((a, b) => {
         if ((a.unlockKind === 'default') !== (b.unlockKind === 'default')) return a.unlockKind === 'default' ? -1 : 1;
-        return a.label.localeCompare(b.label);
+        return byLabel(a, b);
       });
+    const singles = visible.filter((f) => f.unlockKind === 'purchase' && !f.ringGradient).sort(byLabel);
+    const elaborate = visible.filter((f) => f.unlockKind === 'purchase' && f.ringGradient && !f.shimmer).sort(byLabel);
+    const animated = visible.filter((f) => f.unlockKind === 'purchase' && f.shimmer).sort(byLabel);
+
+    return [...yours, ...singles, ...elaborate, ...animated];
   }, [catalog]);
 
   return (
-    <View style={styles.list}>
-      {frames.map((f) => {
-        const isOwned = frameOwned(f, owned);
-        const isEquipped = equipped === f.id;
-        const isPurchasable = framePurchasable(f, owned);
-        const isBuying = buying != null && buying === f.productId;
-        // Only show buy-style UI (text and accessibility label) if both purchasable AND onBuy is supplied.
-        // Without onBuy, falls through to plain locked rendering per the doc comment.
-        const showBuyRow = isPurchasable && Boolean(onBuy);
+    <ScrollView style={{ maxHeight: winH * 0.62 }} showsVerticalScrollIndicator={false}>
+      <View style={styles.grid}>
+        {frames.map((f) => {
+          const isOwned = frameOwned(f, owned);
+          const isEquipped = equipped === f.id;
+          const isPurchasable = framePurchasable(f, owned);
+          const isBuying = buying != null && buying === f.productId;
+          // Only show buy-style UI (text and accessibility label) if both purchasable AND onBuy is supplied.
+          // Without onBuy, falls through to plain locked rendering per the doc comment.
+          const showBuyRow = isPurchasable && Boolean(onBuy);
 
-        const onPress = isOwned
-          ? () => onEquip(f.id)
-          : isPurchasable && onBuy && f.productId
-            ? () => onBuy(f.productId as string)
-            : undefined;
+          const onPress = isOwned
+            ? () => onEquip(f.id)
+            : isPurchasable && onBuy && f.productId
+              ? () => onBuy(f.productId as string)
+              : undefined;
 
-        return (
-          <Pressable
-            key={f.id}
-            accessibilityRole="button"
-            accessibilityState={{ selected: isEquipped, disabled: !onPress || busy || isEquipped || isBuying }}
-            accessibilityLabel={
-              isOwned
-                ? `Equip the ${f.label} frame`
-                : showBuyRow
-                  ? `Buy the ${f.label} frame`
-                  : `${f.label} frame, locked`
-            }
-            disabled={!onPress || busy || isEquipped || isBuying}
-            style={[styles.row, isEquipped && styles.rowEquipped, !isOwned && styles.rowLocked]}
-            onPress={onPress}
-          >
-            <View style={styles.preview}>
-              <FramedAvatar uri={avatarUri} username={username} frameId={f.id} level={level} size={avatar.lg} />
-            </View>
+          // Owned cells stay unlabeled below the name — the check badge already
+          // says equipped, and "tap to equip" on every other cell was just noise.
+          // Locked cells keep a caption because it's the one piece of info that
+          // decides whether to tap: what it costs, or what it takes to earn.
+          const caption = isOwned
+            ? null
+            : showBuyRow
+              ? isBuying
+                ? 'Buying…'
+                : (f.productId && priceFor?.(f.productId)) || f.unlockLabel || 'Buy'
+              : f.unlockLabel ?? 'Locked';
 
-            <View style={styles.meta}>
-              <Text style={styles.label}>{f.label}</Text>
-              {isOwned ? (
-                <Mono size={typeScale.caption} color={isEquipped ? colors.safelight : colors.paper60}>
-                  {isEquipped ? 'EQUIPPED' : 'TAP TO EQUIP'}
-                </Mono>
-              ) : showBuyRow ? (
-                <View style={styles.lockRow}>
-                  <Text style={styles.unlock}>
-                    {isBuying ? 'Buying…' : (f.productId && priceFor?.(f.productId)) || f.unlockLabel || 'Buy'}
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.lockRow}>
-                  <Lock size={11} strokeWidth={icons.strokeWidth} color={colors.paper40} />
-                  <Text style={styles.unlock}>{f.unlockLabel ?? 'Locked'}</Text>
-                </View>
+          return (
+            <Pressable
+              key={f.id}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isEquipped, disabled: !onPress || busy || isEquipped || isBuying }}
+              accessibilityLabel={
+                isOwned
+                  ? `Equip the ${f.label} frame`
+                  : showBuyRow
+                    ? `Buy the ${f.label} frame`
+                    : `${f.label} frame, locked`
+              }
+              disabled={!onPress || busy || isEquipped || isBuying}
+              style={[styles.cell, !isOwned && styles.cellLocked]}
+              onPress={onPress}
+            >
+              <View style={styles.preview}>
+                <FramedAvatar uri={avatarUri} username={username} frameId={f.id} level={level} size={avatar.xl} />
+                {isEquipped ? (
+                  <View style={styles.badge}>
+                    <Check size={11} strokeWidth={icons.strokeWidth} color={colors.ink} />
+                  </View>
+                ) : !isOwned && !showBuyRow ? (
+                  <View style={[styles.badge, styles.badgeLock]}>
+                    <Lock size={9} strokeWidth={icons.strokeWidth} color={colors.paper60} />
+                  </View>
+                ) : null}
+              </View>
+
+              <Text style={[styles.label, isEquipped && styles.labelEquipped]} numberOfLines={1}>
+                {f.label}
+              </Text>
+              {caption && (
+                <Text style={styles.caption} numberOfLines={1}>
+                  {caption}
+                </Text>
               )}
-            </View>
-
-            {isEquipped && <Check size={18} strokeWidth={icons.strokeWidth} color={colors.safelight} />}
-          </Pressable>
-        );
-      })}
-    </View>
+            </Pressable>
+          );
+        })}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { gap: space.gridGap, alignSelf: 'stretch' },
-  row: {
-    flexDirection: 'row',
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  cell: {
+    width: '30%',
     alignItems: 'center',
-    gap: space.smPlus,
-    padding: space.xsPlus,
-    borderRadius: radius.card,
-    backgroundColor: colors.ink2,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    gap: space.xxs,
   },
-  rowEquipped: { borderColor: colors.safelight },
-  rowLocked: { opacity: 0.55 },
-  // Fixed-width slot so avatars line up even though the ring changes the outer size.
-  preview: { width: 56, alignItems: 'center' },
-  meta: { flex: 1, gap: space.hair },
-  label: { fontFamily: fonts.sansMedium, fontSize: typeScale.body, color: colors.paper },
-  lockRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
-  unlock: { fontFamily: fonts.sans, fontSize: typeScale.caption, color: colors.paper40 },
+  cellLocked: { opacity: 0.55 },
+  preview: { alignItems: 'center', justifyContent: 'center' },
+  badge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.safelight,
+    borderWidth: 2,
+    borderColor: colors.ink2,
+  },
+  badgeLock: { backgroundColor: colors.ink, borderColor: colors.ink2 },
+  label: { fontFamily: fonts.sansMedium, fontSize: typeScale.caption, color: colors.paper, textAlign: 'center' },
+  labelEquipped: { color: colors.safelight },
+  caption: { fontFamily: fonts.sans, fontSize: typeScale.tabLabel, color: colors.paper40, textAlign: 'center' },
 });
