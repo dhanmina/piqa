@@ -156,7 +156,7 @@ export function FramedAvatar({ uri, username, frameId, level, size, vipTier = 0 
               <Circle cx={32} cy={32} r={28} fill="none" stroke={`url(#${gradId})`} strokeWidth={3.2} />
             </AnimatedG>
           ) : (
-            <Circle cx={32} cy={32} r={28} fill="none" stroke={`url(#${gradId})`} strokeWidth={2.6} />
+            <Circle cx={32} cy={32} r={28} fill="none" stroke={`url(#${gradId})`} strokeWidth={3.2} />
           )}
           {def.shimmer ? (
             <AnimatedG animatedProps={markerGlowProps}>
@@ -171,7 +171,7 @@ export function FramedAvatar({ uri, username, frameId, level, size, vipTier = 0 
         <Svg style={StyleSheet.absoluteFill} viewBox="-6 -6 76 76" pointerEvents="none">
           {ring.color ? (
             <>
-              <Circle cx={32} cy={32} r={28} fill="none" stroke={ring.color} strokeWidth={2.6} />
+              <Circle cx={32} cy={32} r={28} fill="none" stroke={ring.color} strokeWidth={3.2} />
               {def.unlockKind === 'purchase' && def.markerShape && (
                 <MarkerBadge cx={markerCx} cy={markerCy} color={ring.color} />
               )}
