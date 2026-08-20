@@ -2,7 +2,7 @@ import { Check, Lock } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { frameOwned, framePurchasable } from '@lib/services/frames';
+import { frameClaimable, frameOwned, framePurchasable } from '@lib/services/frames';
 import { useFrameCatalog } from '@lib/hooks/frames';
 import type { FrameDef, FrameId } from '@lib/services/frames';
 import { FramedAvatar } from '@/components/molecules/FramedAvatar';
@@ -57,7 +57,10 @@ export function FramePicker({
   // unlock_kind='manual' frames (e.g. the retired Golden/Blue Hour pack) are
   // fully hidden here, not just non-purchasable — existing owners keep them
   // equipped and rendered everywhere else, they just don't clutter the equip
-  // sheet's current lineup.
+  // sheet's current lineup. An 'event' frame gets the same treatment once its
+  // window has closed and a given user never claimed it: eventStart/eventEnd
+  // are fixed dates, not a recurring window, so an unclaimed past event would
+  // otherwise sit here locked and un-claimable forever.
   //
   // One continuous grid, ordered rather than labeled: default/earned frames
   // first (no price — the earn condition already shows in their own caption),
@@ -65,7 +68,11 @@ export function FramePicker({
   // cell's own caption already carries its price, so a tier header above it
   // would just repeat that.
   const frames = useMemo(() => {
-    const visible = [...catalog.values()].filter((f) => f.unlockKind !== 'manual');
+    const visible = [...catalog.values()].filter((f) => {
+      if (f.unlockKind === 'manual') return false;
+      if (f.unlockKind === 'event') return frameOwned(f, owned) || frameClaimable(f);
+      return true;
+    });
     const byLabel = (a: FrameDef, b: FrameDef) => a.label.localeCompare(b.label);
 
     const yours = visible
@@ -79,7 +86,7 @@ export function FramePicker({
     const animated = visible.filter((f) => f.unlockKind === 'purchase' && f.shimmer).sort(byLabel);
 
     return [...yours, ...singles, ...elaborate, ...animated];
-  }, [catalog]);
+  }, [catalog, owned]);
 
   return (
     <ScrollView style={{ maxHeight: winH * 0.62 }} showsVerticalScrollIndicator={false}>
