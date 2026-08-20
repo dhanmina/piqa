@@ -13,7 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useIsAdmin } from '@lib/hooks/useAdmin';
@@ -43,6 +43,7 @@ import { Mono } from '@/components/atoms/Mono';
 import { FramePicker } from '@/components/molecules/FramePicker';
 import { ScreenHeader } from '@/components/molecules/ScreenHeader';
 import { Sheet } from '@/components/molecules/Sheet';
+import { Toast } from '@/components/molecules/Toast';
 import { colors, fonts, icons, radius, space, typeScale } from '@/components/tokens';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -123,6 +124,7 @@ export default function SettingsScreen() {
   const [equipping, setEquipping] = useState(false);
   const [busy, setBusy] = useState(false);
   const isAdmin = useIsAdmin();
+  const [toast, setToast] = useState('');
 
   // Analytics consent toggle — reads the real PostHog opt-in state on mount.
   const [analyticsOn, setAnalyticsOn] = useState(() => getConsentSync());
@@ -209,7 +211,7 @@ export default function SettingsScreen() {
     setBuying(null);
     if (result.ok) await refresh();
     else if (result.reason !== 'cancelled') {
-      Alert.alert("Couldn't complete purchase", 'Something went wrong. Please try again.');
+      setToast("Couldn't complete purchase. Try again.");
     }
   }, [refresh]);
 
@@ -219,10 +221,7 @@ export default function SettingsScreen() {
     const ok = await restoreAndSyncPurchases();
     setRestoring(false);
     await refresh();
-    Alert.alert(
-      ok ? 'Purchases restored' : "Couldn't restore purchases",
-      ok ? 'Any past purchases have been unlocked.' : 'Please try again.',
-    );
+    setToast(ok ? 'Purchases restored.' : "Couldn't restore purchases. Try again.");
   }, [refresh]);
 
   const onDelete = useCallback(async () => {
@@ -242,7 +241,7 @@ export default function SettingsScreen() {
     setExporting(true);
     const ok = await exportMyData();
     setExporting(false);
-    if (!ok) Alert.alert("Couldn't export your data", 'Something went wrong. Please try again.');
+    if (!ok) setToast("Couldn't export your data. Try again.");
   }, []);
 
   // Local-only camera preferences — the camera screen reads them fresh on each open.
@@ -423,6 +422,8 @@ export default function SettingsScreen() {
         </Pressable>
         <View style={styles.pad} />
       </Sheet>
+
+      <Toast message={toast} visible={toast !== ''} onHide={() => setToast('')} />
     </SafeAreaView>
   );
 }
