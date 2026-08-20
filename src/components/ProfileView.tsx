@@ -16,7 +16,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { imageCacheKey, signThumbs } from '@lib/cache';
-import { titleForLevel } from '@lib/utils/cosmetics';
+import { titleForLevel, VIP_TIERS, vipLabel } from '@lib/utils/cosmetics';
 import { plural } from '@lib/utils/format';
 import { isOffline } from '@lib/utils/net';
 import { useNodsReceived } from '@lib/hooks/nods';
@@ -257,6 +257,16 @@ export function ProfileView({
               <Text style={styles.username} numberOfLines={1}>
                 {data?.username ?? ' '}
               </Text>
+              {/* The avatar's own VIP badge is a flourish, too small at real
+                  sizes to actually read (see FramedAvatar's VipBadge) — this
+                  chip is the legible signal, text instead of icon detail. */}
+              {!!data?.vipTier && (
+                <View style={[styles.vipChip, { borderColor: VIP_TIERS[data.vipTier]?.base ?? colors.paper60 }]}>
+                  <Mono size={typeScale.tabLabel} color={VIP_TIERS[data.vipTier]?.base ?? colors.paper60}>
+                    {vipLabel(data.vipTier)}
+                  </Mono>
+                </View>
+              )}
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.title}>{title}</Text>
@@ -535,6 +545,7 @@ const styles = StyleSheet.create({
   crestActions: { flexDirection: 'row', alignSelf: 'flex-start', marginTop: -2, gap: space.hair },
   crestText: { flex: 1, gap: space.hair },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  vipChip: { borderWidth: 1, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   username: { flexShrink: 1, fontFamily: fonts.sansSemiBold, fontSize: typeScale.title, color: colors.paper },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxsPlus },
   title: { fontFamily: fonts.sans, fontSize: typeScale.sub, color: colors.paper60 },

@@ -60,6 +60,26 @@ export function avatarRing(
   return { color: r.color, width: r.width };
 }
 
+/** VIP badge art per tier -- base/dark/light feed the beveled diamond on
+ *  FramedAvatar, base alone (as a border/text color) feeds the "VIP II" chip
+ *  next to the username on Profile. Never gold (reserved for the PotD crown,
+ *  same rule as RINGS above) and never sold directly -- automatic at
+ *  lifetime cosmetic-spend thresholds. */
+export type VipTierArt = { base: string; dark: string; light: string };
+export const VIP_TIERS: Record<number, VipTierArt> = {
+  1: { base: "#C7CDD6", dark: "#8F98A6", light: "#E8ECF2" },
+  2: { base: "#3D8B8B", dark: "#2A6363", light: "#5FB3B3" },
+  3: { base: "#9C6BC7", dark: "#6B4589", light: "#C79AE8" },
+};
+
+const VIP_NUMERALS = ["", "I", "II", "III"];
+
+/** "VIP II" -- the legible signal (the avatar badge is too small to read on
+ *  its own on a real phone; this chip is what actually communicates tier). */
+export function vipLabel(tier: number): string {
+  return `VIP ${VIP_NUMERALS[tier] ?? tier}`;
+}
+
 export type Title = { label: string; unlockLevel: number };
 
 // MVP: 3 earned titles over a base (spec §10: Lv5 / Lv15 / Lv30).

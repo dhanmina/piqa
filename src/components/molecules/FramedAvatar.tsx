@@ -10,9 +10,9 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, LinearGradient, Stop, SvgXml } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Polygon, Stop, SvgXml } from 'react-native-svg';
 
-import { avatarRing } from '@lib/utils/cosmetics';
+import { avatarRing, VIP_TIERS } from '@lib/utils/cosmetics';
 import { useFrameDef } from '@lib/hooks/frames';
 import { Avatar } from '@/components/atoms/Avatar';
 import { colors } from '@/components/tokens';
@@ -49,27 +49,33 @@ function MarkerBadge({ cx, cy, color }: { cx: number; cy: number; color: string 
   );
 }
 
-const VIP_COLORS: Record<number, string> = { 1: '#C7CDD6', 2: '#3D8B8B', 3: '#9C6BC7' };
-
 /** Opposite the frame marker (12 o'clock, frame marker is 6 o'clock) so the two
  *  never collide -- see the plan's "two badges" decision. Same fixed-neutral-
- *  border convention as MarkerBadge, own icon: a tier-count dot cluster, not a
- *  photography glyph, since VIP tier isn't a photography concept.
+ *  border convention as MarkerBadge.
  *
- *  Geometry mirrors markerCy exactly: badge fully inside the ring, its OUTER
- *  edge (here, the top edge, since "outer" is the direction away from the
- *  avatar center) tangent to the ring's own outer edge from the inside.
- *  cy - BADGE_R = 11 - 7 = 4 = the ring's own top edge (32 - 28). */
+ *  A dot-count (tier = number of dots) and a laurel (multiple thin leaflets)
+ *  were both tried and dropped: at this badge's real on-screen size (~14px at
+ *  the largest place it's used, ProfileView's size=76) neither reads as
+ *  anything but a smudge, and this badge sits over the busiest part of a face
+ *  photo -- the hair, the one spot ruled out for the frame's OWN marker for
+ *  exactly that reason (spec §2.2) -- so it needed real contrast to survive,
+ *  not more fine detail. A single beveled diamond (light+dark facets, not a
+ *  flat fill) is the fix: it reads as "faceted gem" from the light/dark edge
+ *  the eye picks up, at any tier, with zero sub-elements to blur together.
+ *  Tier itself is communicated by the "VIP II" text chip next to the username
+ *  on Profile, not by this badge -- text is legible at any size, an icon this
+ *  small isn't, so the badge is a flourish, not the signal. */
 function VipBadge({ tier }: { tier: number }) {
-  const color = VIP_COLORS[tier] ?? VIP_COLORS[1];
+  const art = VIP_TIERS[tier] ?? VIP_TIERS[1];
   const cx = 32;
   const cy = 32 - (28 - BADGE_R);
+  const hw = 3.5; // diamond half-width/height
   return (
     <>
       <Circle cx={cx} cy={cy} r={BADGE_R} fill={colors.ink2} stroke={BADGE_BORDER} strokeWidth={1.4} />
-      {Array.from({ length: tier }).map((_, i) => (
-        <Circle key={i} cx={cx - (tier - 1) + i * 2} cy={cy} r={1.1} fill={color} />
-      ))}
+      <Polygon points={`${cx},${cy - hw} ${cx + hw},${cy} ${cx},${cy + hw}`} fill={art.dark} />
+      <Polygon points={`${cx},${cy - hw} ${cx - hw},${cy} ${cx},${cy + hw}`} fill={art.base} />
+      <Polygon points={`${cx},${cy - hw} ${cx + hw},${cy} ${cx},${cy}`} fill={art.light} />
     </>
   );
 }
