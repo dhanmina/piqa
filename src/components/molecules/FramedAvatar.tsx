@@ -3,12 +3,14 @@ import { StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
-  useAnimatedProps,
+  useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, G, LinearGradient, Stop, SvgXml } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Stop, SvgXml } from 'react-native-svg';
 
 import { avatarRing } from '@lib/utils/cosmetics';
 import { useFrameDef } from '@lib/hooks/frames';
@@ -35,9 +37,6 @@ const AVATAR_RATIO = 56 / 76;
 // (often gradient, sometimes rotating) hue — see spec §2.2.
 const BADGE_BORDER = '#F2EDE4';
 const BADGE_R = 7;
-
-const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /** A single accent-colored dot -- the shared placeholder for every tier 1-3
  *  marker shape until final Figma art replaces it (spec §5 correction). */
@@ -94,6 +93,7 @@ export function FramedAvatar({ uri, username, frameId, level, size, vipTier = 0 
 
   const rotate = useSharedValue(0);
   const glow = useSharedValue(0);
+  const flash = useSharedValue(0);
 
   useEffect(() => {
     if (!def.shimmer) return;
@@ -110,9 +110,34 @@ export function FramedAvatar({ uri, username, frameId, level, size, vipTier = 0 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [def.shimmer]);
 
-  const rotateProps = useAnimatedProps(() => ({ rotation: rotate.value }));
-  const glowProps = useAnimatedProps(() => ({ strokeOpacity: 0.2 + glow.value * 0.35 }));
-  const markerGlowProps = useAnimatedProps(() => ({ opacity: 0.7 + glow.value * 0.3 }));
+  // PotD-exclusive: a camera-flash glint, not a shimmer -- deliberately a
+  // different cadence from Tier 3's continuous rotating gradient (that one's
+  // sold, this one's earned, and the two must never read as the same effect).
+  // Bright for 180ms, decays over 420ms, then five full seconds of stillness.
+  useEffect(() => {
+    if (def.unlockKind !== 'potd') return;
+    flash.value = withRepeat(
+      withSequence(
+        withDelay(5000, withTiming(1, { duration: 180, easing: Easing.out(Easing.quad) })),
+        withTiming(0, { duration: 420, easing: Easing.in(Easing.quad) }),
+      ),
+      -1,
+    );
+    return () => cancelAnimation(flash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [def.unlockKind]);
+
+  // useAnimatedProps doesn't drive react-native-svg props on this stack (RN
+  // 0.86 / Reanimated 4.5 / react-native-svg 15.15, New Architecture) --
+  // confirmed dead on-device for both rotation/strokeOpacity SVG props and a
+  // plain SVG opacity prop. useAnimatedStyle on a plain View DOES work (same
+  // mechanism Sheet's slide/scrim already uses, confirmed on-device), so every
+  // animated piece here is a static SVG layer inside an Animated.View driven
+  // by a style (opacity or transform), never an SVG prop driven directly.
+  const rotateStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotate.value}deg` }] }));
+  const glowStyle = useAnimatedStyle(() => ({ opacity: 0.2 + glow.value * 0.35 }));
+  const markerGlowStyle = useAnimatedStyle(() => ({ opacity: 0.7 + glow.value * 0.3 }));
+  const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value * 0.9 }));
 
   // Bottom of the ring (6 o'clock), outer edge touching the ring's own outer
   // radius from inside -- not centered on the ring's midline (an earlier
@@ -132,49 +157,52 @@ export function FramedAvatar({ uri, username, frameId, level, size, vipTier = 0 
           </Svg>
         </>
       ) : def.ringGradient ? (
-        <Svg style={StyleSheet.absoluteFill} viewBox="-6 -6 76 76" pointerEvents="none">
-          <Defs>
-            <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-              {def.ringGradient.map((c, i) => (
-                <Stop key={c + i} offset={i / (def.ringGradient!.length - 1)} stopColor={c} />
-              ))}
-            </LinearGradient>
-          </Defs>
+        <>
+          <Svg style={StyleSheet.absoluteFill} viewBox="-6 -6 76 76" pointerEvents="none">
+            <Defs>
+              <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+                {def.ringGradient.map((c, i) => (
+                  <Stop key={c + i} offset={i / (def.ringGradient!.length - 1)} stopColor={c} />
+                ))}
+              </LinearGradient>
+            </Defs>
+            {!def.shimmer && <Circle cx={32} cy={32} r={28} fill="none" stroke={`url(#${gradId})`} strokeWidth={3.2} />}
+            {!def.shimmer && <MarkerBadge cx={markerCx} cy={markerCy} color={def.suffixColor ?? def.ringGradient[0]} />}
+            {vipTier > 0 && <VipBadge tier={vipTier} />}
+          </Svg>
           {def.shimmer && (
-            <AnimatedCircle
-              cx={32}
-              cy={32}
-              r={28}
-              fill="none"
-              stroke={def.ringGradient[0]}
-              strokeWidth={6}
-              animatedProps={glowProps}
-            />
+            <>
+              <Animated.View style={[StyleSheet.absoluteFill, glowStyle]} pointerEvents="none">
+                <Svg style={StyleSheet.absoluteFill} viewBox="-6 -6 76 76">
+                  <Circle cx={32} cy={32} r={28} fill="none" stroke={def.ringGradient[0]} strokeWidth={6} />
+                </Svg>
+              </Animated.View>
+              <Animated.View style={[StyleSheet.absoluteFill, rotateStyle]} pointerEvents="none">
+                <Svg style={StyleSheet.absoluteFill} viewBox="-6 -6 76 76">
+                  <Defs>
+                    <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+                      {def.ringGradient.map((c, i) => (
+                        <Stop key={c + i} offset={i / (def.ringGradient!.length - 1)} stopColor={c} />
+                      ))}
+                    </LinearGradient>
+                  </Defs>
+                  <Circle cx={32} cy={32} r={28} fill="none" stroke={`url(#${gradId})`} strokeWidth={3.2} />
+                </Svg>
+              </Animated.View>
+              <Animated.View style={[StyleSheet.absoluteFill, markerGlowStyle]} pointerEvents="none">
+                <Svg style={StyleSheet.absoluteFill} viewBox="-6 -6 76 76">
+                  <MarkerBadge cx={markerCx} cy={markerCy} color={def.suffixColor ?? def.ringGradient[0]} />
+                </Svg>
+              </Animated.View>
+            </>
           )}
-          {def.shimmer ? (
-            <AnimatedG originX={32} originY={32} animatedProps={rotateProps}>
-              <Circle cx={32} cy={32} r={28} fill="none" stroke={`url(#${gradId})`} strokeWidth={3.2} />
-            </AnimatedG>
-          ) : (
-            <Circle cx={32} cy={32} r={28} fill="none" stroke={`url(#${gradId})`} strokeWidth={3.2} />
-          )}
-          {def.shimmer ? (
-            <AnimatedG animatedProps={markerGlowProps}>
-              <MarkerBadge cx={markerCx} cy={markerCy} color={def.suffixColor ?? def.ringGradient[0]} />
-            </AnimatedG>
-          ) : (
-            <MarkerBadge cx={markerCx} cy={markerCy} color={def.suffixColor ?? def.ringGradient[0]} />
-          )}
-          {vipTier > 0 && <VipBadge tier={vipTier} />}
-        </Svg>
+        </>
       ) : (
         <Svg style={StyleSheet.absoluteFill} viewBox="-6 -6 76 76" pointerEvents="none">
           {ring.color ? (
             <>
               <Circle cx={32} cy={32} r={28} fill="none" stroke={ring.color} strokeWidth={3.2} />
-              {def.unlockKind === 'purchase' && def.markerShape && (
-                <MarkerBadge cx={markerCx} cy={markerCy} color={ring.color} />
-              )}
+              {def.markerShape && <MarkerBadge cx={markerCx} cy={markerCy} color={ring.color} />}
             </>
           ) : (
             // The default faint ring (assets/frames/profile/avatar-ring-default.svg).
@@ -182,6 +210,13 @@ export function FramedAvatar({ uri, username, frameId, level, size, vipTier = 0 
           )}
           {vipTier > 0 && <VipBadge tier={vipTier} />}
         </Svg>
+      )}
+      {def.unlockKind === 'potd' && (
+        <Animated.View style={[StyleSheet.absoluteFill, flashStyle]} pointerEvents="none">
+          <Svg style={StyleSheet.absoluteFill} viewBox="-6 -6 76 76">
+            <Circle cx={32} cy={32} r={28} fill="none" stroke={colors.paper} strokeWidth={3.2} />
+          </Svg>
+        </Animated.View>
       )}
     </View>
   );

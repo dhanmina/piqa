@@ -1,0 +1,13 @@
+-- Crown's profile_svg was a bespoke self-drawn ring (see 20260718000005) that
+-- predates the frame-tiers spec's marker rules and never matched them: the
+-- marker sat at top (corner-anchored) instead of bottom/6-o'clock touching the
+-- ring's outer edge from inside, its badge border matched crown's own gold
+-- gradient instead of the spec's fixed neutral tone, and the inner fill was
+-- the app's generic safelight accent instead of crown's own color.
+--
+-- Clearing profile_svg drops crown through to FramedAvatar's ring_color path,
+-- which already implements every one of those rules correctly (shared with
+-- every other ring-only frame) plus this task's new PotD-exclusive camera-
+-- flash glint (unlock_kind='potd'). ring_color stays '#E3B341' — the ring
+-- itself is unchanged, only the bespoke SVG override is removed.
+update public.frames set profile_svg = null where id = 'crown';
