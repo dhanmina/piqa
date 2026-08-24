@@ -18,7 +18,6 @@ create policy "profiles_update_own" on public.profiles
 create function public.handle_new_user()
 returns trigger as $$
 begin
-  set search_path = '';
   insert into public.profiles (id, username, display_name, avatar_url)
   values (
     new.id,
@@ -28,7 +27,7 @@ begin
   );
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = '';
 
 create trigger on_auth_user_created
   after insert on auth.users
