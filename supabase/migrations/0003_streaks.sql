@@ -72,14 +72,22 @@ $$;
 create function public.record_capture_streak()
 returns trigger
 language plpgsql security definer
+set search_path = ''
 as $$
+declare
+  new_count int;
 begin
+  select case
+    when last_capture_date = new.captured_at then current_count
+    when last_capture_date = new.captured_at - 1 then current_count + 1
+    else 1
+  end into new_count
+  from public.streaks where user_id = new.user_id;
+
   update public.streaks
-    set current_count = case when last_capture_date = new.captured_at - 1 or last_capture_date = new.captured_at
-                              then current_count + (case when last_capture_date = new.captured_at then 0 else 1 end)
-                              else 1 end,
+    set current_count = new_count,
         last_capture_date = greatest(coalesce(last_capture_date, new.captured_at), new.captured_at),
-        longest_count = greatest(longest_count, current_count + 1)
+        longest_count = greatest(longest_count, new_count)
     where user_id = new.user_id;
   return new;
 end;
@@ -88,3 +96,21 @@ $$;
 create trigger on_capture_update_streak
   after insert on public.captures
   for each row execute function public.record_capture_streak();
+
+-- Extend Task 1's signup trigger so every new user gets a default streaks row
+-- (current_count/longest_count/freezes_remaining all default correctly).
+-- Without this, get_today_state() sees no row and returns NULLs for real users.
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, username, display_name, avatar_url)
+  values (
+    new.id,
+    'user_' || replace(new.id::text, '-', ''),
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'avatar_url'
+  );
+  insert into public.streaks (user_id) values (new.id);
+  return new;
+end;
+$$ language plpgsql security definer set search_path = '';
