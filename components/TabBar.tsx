@@ -1,22 +1,42 @@
-import type { ComponentProps } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { colors, radius, spacing, touchTarget, type } from '../lib/theme';
 
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type SymbolName = NonNullable<SymbolViewProps['name']>;
 
 const PRESS_SPRING = { damping: 18, stiffness: 400 };
 const CAMERA_ROUTE = 'camera-action';
 const FAB_SIZE = 56;
 
-const TABS: Record<string, { label: string; icon: IconName; iconOutline: IconName }> = {
-  today: { label: 'Today', icon: 'home', iconOutline: 'home-outline' },
-  timeline: { label: 'Timeline', icon: 'calendar', iconOutline: 'calendar-outline' },
-  buddies: { label: 'Buddies', icon: 'account-group', iconOutline: 'account-group-outline' },
-  profile: { label: 'Profile', icon: 'account-circle', iconOutline: 'account-circle-outline' },
+// Native icon system per platform (SF Symbols on iOS, Material Symbols on
+// Android) instead of a generic vector-icon font, so the icons look correct
+// on iOS once that platform ships.
+const TABS: Record<string, { label: string; icon: SymbolName; iconFocused: SymbolName }> = {
+  today: {
+    label: 'Today',
+    icon: { ios: 'house', android: 'home' },
+    iconFocused: { ios: 'house.fill', android: 'home_filled' },
+  },
+  timeline: {
+    label: 'Timeline',
+    icon: { ios: 'calendar', android: 'calendar_month' },
+    iconFocused: { ios: 'calendar', android: 'calendar_month' },
+  },
+  buddies: {
+    label: 'Buddies',
+    icon: { ios: 'person.2', android: 'group' },
+    iconFocused: { ios: 'person.2.fill', android: 'group' },
+  },
+  profile: {
+    label: 'Profile',
+    icon: { ios: 'person.crop.circle', android: 'account_circle' },
+    iconFocused: { ios: 'person.crop.circle.fill', android: 'account_circle' },
+  },
 };
+
+const CAMERA_ICON: SymbolName = { ios: 'camera.fill', android: 'camera' };
 
 export function TabBar({ state, navigation, insets }: BottomTabBarProps) {
   function pressRoute(routeKey: string, routeName: string, isFocused: boolean) {
@@ -54,7 +74,7 @@ export function TabBar({ state, navigation, insets }: BottomTabBarProps) {
               key={route.key}
               focused={isFocused}
               label={config.label}
-              icon={isFocused ? config.icon : config.iconOutline}
+              icon={isFocused ? config.iconFocused : config.icon}
               onPress={() => pressRoute(route.key, route.name, isFocused)}
             />
           );
@@ -78,7 +98,7 @@ function TabItem({
 }: {
   focused: boolean;
   label: string;
-  icon: IconName;
+  icon: SymbolName;
   onPress: () => void;
 }) {
   const scale = useSharedValue(1);
@@ -111,7 +131,11 @@ function TabItem({
           scaleStyle,
         ]}
       >
-        <MaterialCommunityIcons name={icon} size={22} color={focused ? colors.textPrimary : colors.textMuted} />
+        <SymbolView
+          name={icon}
+          size={22}
+          tintColor={focused ? colors.textPrimary : colors.textMuted}
+        />
         <Text style={{ ...type.caption, color: focused ? colors.textPrimary : colors.textMuted }}>{label}</Text>
       </Animated.View>
     </Pressable>
@@ -151,7 +175,7 @@ function CameraTabButton({ onPress }: { onPress: () => void }) {
           scaleStyle,
         ]}
       >
-        <MaterialCommunityIcons name="camera" size={26} color={colors.background} />
+        <SymbolView name={CAMERA_ICON} size={26} tintColor={colors.background} />
       </Animated.View>
     </Pressable>
   );
