@@ -6,6 +6,8 @@ Solo and private by design: no feed, no likes, no comments, no comparison metric
 
 ## Platform
 
+android
+
 Android-only for now (no iOS, no web). Expo/React Native + TypeScript, expo-router, Supabase backend.
 
 ## Design mood

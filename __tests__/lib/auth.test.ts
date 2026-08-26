@@ -1,4 +1,4 @@
-import { signInWithGoogle } from '../../lib/auth';
+import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -7,6 +7,8 @@ jest.mock('../../lib/supabase', () => ({
     auth: {
       signInWithOAuth: jest.fn().mockResolvedValue({ data: { url: 'https://auth.example.com/authorize' }, error: null }),
       setSession: jest.fn().mockResolvedValue({ error: null }),
+      signInWithPassword: jest.fn().mockResolvedValue({ error: null }),
+      signUp: jest.fn().mockResolvedValue({ error: null }),
     },
   },
 }));
@@ -34,6 +36,24 @@ test('signInWithGoogle opens the OAuth URL and completes the session from the re
   expect(supabase.auth.setSession).toHaveBeenCalledWith({
     access_token: 'tok123',
     refresh_token: 'ref456',
+  });
+  expect(result.error).toBeNull();
+});
+
+test('signInWithEmail calls signInWithPassword with the given credentials', async () => {
+  const result = await signInWithEmail('user@example.com', 'hunter2');
+  expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
+    email: 'user@example.com',
+    password: 'hunter2',
+  });
+  expect(result.error).toBeNull();
+});
+
+test('signUpWithEmail calls signUp with the given credentials', async () => {
+  const result = await signUpWithEmail('user@example.com', 'hunter2');
+  expect(supabase.auth.signUp).toHaveBeenCalledWith({
+    email: 'user@example.com',
+    password: 'hunter2',
   });
   expect(result.error).toBeNull();
 });

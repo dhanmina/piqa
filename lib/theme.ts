@@ -16,12 +16,13 @@ export const type = {
 };
 
 export const spacing = {
+  xs: 4,
   sm: 8,
   md: 16,
   lg: 24,
 } as const;
 
 export const radius = {
-  button: 8,
+  button: 100, // pill/stadium shape — also used by input fields, for full shape consistency
   card: 12,
 } as const;

@@ -30,15 +30,33 @@ System font (RN default) — no custom font family for now.
 
 | Token | Value |
 |---|---|
+| `spacing.xs` | 4 |
 | `spacing.sm` | 8 |
 | `spacing.md` | 16 |
 | `spacing.lg` | 24 |
-| `radius.button` | 8 |
+| `radius.button` | 100 (pill/stadium) |
 | `radius.card` | 12 |
 
 ## Component pattern
 
-Buttons: solid `accent` (white) fill, `background`-colored text (dark text on the white button, for contrast), `radius.button` corners, `spacing.md`/`spacing.lg` vertical/horizontal padding. Pressed state dims to `border` gray, not a color shift. Established in `app/(auth)/sign-in.tsx`, reused via `lib/theme.ts`.
+Native Android (Material 3-informed, not web defaults):
+
+- **Buttons:** pill/stadium shape (`radius.button = 100`), solid `accent` (white) fill for primary actions, outlined (transparent + `border` outline) for secondary (Google sign-in). Disabled state fills `border` gray with `textMuted` label rather than dimming opacity. Pressed state dims to `accentPressed`/`border`, not a color shift.
+- **Text fields:** same pill shape as buttons (`radius.button`, not a separate token) — `surface` fill, placeholder-driven (no separate label element above the value), no border/underline.
+- **Loading/disabled states:** buttons disable and swap label text (e.g. "Sign in" → "Signing in…") while a request is in flight, rather than leaving the user without feedback.
+
+## Shared components (`components/`)
+
+Every screen composes from these instead of inline styles — extracted after the auth/onboarding screens each duplicated the same button/input styling:
+
+| Component | Purpose |
+|---|---|
+| `Screen` | `SafeAreaView` + `background` + standard padding — the outer wrapper every screen uses |
+| `Button` | primary (solid) / secondary (outlined) variants, disabled + loading states |
+| `FilledField` | pill-shaped text input, placeholder-driven |
+| `Card` | `surface` background, `radius.card` — for peek-back card, Mosaic tiles, Timeline cells (Tasks 9/10/12) |
+| `SelectableRow` | pressable choice-list row (onboarding intent chips; reusable for any future choice list) |
+| `Divider` | 1px `border`-colored hairline |
 
 ## Source of truth
 
