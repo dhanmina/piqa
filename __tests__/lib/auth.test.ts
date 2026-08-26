@@ -40,6 +40,15 @@ test('signInWithGoogle opens the OAuth URL and completes the session from the re
   expect(result.error).toBeNull();
 });
 
+test('signInWithGoogle returns an error instead of throwing when the native browser session rejects', async () => {
+  (WebBrowser.openAuthSessionAsync as jest.Mock).mockRejectedValueOnce(
+    new Error("WebBrowser's auth session is in an invalid state with a redirect handler set when it should not be")
+  );
+  const result = await signInWithGoogle();
+  expect(result.error).toBeInstanceOf(Error);
+  expect(result.error?.message).toMatch(/invalid state/);
+});
+
 test('signInWithEmail calls signInWithPassword with the given credentials', async () => {
   const result = await signInWithEmail('user@example.com', 'hunter2');
   expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({

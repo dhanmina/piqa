@@ -1,8 +1,8 @@
-import type { AuthError } from '@supabase/supabase-js';
-
 export type FormError = { message: string; field?: 'email' | 'password' | 'confirmPassword' };
 
-export function mapAuthError(error: AuthError): FormError {
+type AuthLikeError = { name?: string; code?: string; message: string };
+
+export function mapAuthError(error: AuthLikeError): FormError {
   if (error.name === 'AuthRetryableFetchError') {
     return { message: "Couldn't connect. Check your connection and try again." };
   }

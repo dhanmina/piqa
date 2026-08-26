@@ -26,6 +26,14 @@ export default function SignIn() {
     if (error) setError(mapAuthError(error).message);
   }
 
+  async function handleGoogleSignIn() {
+    setError(null);
+    setLoading(true);
+    const { error } = await signInWithGoogle();
+    setLoading(false);
+    if (error) setError(mapAuthError(error).message);
+  }
+
   return (
     <Screen>
       <Animated.View entering={FadeInUp.duration(220)} style={{ flex: 1, justifyContent: 'space-between' }}>
@@ -67,7 +75,14 @@ export default function SignIn() {
 
         <View>
           <Divider />
-          <Button label="Sign in with Google" variant="secondary" onPress={signInWithGoogle} />
+          <Button
+            label="Sign in with Google"
+            loadingLabel="Opening Google…"
+            variant="secondary"
+            onPress={handleGoogleSignIn}
+            disabled={loading}
+            loading={loading}
+          />
         </View>
       </Animated.View>
     </Screen>

@@ -16,7 +16,12 @@ export async function signInWithGoogle() {
   });
   if (error) return { error };
 
-  const result = await WebBrowser.openAuthSessionAsync(data.url!, redirectTo);
+  let result;
+  try {
+    result = await WebBrowser.openAuthSessionAsync(data.url!, redirectTo);
+  } catch (e) {
+    return { error: e instanceof Error ? e : new Error(String(e)) };
+  }
   if (result.type !== 'success' || !('url' in result)) {
     return { error: null }; // user cancelled the browser — not a hard error
   }
