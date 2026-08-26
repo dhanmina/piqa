@@ -44,7 +44,7 @@ export default function Permissions() {
             Just two things
           </Text>
           <Text style={{ ...type.body, color: colors.textMuted, textAlign: 'center' }}>
-            So Piqa can actually do its job.
+            So piqa can actually do its job.
           </Text>
         </View>
 
