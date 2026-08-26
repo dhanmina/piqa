@@ -2,7 +2,7 @@ import { Tabs, router } from 'expo-router';
 
 export default function TabLayout() {
   return (
-    <Tabs>
+    <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="today" options={{ title: 'Today' }} />
       <Tabs.Screen name="timeline" options={{ title: 'Timeline' }} />
       <Tabs.Screen
