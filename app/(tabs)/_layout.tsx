@@ -15,6 +15,7 @@ export default function TabLayout() {
           },
         }}
       />
+      <Tabs.Screen name="buddies" options={{ title: 'Buddies' }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
     </Tabs>
   );
