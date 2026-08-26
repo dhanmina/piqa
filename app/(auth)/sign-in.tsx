@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { signInWithGoogle, signInWithEmail } from '../../lib/auth';
+import { mapAuthError } from '../../lib/authErrors';
 import { colors, spacing, type } from '../../lib/theme';
 import { Screen } from '../../components/Screen';
 import { FilledField } from '../../components/FilledField';
+import { FieldError } from '../../components/FieldError';
 import { Button } from '../../components/Button';
 import { Divider } from '../../components/Divider';
 
@@ -20,7 +22,7 @@ export default function SignIn() {
     setLoading(true);
     const { error } = await signInWithEmail(email, password);
     setLoading(false);
-    if (error) setError(error.message);
+    if (error) setError(mapAuthError(error).message);
   }
 
   return (
@@ -31,10 +33,26 @@ export default function SignIn() {
           Capture daily. Keep your streak. Peek into your past.
         </Text>
 
-        <FilledField placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
-        <FilledField placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+        <FilledField
+          placeholder="Email"
+          value={email}
+          onChangeText={(v) => {
+            setEmail(v);
+            setError(null);
+          }}
+          keyboardType="email-address"
+        />
+        <FilledField
+          placeholder="Password"
+          value={password}
+          onChangeText={(v) => {
+            setPassword(v);
+            setError(null);
+          }}
+          secureTextEntry
+        />
 
-        {error && <Text style={{ ...type.caption, color: colors.textPrimary, textAlign: 'center' }}>{error}</Text>}
+        <FieldError message={error} />
 
         <Button label="Sign in" loadingLabel="Signing in…" onPress={handleEmailSignIn} disabled={!canSubmit} loading={loading} />
 

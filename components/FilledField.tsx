@@ -7,12 +7,14 @@ export function FilledField({
   onChangeText,
   secureTextEntry,
   keyboardType,
+  error,
 }: {
   placeholder: string;
   value: string;
   onChangeText: (v: string) => void;
   secureTextEntry?: boolean;
   keyboardType?: 'email-address';
+  error?: boolean;
 }) {
   return (
     <TextInput
@@ -29,6 +31,8 @@ export function FilledField({
         minHeight: height.control,
         paddingHorizontal: spacing.lg,
         color: colors.textPrimary,
+        borderWidth: 1.5,
+        borderColor: error ? colors.textPrimary : 'transparent',
         ...type.body,
       }}
     />

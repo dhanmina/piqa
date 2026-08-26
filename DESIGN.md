@@ -54,8 +54,9 @@ System font (RN default) — no custom font family for now. Every role carries a
 Native Android (Material 3-informed, not web defaults):
 
 - **Buttons:** pill/stadium shape (`radius.button = 100`), solid `accent` (white) fill for primary actions, outlined (transparent + `border` outline) for secondary (Google sign-in). Disabled state fills `border` gray with `textMuted` label rather than dimming opacity. Pressed state dims to `accentPressed`/`border`, not a color shift.
-- **Text fields:** same pill shape as buttons (`radius.button`, not a separate token) — `surface` fill, placeholder-driven (no separate label element above the value), no border/underline.
+- **Text fields:** same pill shape as buttons (`radius.button`, not a separate token) — `surface` fill, placeholder-driven (no separate label element above the value), transparent 1.5px border by default (kept constant-width to avoid layout shift when it turns on).
 - **Loading/disabled states:** buttons disable and swap label text (e.g. "Sign in" → "Signing in…") while a request is in flight, rather than leaving the user without feedback.
+- **Error states:** no hue for error, by palette rule — signaled structurally instead: the implicated field's border switches to `textPrimary` (white) via `FilledField`'s `error` prop, paired with a `⚠` glyph + bold caption from `FieldError`. `FieldError` reserves its line height (`type.caption.lineHeight`) whether or not a message is shown, so the message appearing/disappearing never shifts the layout. Errors attributable to one field (password mismatch, weak password, email already registered) render inline under that field; errors that can't be attributed to one field without leaking information (invalid credentials — never reveal which of email/password was wrong) render in a shared slot at the bottom of the form. Fields clear their own error the moment the user edits them, rather than leaving a stale message. Copy is mapped from Supabase error codes to product language in `lib/authErrors.ts`, not the raw SDK message.
 
 ## Shared components (`components/`)
 
@@ -69,6 +70,7 @@ Every screen composes from these instead of inline styles — extracted after th
 | `Card` | `surface` background, `radius.card` — for peek-back card, Mosaic tiles, Timeline cells (Tasks 9/10/12) |
 | `SelectableRow` | pressable choice-list row (onboarding intent chips; reusable for any future choice list) |
 | `Divider` | 1px `border`-colored hairline |
+| `FieldError` | error message row — `⚠` glyph + bold caption, reserves its height so appearing/disappearing never shifts layout |
 
 ## Source of truth
 
