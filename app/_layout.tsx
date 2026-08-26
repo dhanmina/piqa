@@ -4,6 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 import { getSession } from '../lib/auth';
 import { getOnboardingStatus } from '../lib/onboarding';
 import { supabase } from '../lib/supabase';
+import { AuthStateProvider } from '../lib/authState';
 
 export default function RootLayout() {
   const [checked, setChecked] = useState(false);
@@ -28,24 +29,28 @@ export default function RootLayout() {
 
   if (!checked) return null;
 
-  // Stack.Protected conditionally includes/excludes whole groups, so there's
-  // never an "unmatched route" moment at boot the way an effect-driven
-  // router.replace() from bare `/` (no app/index.tsx) can hit.
+  // Stack.Protected only controls which groups are navigable once mounted —
+  // it does NOT create a match for the bare `/` path a custom-scheme cold
+  // boot (e.g. `piqa:///`) requests. That still needs a real app/index.tsx,
+  // which redirects into whichever group below is actually active.
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!signedIn}>
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
-      <Stack.Protected guard={signedIn}>
-        <Stack.Screen name="capture" options={{ presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="recap" options={{ presentation: 'modal' }} />
-        <Stack.Protected guard={!onboarded}>
+    <AuthStateProvider value={{ signedIn, onboarded }}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Protected guard={!signedIn}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+        <Stack.Protected guard={signedIn && !onboarded}>
           <Stack.Screen name="(onboarding)" />
         </Stack.Protected>
-        <Stack.Protected guard={onboarded}>
+        <Stack.Protected guard={signedIn && onboarded}>
           <Stack.Screen name="(tabs)" />
         </Stack.Protected>
-      </Stack.Protected>
-    </Stack>
+        <Stack.Protected guard={signedIn}>
+          <Stack.Screen name="capture" options={{ presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="recap" options={{ presentation: 'modal' }} />
+        </Stack.Protected>
+      </Stack>
+    </AuthStateProvider>
   );
 }
