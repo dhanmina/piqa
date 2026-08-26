@@ -1,8 +1,9 @@
 import { Tabs, router } from 'expo-router';
+import { TabBar } from '../../components/TabBar';
 
 export default function TabLayout() {
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
+    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
       <Tabs.Screen name="today" options={{ title: 'Today' }} />
       <Tabs.Screen name="timeline" options={{ title: 'Timeline' }} />
       <Tabs.Screen
