@@ -14,6 +14,7 @@ export const colors = {
 
 export const type = {
   hero: { fontSize: 32, fontWeight: '700' as const, lineHeight: 38 },
+  screenTitle: { fontSize: 28, fontWeight: '700' as const, lineHeight: 34, letterSpacing: -0.5 }, // sign-up, onboarding screen headings
   title: { fontSize: 20, fontWeight: '600' as const, lineHeight: 26 },
   body: { fontSize: 16, fontWeight: '400' as const, lineHeight: 22 },
   bodyBold: { fontSize: 16, fontWeight: '600' as const, lineHeight: 22 },

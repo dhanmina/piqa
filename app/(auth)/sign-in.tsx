@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { signInWithGoogle, signInWithEmail } from '../../lib/auth';
 import { mapAuthError } from '../../lib/authErrors';
@@ -26,47 +27,49 @@ export default function SignIn() {
   }
 
   return (
-    <Screen style={{ justifyContent: 'space-between' }}>
-      <View style={{ flex: 1, justifyContent: 'center', gap: spacing.md }}>
-        <Text style={{ fontSize: 40, fontWeight: '700', color: colors.textPrimary, letterSpacing: -1, textAlign: 'center' }}>piqa</Text>
-        <Text style={{ ...type.body, color: colors.textMuted, textAlign: 'center', marginBottom: spacing.sm }}>
-          Capture daily. Keep your streak. Peek into your past.
-        </Text>
-
-        <FilledField
-          placeholder="Email"
-          value={email}
-          onChangeText={(v) => {
-            setEmail(v);
-            setError(null);
-          }}
-          keyboardType="email-address"
-        />
-        <FilledField
-          placeholder="Password"
-          value={password}
-          onChangeText={(v) => {
-            setPassword(v);
-            setError(null);
-          }}
-          secureTextEntry
-        />
-
-        <FieldError message={error} />
-
-        <Button label="Sign in" loadingLabel="Signing in…" onPress={handleEmailSignIn} disabled={!canSubmit} loading={loading} />
-
-        <Pressable onPress={() => router.push('/(auth)/sign-up')} style={{ paddingVertical: spacing.sm }}>
-          <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
-            Don't have an account? <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Sign up</Text>
+    <Screen>
+      <Animated.View entering={FadeInUp.duration(220)} style={{ flex: 1, justifyContent: 'space-between' }}>
+        <View style={{ flex: 1, justifyContent: 'center', gap: spacing.md }}>
+          <Text style={{ fontSize: 40, fontWeight: '700', color: colors.textPrimary, letterSpacing: -1, textAlign: 'center' }}>piqa</Text>
+          <Text style={{ ...type.body, color: colors.textMuted, textAlign: 'center', marginBottom: spacing.sm }}>
+            Capture daily. Keep your streak. Peek into your past.
           </Text>
-        </Pressable>
-      </View>
 
-      <View>
-        <Divider />
-        <Button label="Sign in with Google" variant="secondary" onPress={signInWithGoogle} />
-      </View>
+          <FilledField
+            placeholder="Email"
+            value={email}
+            onChangeText={(v) => {
+              setEmail(v);
+              setError(null);
+            }}
+            keyboardType="email-address"
+          />
+          <FilledField
+            placeholder="Password"
+            value={password}
+            onChangeText={(v) => {
+              setPassword(v);
+              setError(null);
+            }}
+            secureTextEntry
+          />
+
+          <FieldError message={error} />
+
+          <Button label="Sign in" loadingLabel="Signing in…" onPress={handleEmailSignIn} disabled={!canSubmit} loading={loading} />
+
+          <Pressable onPress={() => router.push('/(auth)/sign-up')} style={{ paddingVertical: spacing.sm }}>
+            <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
+              Don't have an account? <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Sign up</Text>
+            </Text>
+          </Pressable>
+        </View>
+
+        <View>
+          <Divider />
+          <Button label="Sign in with Google" variant="secondary" onPress={signInWithGoogle} />
+        </View>
+      </Animated.View>
     </Screen>
   );
 }

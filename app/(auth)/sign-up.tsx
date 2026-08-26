@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Text, Pressable } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { signUpWithEmail } from '../../lib/auth';
 import { mapAuthError } from '../../lib/authErrors';
@@ -41,66 +42,68 @@ export default function SignUp() {
   }
 
   return (
-    <Screen style={{ justifyContent: 'center', gap: spacing.md }}>
-      <Text style={{ fontSize: 28, fontWeight: '700', color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.sm }}>
-        Create your account
-      </Text>
+    <Screen>
+      <Animated.View entering={FadeInUp.duration(220)} style={{ justifyContent: 'center', gap: spacing.md, flex: 1 }}>
+        <Text style={{ ...type.screenTitle, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.sm }}>
+          Create your account
+        </Text>
 
-      <FilledField
-        placeholder="Email"
-        value={email}
-        onChangeText={(v) => {
-          setEmail(v);
-          setFieldErrors((f) => ({ ...f, email: undefined }));
-          setFormError(null);
-        }}
-        keyboardType="email-address"
-        error={!!fieldErrors.email}
-      />
-      <FieldError message={fieldErrors.email ?? null} />
-      {fieldErrors.email && (
-        <Pressable onPress={() => router.back()} style={{ marginTop: -spacing.sm }}>
-          <Text style={{ ...type.caption, color: colors.textPrimary, fontWeight: '600', textAlign: 'center' }}>
-            Sign in instead
+        <FilledField
+          placeholder="Email"
+          value={email}
+          onChangeText={(v) => {
+            setEmail(v);
+            setFieldErrors((f) => ({ ...f, email: undefined }));
+            setFormError(null);
+          }}
+          keyboardType="email-address"
+          error={!!fieldErrors.email}
+        />
+        <FieldError message={fieldErrors.email ?? null} />
+        {fieldErrors.email && (
+          <Pressable onPress={() => router.back()} style={{ marginTop: -spacing.sm }}>
+            <Text style={{ ...type.caption, color: colors.textPrimary, fontWeight: '600', textAlign: 'center' }}>
+              Sign in instead
+            </Text>
+          </Pressable>
+        )}
+
+        <FilledField
+          placeholder="Password"
+          value={password}
+          onChangeText={(v) => {
+            setPassword(v);
+            setFieldErrors((f) => ({ ...f, password: undefined, confirmPassword: undefined }));
+            setFormError(null);
+          }}
+          secureTextEntry
+          error={!!fieldErrors.password}
+        />
+        <FieldError message={fieldErrors.password ?? null} />
+
+        <FilledField
+          placeholder="Confirm password"
+          value={confirmPassword}
+          onChangeText={(v) => {
+            setConfirmPassword(v);
+            setFieldErrors((f) => ({ ...f, confirmPassword: undefined }));
+            setFormError(null);
+          }}
+          secureTextEntry
+          error={!!fieldErrors.confirmPassword}
+        />
+        <FieldError message={fieldErrors.confirmPassword ?? null} />
+
+        <FieldError message={formError} />
+
+        <Button label="Sign up" loadingLabel="Creating account…" onPress={handleSignUp} disabled={!canSubmit} loading={loading} />
+
+        <Pressable onPress={() => router.back()} style={{ paddingVertical: spacing.sm }}>
+          <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
+            Already have an account? <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Sign in</Text>
           </Text>
         </Pressable>
-      )}
-
-      <FilledField
-        placeholder="Password"
-        value={password}
-        onChangeText={(v) => {
-          setPassword(v);
-          setFieldErrors((f) => ({ ...f, password: undefined, confirmPassword: undefined }));
-          setFormError(null);
-        }}
-        secureTextEntry
-        error={!!fieldErrors.password}
-      />
-      <FieldError message={fieldErrors.password ?? null} />
-
-      <FilledField
-        placeholder="Confirm password"
-        value={confirmPassword}
-        onChangeText={(v) => {
-          setConfirmPassword(v);
-          setFieldErrors((f) => ({ ...f, confirmPassword: undefined }));
-          setFormError(null);
-        }}
-        secureTextEntry
-        error={!!fieldErrors.confirmPassword}
-      />
-      <FieldError message={fieldErrors.confirmPassword ?? null} />
-
-      <FieldError message={formError} />
-
-      <Button label="Sign up" loadingLabel="Creating account…" onPress={handleSignUp} disabled={!canSubmit} loading={loading} />
-
-      <Pressable onPress={() => router.back()} style={{ paddingVertical: spacing.sm }}>
-        <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
-          Already have an account? <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Sign in</Text>
-        </Text>
-      </Pressable>
+      </Animated.View>
     </Screen>
   );
 }
