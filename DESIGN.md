@@ -8,34 +8,46 @@ True neutral grayscale, no hue anywhere. Dark-first, no light mode variant yet. 
 |---|---|---|
 | `background` | `#121212` | Screen background |
 | `surface` | `#1E1E1E` | Cards, elevated surfaces (peek-back card, sheets) |
+| `surfaceRaised` | `#242424` | Stacked sheets/modals over a card — tonal elevation instead of shadow, per Material dark theme |
 | `textPrimary` | `#F5F5F5` | Primary text, near-white |
 | `textMuted` | `#8A8A8A` | Secondary/caption text, mid-gray |
 | `accent` | `#FFFFFF` | Primary CTA fill, streak count — the only filled/bright element |
-| `border` | `#2C2C2C` | Hairline dividers, card outlines, pressed-state fill |
+| `border` | `#2C2C2C` | Hairline dividers, card outlines |
+| `disabledBg` | `#2C2C2C` | Disabled button/control fill (same value as `border` — codified as its own token so screens don't hardcode `border` for this meaning) |
+| `disabledText` | `#8A8A8A` | Disabled control label (same value as `textMuted`) |
+| `pressedOverlay` | `#2C2C2C` | Pressed-state fill for rows/cards (`SelectableRow`, `Card`) — same value as `border` |
 
 No separate "warning" color — freeze/at-risk states are communicated via `border`/`textMuted` + copy or an icon, not a hue, to keep the palette genuinely monochrome.
 
 ## Type scale
 
-System font (RN default) — no custom font family for now.
+System font (RN default) — no custom font family for now. Every role carries an explicit `lineHeight` (RN's default ~1.2× multiplier reads tight at the 32px `hero` size).
 
-| Token | Size | Weight | Use |
-|---|---|---|---|
-| `hero` | 32 | 700 | Streak count on Today |
-| `body` | 16 | 400 | Standard copy |
-| `bodyBold` | 16 | 600 | Button labels, emphasis |
-| `caption` | 13 | 400 | Muted/secondary text (peek-back label, timestamps) |
+| Token | Size | Weight | Line-height | Use |
+|---|---|---|---|---|
+| `hero` | 32 | 700 | 38 | Streak count on Today |
+| `title` | 20 | 600 | 26 | Screen/section headers (Timeline, Profile) |
+| `body` | 16 | 400 | 22 | Standard copy |
+| `bodyBold` | 16 | 600 | 22 | Button labels, emphasis |
+| `caption` | 13 | 400 | 18 | Muted/secondary text (peek-back label, timestamps) |
 
-## Spacing & radius
+## Spacing, sizing & radius
 
-| Token | Value |
-|---|---|
-| `spacing.xs` | 4 |
-| `spacing.sm` | 8 |
-| `spacing.md` | 16 |
-| `spacing.lg` | 24 |
-| `radius.button` | 100 (pill/stadium) |
-| `radius.card` | 12 |
+| Token | Value | Use |
+|---|---|---|
+| `spacing.xxs` | 2 | Icon-to-label gap, tight inline |
+| `spacing.xs` | 4 | |
+| `spacing.sm` | 8 | |
+| `spacing.md` | 16 | Also the standard screen horizontal margin |
+| `spacing.lg` | 24 | Section gap |
+| `spacing.xl` | 32 | Major section break |
+| `spacing.xxl` | 48 | Screen top/bottom breathing room, empty states |
+| `radius.button` | 100 (pill/stadium) | |
+| `radius.card` | 12 | |
+| `height.control` | 52 | Button + input height |
+| `height.controlSm` | 40 | Secondary/inline actions only — still hit-slop to `touchTarget.min` |
+| `touchTarget.min` | 48 | Android minimum touch target (dp) — use as `hitSlop` floor for icon-only controls (back/close), never shrink the tap area to match a small icon |
+| `touchTarget.gap` | 8 | Minimum space between adjacent tappable controls |
 
 ## Component pattern
 

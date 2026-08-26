@@ -1,5 +1,5 @@
 import { Text, Pressable } from 'react-native';
-import { colors, spacing, radius, type } from '../lib/theme';
+import { colors, spacing, radius, type, height } from '../lib/theme';
 
 export function Button({
   label,
@@ -27,7 +27,9 @@ export function Button({
         if (isPrimary) {
           return {
             backgroundColor: isDisabled ? colors.border : pressed ? colors.accentPressed : colors.accent,
-            paddingVertical: spacing.md,
+            minHeight: height.control,
+            justifyContent: 'center',
+            paddingHorizontal: spacing.lg,
             borderRadius: radius.button,
             alignItems: 'center',
           };
@@ -36,7 +38,9 @@ export function Button({
           backgroundColor: pressed ? colors.border : 'transparent',
           borderColor: colors.border,
           borderWidth: 1,
-          paddingVertical: spacing.md,
+          minHeight: height.control,
+          justifyContent: 'center',
+          paddingHorizontal: spacing.lg,
           borderRadius: radius.button,
           alignItems: 'center',
         };

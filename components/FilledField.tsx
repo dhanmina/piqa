@@ -1,5 +1,5 @@
 import { TextInput } from 'react-native';
-import { colors, spacing, radius, type } from '../lib/theme';
+import { colors, spacing, radius, type, height } from '../lib/theme';
 
 export function FilledField({
   placeholder,
@@ -26,7 +26,7 @@ export function FilledField({
       style={{
         backgroundColor: colors.surface,
         borderRadius: radius.button,
-        paddingVertical: spacing.md + spacing.xs,
+        minHeight: height.control,
         paddingHorizontal: spacing.lg,
         color: colors.textPrimary,
         ...type.body,
