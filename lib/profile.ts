@@ -38,7 +38,15 @@ export async function fetchArchiveMosaic(): Promise<{ data: MosaicPhoto[]; error
 }
 
 export async function updateDisplayName(name: string): Promise<{ error: Error | null }> {
-  const { error } = await supabase.from('profiles').update({ display_name: name.trim() });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: new Error('Not signed in') };
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: name.trim() })
+    .eq('id', user.id)
+    .select('id')
+    .single();
   if (error) return { error: new Error(error.message) };
   return { error: null };
 }
