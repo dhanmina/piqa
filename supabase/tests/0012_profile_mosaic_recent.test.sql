@@ -1,5 +1,5 @@
 begin;
-select plan(2);
+select plan(3);
 
 insert into auth.users (id, email) values ('66666666-6666-6666-6666-666666666666', 'mosaic-cap@example.com');
 
@@ -23,6 +23,12 @@ select is(
   (select storage_path from get_profile_mosaic() limit 1),
   'cap-0.jpg',
   'should return the most recent capture first'
+);
+
+select is_empty(
+  $$ select storage_path from get_profile_mosaic()
+     where storage_path in ('cap-27.jpg', 'cap-28.jpg', 'cap-29.jpg') $$,
+  'should exclude the three oldest captures'
 );
 
 select * from finish();

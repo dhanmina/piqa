@@ -12,6 +12,6 @@ as $$
   select storage_path, captured_at
   from public.captures
   where user_id = auth.uid()
-  order by captured_at desc
+  order by captured_at desc, created_at desc
   limit 27;
 $$;

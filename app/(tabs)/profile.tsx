@@ -13,6 +13,7 @@ import { Screen } from '../../components/Screen';
 import { colors, height, spacing, touchTarget, type } from '../../lib/theme';
 
 const PERSON_ICON = { ios: 'person.fill', android: 'person' } as const;
+const MOSAIC_CAP = 27;
 
 function pluralize(count: number, singular: string): string {
   return count === 1 ? singular : `${singular}s`;
@@ -113,7 +114,9 @@ export default function Profile() {
 
   const archiveLabel =
     !photosLoading && !photosError && photos.length > 0
-      ? `Your archive · ${photos.length} ${pluralize(photos.length, 'photo')}`
+      ? photos.length === MOSAIC_CAP
+        ? `Your archive · latest ${MOSAIC_CAP} photos`
+        : `Your archive · ${photos.length} ${pluralize(photos.length, 'photo')}`
       : 'Your archive';
 
   return (
