@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import { SymbolView } from 'expo-symbols';
 import { router } from 'expo-router';
 import { requestWidgetUpdate } from 'react-native-android-widget';
 import { supabase } from '../../lib/supabase';
@@ -12,14 +11,10 @@ import { WeekStrip, type DayCell, type DayCellState } from '../../components/Wee
 import { Button } from '../../components/Button';
 import { Screen } from '../../components/Screen';
 import { StreakWidget } from '../../widgets/StreakWidget';
-import { colors, radius, spacing, type, touchTarget } from '../../lib/theme';
+import { colors, radius, spacing, type } from '../../lib/theme';
 
 type TodayState = { current_count: number; longest_count: number; freezes_remaining: number; captured_today: boolean };
 type Peek = { imageUrl: string; label: string } | null;
-
-// Reuses the exact { ios, android } pair already verified on-device in TabBar.tsx
-// rather than introducing a new, unverified icon name.
-const PROFILE_ICON = { ios: 'person.crop.circle', android: 'account_circle' } as const;
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -151,27 +146,18 @@ export default function Today() {
     <Screen>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
         <Animated.View entering={FadeInUp.duration(220)} style={{ gap: spacing.lg }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <View style={{ flex: 1, gap: spacing.xxs }}>
-              <Text style={{ ...type.caption, color: colors.textMuted }}>{todayDateLabel()}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                <Text
-                  style={{ ...type.hero, color: colors.textPrimary, flexShrink: 1 }}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  {streakHeroLabel(state?.current_count)}
-                </Text>
-                <StreakUrgencyDot capturedToday={state?.captured_today ?? false} />
-              </View>
+          <View style={{ gap: spacing.xxs }}>
+            <Text style={{ ...type.caption, color: colors.textMuted }}>{todayDateLabel()}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <Text
+                style={{ ...type.hero, color: colors.textPrimary, flexShrink: 1 }}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {streakHeroLabel(state?.current_count)}
+              </Text>
+              <StreakUrgencyDot capturedToday={state?.captured_today ?? false} />
             </View>
-            <Pressable
-              onPress={() => router.push('/profile')}
-              hitSlop={touchTarget.min}
-              style={{ flexShrink: 0, minWidth: touchTarget.min, minHeight: touchTarget.min, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <SymbolView name={PROFILE_ICON} size={26} tintColor={colors.textMuted} />
-            </Pressable>
           </View>
 
           {peek ? <PeekBackCard peek={peek} /> : null}
