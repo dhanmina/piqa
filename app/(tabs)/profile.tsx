@@ -34,7 +34,7 @@ function Avatar({ url, name }: { url: string | null | undefined; name: string | 
     justifyContent: 'center' as const,
     overflow: 'hidden' as const,
   };
-  if (url) return <Image source={{ uri: url }} style={baseStyle} />;
+  if (url) return <Image source={{ uri: url }} style={baseStyle} accessibilityLabel="Your profile photo" />;
   const initial = name?.trim()?.[0]?.toUpperCase();
   return (
     <View style={baseStyle}>
@@ -157,7 +157,15 @@ export default function Profile() {
             </Text>
           ) : (
             <>
-              <View style={{ gap: spacing.xxs }}>
+              <View
+                style={{ flex: 1, gap: spacing.xxs }}
+                accessible
+                accessibilityLabel={
+                  statsLoading
+                    ? 'Current streak loading'
+                    : `Current streak: ${stats?.current_count ?? 0} ${pluralize(stats?.current_count ?? 0, 'day')}`
+                }
+              >
                 <Text style={{ ...type.hero, color: colors.textPrimary }}>
                   {statsLoading ? '…' : (stats?.current_count ?? 0)}
                 </Text>
@@ -165,7 +173,15 @@ export default function Profile() {
                   Current {pluralize(stats?.current_count ?? 0, 'day')}
                 </Text>
               </View>
-              <View style={{ gap: spacing.xxs }}>
+              <View
+                style={{ flex: 1, gap: spacing.xxs }}
+                accessible
+                accessibilityLabel={
+                  statsLoading
+                    ? 'Longest streak loading'
+                    : `Longest streak: ${stats?.longest_count ?? 0} ${pluralize(stats?.longest_count ?? 0, 'day')}`
+                }
+              >
                 <Text style={{ ...type.hero, color: colors.textPrimary }}>
                   {statsLoading ? '…' : (stats?.longest_count ?? 0)}
                 </Text>
@@ -184,7 +200,25 @@ export default function Profile() {
               Couldn't load your archive. Check your connection and try again.
             </Text>
           ) : photos.length > 0 ? (
-            <MosaicGrid photos={photos} onPressPhoto={(p) => setViewerUrl(p.url)} />
+            <>
+              <MosaicGrid photos={photos} onPressPhoto={(p) => setViewerUrl(p.url)} />
+              <Pressable
+                onPress={() => router.push('/(tabs)/timeline')}
+                accessibilityRole="button"
+                accessibilityLabel="See full archive in Timeline"
+                style={{
+                  alignSelf: 'center',
+                  minHeight: touchTarget.min,
+                  paddingHorizontal: spacing.md,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ ...type.caption, color: colors.textPrimary, fontWeight: '600' }}>
+                  See full archive
+                </Text>
+              </Pressable>
+            </>
           ) : (
             <Text style={{ ...type.caption, color: colors.textMuted }}>
               Nothing captured yet. Your archive starts with your first photo.
@@ -192,7 +226,7 @@ export default function Profile() {
           )}
         </View>
 
-        <Button label="View your year" onPress={() => router.push('/recap?range=year')} />
+        <Button label="View your year" variant="secondary" onPress={() => router.push('/recap?range=year')} />
 
         <Divider />
 
@@ -200,6 +234,7 @@ export default function Profile() {
           onPress={confirmSignOut}
           disabled={signingOut}
           accessibilityRole="button"
+          accessibilityLabel={signingOut ? 'Signing out' : 'Sign out'}
           accessibilityState={{ disabled: signingOut }}
           style={{
             alignSelf: 'center',
