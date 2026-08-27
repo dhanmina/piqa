@@ -1,19 +1,82 @@
 import { useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import { SymbolView } from 'expo-symbols';
 import { router } from 'expo-router';
+import { requestWidgetUpdate } from 'react-native-android-widget';
 import { supabase } from '../../lib/supabase';
 import { PeekBackCard } from '../../components/PeekBackCard';
+import { CapturedTodayCard } from '../../components/CapturedTodayCard';
+import { Card } from '../../components/Card';
+import { WeekStrip, type DayCell, type DayCellState } from '../../components/WeekStrip';
 import { Button } from '../../components/Button';
 import { Screen } from '../../components/Screen';
-import { colors, spacing, type } from '../../lib/theme';
+import { StreakWidget } from '../../widgets/StreakWidget';
+import { colors, radius, spacing, type, touchTarget } from '../../lib/theme';
 
 type TodayState = { current_count: number; longest_count: number; freezes_remaining: number; captured_today: boolean };
 type Peek = { imageUrl: string; label: string } | null;
 
+// Reuses the exact { ios, android } pair already verified on-device in TabBar.tsx
+// rather than introducing a new, unverified icon name.
+const PROFILE_ICON = { ios: 'person.crop.circle', android: 'account_circle' } as const;
+
+const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function todayDateLabel(): string {
+  return new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function streakHeroLabel(count: number | undefined): string {
+  if (!count) return 'Start today';
+  return `${count} day streak`;
+}
+
+// Matches the capturedAt format lib/captureQueue.ts already writes to `captures.captured_at`.
+function toISODate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function pluralize(count: number, singular: string): string {
+  return count === 1 ? singular : `${singular}s`;
+}
+
+function startOfWeek(d: Date): Date {
+  const copy = new Date(d);
+  copy.setDate(copy.getDate() - copy.getDay());
+  return copy;
+}
+
+// No hue per the monochrome palette rule (DESIGN.md) — urgency is communicated
+// via border/textMuted only, same as every other at-risk state in the app.
+function StreakUrgencyDot({ capturedToday }: { capturedToday: boolean }) {
+  if (capturedToday) return null;
+  const hour = new Date().getHours();
+  if (hour < 12) return null;
+  const isUrgent = hour >= 18;
+  return (
+    <View
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: isUrgent ? colors.textMuted : 'transparent',
+        borderWidth: isUrgent ? 0 : 1,
+        borderColor: colors.border,
+      }}
+    />
+  );
+}
+
 export default function Today() {
   const [state, setState] = useState<TodayState | null>(null);
   const [peek, setPeek] = useState<Peek>(null);
+  const [todayPhotoUrl, setTodayPhotoUrl] = useState<string | null>(null);
+  const [capturedDates, setCapturedDates] = useState<Set<string>>(new Set());
+  const [frozenDates, setFrozenDates] = useState<Set<string>>(new Set());
+
+  const todayISO = toISODate(new Date());
+  const weekStart = startOfWeek(new Date());
 
   useEffect(() => {
     supabase.rpc('get_today_state').then(({ data }) => setState(data?.[0] ?? null));
@@ -24,28 +87,141 @@ export default function Today() {
       const { data: signed } = await supabase.storage.from('captures').createSignedUrl(row.storage_path, 3600);
       if (signed?.signedUrl) setPeek({ imageUrl: signed.signedUrl, label: row.label });
     });
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const weekStartISO = toISODate(weekStart);
+    const weekEndISO = toISODate(weekEnd);
+
+    supabase
+      .from('captures')
+      .select('captured_at')
+      .gte('captured_at', weekStartISO)
+      .lte('captured_at', weekEndISO)
+      .then(({ data }) => setCapturedDates(new Set((data ?? []).map((r) => r.captured_at as string))));
+
+    supabase
+      .from('frozen_dates')
+      .select('date')
+      .gte('date', weekStartISO)
+      .lte('date', weekEndISO)
+      .then(({ data }) => setFrozenDates(new Set((data ?? []).map((r) => r.date as string))));
   }, []);
+
+  useEffect(() => {
+    if (!state) return;
+    requestWidgetUpdate({
+      widgetName: 'Streak',
+      renderWidget: () => (
+        <StreakWidget streakCount={state.current_count} capturedToday={state.captured_today} />
+      ),
+    });
+  }, [state]);
+
+  useEffect(() => {
+    if (!state?.captured_today) return;
+    supabase
+      .from('captures')
+      .select('storage_path')
+      .eq('captured_at', todayISO)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(async ({ data }) => {
+        const row = data?.[0];
+        if (!row) return;
+        const { data: signed } = await supabase.storage.from('captures').createSignedUrl(row.storage_path, 3600);
+        if (signed?.signedUrl) setTodayPhotoUrl(signed.signedUrl);
+      });
+  }, [state?.captured_today, todayISO]);
+
+  const days: DayCell[] = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    const iso = toISODate(d);
+    let cellState: DayCellState;
+    if (capturedDates.has(iso)) cellState = 'captured';
+    else if (iso === todayISO) cellState = 'today';
+    else if (frozenDates.has(iso)) cellState = 'frozen';
+    else if (iso < todayISO) cellState = 'missed';
+    else cellState = 'future';
+    return { key: iso, label: WEEKDAY_LABELS[i], state: cellState };
+  });
 
   return (
     <Screen>
-      <Animated.View entering={FadeInUp.duration(220)} style={{ flex: 1, gap: spacing.lg }}>
-        <View style={{ gap: spacing.xxs }}>
-          <Text style={{ ...type.caption, color: colors.textMuted }}>Today</Text>
-          <Text style={{ ...type.hero, color: colors.textPrimary }}>{state?.current_count ?? 0} day streak</Text>
-        </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+        <Animated.View entering={FadeInUp.duration(220)} style={{ gap: spacing.lg }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <View style={{ flex: 1, gap: spacing.xxs }}>
+              <Text style={{ ...type.caption, color: colors.textMuted }}>{todayDateLabel()}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <Text
+                  style={{ ...type.hero, color: colors.textPrimary, flexShrink: 1 }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  {streakHeroLabel(state?.current_count)}
+                </Text>
+                <StreakUrgencyDot capturedToday={state?.captured_today ?? false} />
+              </View>
+            </View>
+            <Pressable
+              onPress={() => router.push('/profile')}
+              hitSlop={touchTarget.min}
+              style={{ flexShrink: 0, minWidth: touchTarget.min, minHeight: touchTarget.min, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <SymbolView name={PROFILE_ICON} size={26} tintColor={colors.textMuted} />
+            </Pressable>
+          </View>
 
-        <PeekBackCard peek={peek} />
+          {peek ? <PeekBackCard peek={peek} /> : null}
 
-        {!state?.captured_today ? (
-          <Button label="Capture today's photo" onPress={() => router.push('/capture')} />
-        ) : (
-          <Text style={{ ...type.bodyBold, color: colors.textPrimary }}>Captured today ✓</Text>
-        )}
+          <Card style={{ gap: spacing.md }}>
+            <View style={{ gap: spacing.xxs }}>
+              <Text style={{ ...type.title, color: colors.textPrimary }}>This week</Text>
+              <Text style={{ ...type.caption, color: colors.textMuted }}>
+                Every capture builds your archive and keeps your streak alive.
+              </Text>
+            </View>
+            <WeekStrip days={days} />
+          </Card>
 
-        <Text style={{ ...type.caption, color: colors.textMuted }}>
-          {state?.freezes_remaining ?? 0} freezes left this week
-        </Text>
-      </Animated.View>
+          {!state?.captured_today ? (
+            <View style={{ gap: spacing.sm }}>
+              <Button label="Capture today's photo" onPress={() => router.push('/capture')} />
+              <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
+                Any time today, no pressure.
+              </Text>
+            </View>
+          ) : (
+            <CapturedTodayCard imageUrl={todayPhotoUrl} onPress={() => router.push('/capture')} />
+          )}
+
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <Chip label={`Rest days: ${state?.freezes_remaining ?? 0} left this week`} />
+            {state?.longest_count ? (
+              <Chip label={`Longest streak: ${state.longest_count} ${pluralize(state.longest_count, 'day')}`} />
+            ) : null}
+          </View>
+        </Animated.View>
+      </ScrollView>
     </Screen>
+  );
+}
+
+function Chip({ label }: { label: string }) {
+  return (
+    <View
+      style={{
+        alignSelf: 'flex-start',
+        borderRadius: radius.button,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.xs,
+      }}
+    >
+      <Text style={{ ...type.caption, color: colors.textMuted }}>{label}</Text>
+    </View>
   );
 }

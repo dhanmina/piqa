@@ -14,11 +14,29 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.dhanmina.piqa"
     },
     "plugins": [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "Streak",
+              "label": "piqa streak",
+              "description": "Your current piqa streak. Updates each time you open the app.",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ]
   }
 }
