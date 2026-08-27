@@ -1,5 +1,6 @@
 docs/
 TODO.md
+.impeccable/
 
 # dependencies
 node_modules/

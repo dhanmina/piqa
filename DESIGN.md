@@ -72,6 +72,7 @@ Every screen composes from these instead of inline styles — extracted after th
 | `SelectableRow` | pressable choice-list row (onboarding intent chips; reusable for any future choice list) |
 | `Divider` | 1px `border`-colored hairline |
 | `FieldError` | error message row — `⚠` glyph + bold caption, reserves its height so appearing/disappearing never shifts layout |
+| `PhotoViewerModal` | full-screen photo viewer — transparent `Modal` over a 90%-black backdrop, tap to dismiss; shared by Timeline and Profile's mosaic |
 
 ## Source of truth
 

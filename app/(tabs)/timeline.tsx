@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Image, Modal, Pressable, Text, View } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { MonthGrid, type MonthDay } from '../../components/MonthGrid';
+import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { Screen } from '../../components/Screen';
 import { colors, spacing, type } from '../../lib/theme';
 import type { DayCellState } from '../../components/WeekStrip';
@@ -148,14 +149,7 @@ export default function Timeline() {
         }}
       />
 
-      <Modal visible={!!viewerUrl} transparent animationType="fade" onRequestClose={() => setViewerUrl(null)}>
-        <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', alignItems: 'center', justifyContent: 'center' }}
-          onPress={() => setViewerUrl(null)}
-        >
-          {viewerUrl ? <Image source={{ uri: viewerUrl }} style={{ width: '100%', height: '70%' }} resizeMode="contain" /> : null}
-        </Pressable>
-      </Modal>
+      <PhotoViewerModal url={viewerUrl} onClose={() => setViewerUrl(null)} />
     </Screen>
   );
 }
