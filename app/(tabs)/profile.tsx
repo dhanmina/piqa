@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { signOut } from '../../lib/auth';
 import { MosaicGrid } from '../../components/MosaicGrid';
@@ -64,6 +65,8 @@ export default function Profile() {
             <Text style={{ ...type.caption, color: colors.textMuted }}>Nothing captured yet.</Text>
           )}
         </View>
+
+        <Button label="View your year" variant="secondary" onPress={() => router.push('/recap?range=year')} />
 
         <Button
           label="Sign out"
