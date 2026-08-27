@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { useRef, useState } from 'react';
+import { Text, Pressable, TextInput } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { signInWithGoogle, signInWithEmail } from '../../lib/auth';
@@ -18,6 +18,7 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const canSubmit = email.length > 0 && password.length > 0 && !loading;
+  const passwordRef = useRef<TextInput>(null);
 
   async function handleEmailSignIn() {
     setError(null);
@@ -37,54 +38,61 @@ export default function SignIn() {
 
   return (
     <Screen>
-      <Animated.View entering={FadeInUp.duration(220)} style={{ flex: 1, justifyContent: 'space-between' }}>
-        <View style={{ flex: 1, justifyContent: 'center', gap: spacing.md }}>
-          <AuthHero tagline="Capture daily. Keep your streak. Peek into your past." />
+      <Animated.View entering={FadeInUp.duration(220)} style={{ flex: 1, justifyContent: 'center', gap: spacing.md }}>
+        <AuthHero tagline="Capture daily. Keep your streak. Peek into your past." />
 
-          <FilledField
-            placeholder="Email"
-            value={email}
-            onChangeText={(v) => {
-              setEmail(v);
-              setError(null);
-            }}
-            keyboardType="email-address"
-          />
-          <FilledField
-            placeholder="Password"
-            value={password}
-            onChangeText={(v) => {
-              setPassword(v);
-              setError(null);
-            }}
-            secureTextEntry
-          />
+        <Button
+          label="Sign in with Google"
+          loadingLabel="Opening Google…"
+          variant="secondary"
+          onPress={handleGoogleSignIn}
+          disabled={loading}
+          loading={loading}
+        />
 
-          <FieldError message={error} />
+        <Divider label="or" />
 
-          <Button label="Sign in" loadingLabel="Signing in…" onPress={handleEmailSignIn} disabled={!canSubmit} loading={loading} />
+        <FilledField
+          placeholder="Email"
+          value={email}
+          onChangeText={(v) => {
+            setEmail(v);
+            setError(null);
+          }}
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          autoComplete="email"
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
+        />
+        <FilledField
+          ref={passwordRef}
+          placeholder="Password"
+          value={password}
+          onChangeText={(v) => {
+            setPassword(v);
+            setError(null);
+          }}
+          secureTextEntry
+          revealable
+          textContentType="password"
+          autoComplete="current-password"
+          returnKeyType="done"
+          onSubmitEditing={handleEmailSignIn}
+        />
 
-          <Pressable
-            onPress={() => router.push('/(auth)/sign-up')}
-            style={{ minHeight: touchTarget.min, justifyContent: 'center' }}
-          >
-            <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
-              Don't have an account? <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Sign up</Text>
-            </Text>
-          </Pressable>
-        </View>
+        <FieldError message={error} />
 
-        <View>
-          <Divider />
-          <Button
-            label="Sign in with Google"
-            loadingLabel="Opening Google…"
-            variant="secondary"
-            onPress={handleGoogleSignIn}
-            disabled={loading}
-            loading={loading}
-          />
-        </View>
+        <Button label="Sign in" loadingLabel="Signing in…" onPress={handleEmailSignIn} disabled={!canSubmit} loading={loading} />
+
+        <Pressable
+          onPress={() => router.push('/(auth)/sign-up')}
+          style={{ minHeight: touchTarget.min, justifyContent: 'center' }}
+        >
+          <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
+            Don't have an account? <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Sign up</Text>
+          </Text>
+        </Pressable>
       </Animated.View>
     </Screen>
   );
