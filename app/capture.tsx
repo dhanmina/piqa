@@ -16,6 +16,7 @@ export default function Capture() {
   const cameraRef = useRef<CameraView>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const shutterScale = useSharedValue(1);
   const shutterStyle = useAnimatedStyle(() => ({ transform: [{ scale: shutterScale.value }] }));
 
@@ -27,8 +28,14 @@ export default function Capture() {
   async function confirm() {
     if (!preview) return;
     setSaving(true);
-    await enqueueCapture(preview);
-    router.replace('/(tabs)/today');
+    setSaveError(null);
+    const { error } = await enqueueCapture(preview);
+    setSaving(false);
+    if (error) {
+      setSaveError("Couldn't save that photo. Try again.");
+      return;
+    }
+    router.dismissTo('/(tabs)/today');
   }
 
   if (!permission) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
@@ -61,12 +68,17 @@ export default function Capture() {
       <View style={styles.fill}>
         <Image source={{ uri: preview }} style={styles.fill} resizeMode="cover" />
         <SafeAreaView style={styles.previewActions}>
-          <View style={{ flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg }}>
-            <View style={{ flex: 1 }}>
-              <Button label="Retake" variant="secondary" onPress={() => setPreview(null)} disabled={saving} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button label="Confirm" loadingLabel="Saving…" loading={saving} onPress={confirm} />
+          <View style={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}>
+            {saveError ? (
+              <Text style={{ ...type.caption, color: colors.textPrimary, textAlign: 'center' }}>{saveError}</Text>
+            ) : null}
+            <View style={{ flexDirection: 'row', gap: spacing.md }}>
+              <View style={{ flex: 1 }}>
+                <Button label="Retake" variant="secondary" onPress={() => setPreview(null)} disabled={saving} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button label="Confirm" loadingLabel="Saving…" loading={saving} onPress={confirm} />
+              </View>
             </View>
           </View>
         </SafeAreaView>

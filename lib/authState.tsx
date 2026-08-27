@@ -1,8 +1,8 @@
 import { createContext, useContext } from 'react';
 
-export type AuthState = { signedIn: boolean; onboarded: boolean };
+export type AuthState = { signedIn: boolean; onboarded: boolean; markOnboarded: () => void };
 
-const AuthStateContext = createContext<AuthState>({ signedIn: false, onboarded: false });
+const AuthStateContext = createContext<AuthState>({ signedIn: false, onboarded: false, markOnboarded: () => {} });
 
 export const AuthStateProvider = AuthStateContext.Provider;
 

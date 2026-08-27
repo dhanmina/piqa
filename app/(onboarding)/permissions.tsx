@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Camera } from 'expo-camera';
 import * as Notifications from 'expo-notifications';
 import { markOnboardingComplete } from '../../lib/onboarding';
+import { useAuthState } from '../../lib/authState';
 import { colors, spacing, type } from '../../lib/theme';
 import { Screen } from '../../components/Screen';
 import { Button } from '../../components/Button';
@@ -14,9 +15,15 @@ import { OnboardingProgress } from '../../components/OnboardingProgress';
 export default function Permissions() {
   const [requesting, setRequesting] = useState(false);
   const [cameraDenied, setCameraDenied] = useState(false);
+  const { markOnboarded } = useAuthState();
 
   async function finish() {
     await markOnboardingComplete();
+    // RootLayout's `onboarded` guard drives whether `(tabs)` is even a mounted route —
+    // it only otherwise refreshes on an auth event, which this DB write doesn't trigger.
+    // Without this, confirm() in capture.tsx later replaces to a route the Stack doesn't
+    // consider active yet, and silently no-ops (stuck on the capture screen).
+    markOnboarded();
     router.push('/capture?firstCapture=true');
   }
 

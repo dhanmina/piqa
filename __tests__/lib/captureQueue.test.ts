@@ -35,3 +35,20 @@ test('enqueueCapture copies file locally then processQueue uploads and inserts a
   expect(supabase.storage.from).toHaveBeenCalledWith('captures');
   expect(supabase.from).toHaveBeenCalledWith('captures');
 });
+
+test('enqueueCapture still resolves (photo stays queued for retry) when the background sync throws', async () => {
+  (supabase.auth.getUser as jest.Mock).mockRejectedValueOnce(new Error('network down'));
+
+  const result = await enqueueCapture('file:///tmp/photo2.jpg');
+
+  expect(result.error).toBeNull();
+});
+
+test('enqueueCapture resolves with an error when the photo cannot even be queued locally', async () => {
+  const { copyAsync } = jest.requireMock('expo-file-system/legacy');
+  (copyAsync as jest.Mock).mockRejectedValueOnce(new Error('disk full'));
+
+  const result = await enqueueCapture('file:///tmp/photo3.jpg');
+
+  expect(result.error).toBeInstanceOf(Error);
+});

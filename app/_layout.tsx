@@ -34,7 +34,7 @@ export default function RootLayout() {
   // boot (e.g. `piqa:///`) requests. That still needs a real app/index.tsx,
   // which redirects into whichever group below is actually active.
   return (
-    <AuthStateProvider value={{ signedIn, onboarded }}>
+    <AuthStateProvider value={{ signedIn, onboarded, markOnboarded: () => setOnboarded(true) }}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Protected guard={!signedIn}>
