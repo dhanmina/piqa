@@ -46,6 +46,11 @@ export async function signUpWithEmail(email: string, password: string) {
   return { error };
 }
 
+export async function signOut() {
+  const { error } = await supabase.auth.signOut();
+  return { error };
+}
+
 export async function getSession(): Promise<Session | null> {
   const { data } = await supabase.auth.getSession();
   return data.session;

@@ -1,4 +1,4 @@
-import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '../../lib/auth';
+import { signInWithGoogle, signInWithEmail, signUpWithEmail, signOut } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -9,6 +9,7 @@ jest.mock('../../lib/supabase', () => ({
       setSession: jest.fn().mockResolvedValue({ error: null }),
       signInWithPassword: jest.fn().mockResolvedValue({ error: null }),
       signUp: jest.fn().mockResolvedValue({ error: null }),
+      signOut: jest.fn().mockResolvedValue({ error: null }),
     },
   },
 }));
@@ -64,5 +65,11 @@ test('signUpWithEmail calls signUp with the given credentials', async () => {
     email: 'user@example.com',
     password: 'hunter2',
   });
+  expect(result.error).toBeNull();
+});
+
+test('signOut calls supabase signOut', async () => {
+  const result = await signOut();
+  expect(supabase.auth.signOut).toHaveBeenCalled();
   expect(result.error).toBeNull();
 });
