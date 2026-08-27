@@ -25,6 +25,7 @@ System font (RN default) — no custom font family for now. Every role carries a
 
 | Token | Size | Weight | Line-height | Use |
 |---|---|---|---|---|
+| `wordmark` | 40 | 700 | 46 | The "piqa" hero mark on sign-in/sign-up |
 | `hero` | 32 | 700 | 38 | Streak count on Today |
 | `title` | 20 | 600 | 26 | Screen/section headers (Timeline, Profile) |
 | `body` | 16 | 400 | 22 | Standard copy |
@@ -73,6 +74,7 @@ Every screen composes from these instead of inline styles — extracted after th
 | `Divider` | 1px `border`-colored hairline |
 | `FieldError` | error message row — `⚠` glyph + bold caption, reserves its height so appearing/disappearing never shifts layout |
 | `PhotoViewerModal` | full-screen photo viewer — transparent `Modal` over a 90%-black backdrop, tap to dismiss; shared by Timeline and Profile's mosaic |
+| `AuthHero` | the "piqa" wordmark + tagline, centered — shared by sign-in and sign-up so both carry the same brand weight |
 
 ## Source of truth
 

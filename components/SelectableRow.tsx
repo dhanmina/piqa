@@ -20,7 +20,13 @@ export function SelectableRow({ label, onPress }: { label: string; onPress: () =
   }
 
   return (
-    <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} style={{ alignSelf: 'center' }}>
+    <Pressable
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      accessibilityRole="button"
+      style={{ alignSelf: 'center' }}
+    >
       <Animated.View
         style={[
           {

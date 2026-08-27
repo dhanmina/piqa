@@ -4,8 +4,9 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { signInWithGoogle, signInWithEmail } from '../../lib/auth';
 import { mapAuthError } from '../../lib/authErrors';
-import { colors, spacing, type } from '../../lib/theme';
+import { colors, spacing, touchTarget, type } from '../../lib/theme';
 import { Screen } from '../../components/Screen';
+import { AuthHero } from '../../components/AuthHero';
 import { FilledField } from '../../components/FilledField';
 import { FieldError } from '../../components/FieldError';
 import { Button } from '../../components/Button';
@@ -38,10 +39,7 @@ export default function SignIn() {
     <Screen>
       <Animated.View entering={FadeInUp.duration(220)} style={{ flex: 1, justifyContent: 'space-between' }}>
         <View style={{ flex: 1, justifyContent: 'center', gap: spacing.md }}>
-          <Text style={{ fontSize: 40, fontWeight: '700', color: colors.textPrimary, letterSpacing: -1, textAlign: 'center' }}>piqa</Text>
-          <Text style={{ ...type.body, color: colors.textMuted, textAlign: 'center', marginBottom: spacing.sm }}>
-            Capture daily. Keep your streak. Peek into your past.
-          </Text>
+          <AuthHero tagline="Capture daily. Keep your streak. Peek into your past." />
 
           <FilledField
             placeholder="Email"
@@ -66,7 +64,10 @@ export default function SignIn() {
 
           <Button label="Sign in" loadingLabel="Signing in…" onPress={handleEmailSignIn} disabled={!canSubmit} loading={loading} />
 
-          <Pressable onPress={() => router.push('/(auth)/sign-up')} style={{ paddingVertical: spacing.sm }}>
+          <Pressable
+            onPress={() => router.push('/(auth)/sign-up')}
+            style={{ minHeight: touchTarget.min, justifyContent: 'center' }}
+          >
             <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
               Don't have an account? <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Sign up</Text>
             </Text>

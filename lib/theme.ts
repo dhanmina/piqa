@@ -13,6 +13,7 @@ export const colors = {
 } as const;
 
 export const type = {
+  wordmark: { fontSize: 40, fontWeight: '700' as const, lineHeight: 46, letterSpacing: -1 }, // the "piqa" hero mark on sign-in/sign-up
   hero: { fontSize: 32, fontWeight: '700' as const, lineHeight: 38 },
   screenTitle: { fontSize: 28, fontWeight: '700' as const, lineHeight: 34, letterSpacing: -0.5 }, // sign-up, onboarding screen headings
   title: { fontSize: 20, fontWeight: '600' as const, lineHeight: 26 },

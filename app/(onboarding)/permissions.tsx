@@ -1,20 +1,24 @@
 import { useState } from 'react';
-import { Text, View, Linking } from 'react-native';
+import { Text, View, Pressable, Linking } from 'react-native';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import { SymbolView } from 'expo-symbols';
 import { router } from 'expo-router';
 import { Camera } from 'expo-camera';
 import * as Notifications from 'expo-notifications';
 import { markOnboardingComplete } from '../../lib/onboarding';
 import { useAuthState } from '../../lib/authState';
-import { colors, spacing, type } from '../../lib/theme';
+import { colors, spacing, touchTarget, type } from '../../lib/theme';
 import { Screen } from '../../components/Screen';
 import { Button } from '../../components/Button';
 import { FieldError } from '../../components/FieldError';
 import { OnboardingProgress } from '../../components/OnboardingProgress';
 
+const BACK_ICON = { ios: 'chevron.left', android: 'arrow_back' } as const;
+
 export default function Permissions() {
   const [requesting, setRequesting] = useState(false);
   const [cameraDenied, setCameraDenied] = useState(false);
+  const [notifDenied, setNotifDenied] = useState(false);
   const { markOnboarded } = useAuthState();
 
   async function finish() {
@@ -30,18 +34,31 @@ export default function Permissions() {
   async function requestAndContinue() {
     setRequesting(true);
     const camera = await Camera.requestCameraPermissionsAsync();
-    await Notifications.requestPermissionsAsync();
+    const notif = await Notifications.requestPermissionsAsync();
     setRequesting(false);
-    if (camera.status !== 'granted') {
-      setCameraDenied(true);
-      return;
-    }
-    await finish();
+    const cameraOk = camera.status === 'granted';
+    const notifOk = notif.status === 'granted';
+    setCameraDenied(!cameraOk);
+    setNotifDenied(!notifOk);
+    if (cameraOk && notifOk) await finish();
   }
 
   return (
     <Screen>
-      <OnboardingProgress step={2} total={2} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+        <Pressable
+          hitSlop={touchTarget.min}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          style={{ width: touchTarget.min, height: touchTarget.min, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <SymbolView name={BACK_ICON} size={22} tintColor={colors.textPrimary} />
+        </Pressable>
+        <View style={{ flex: 1 }}>
+          <OnboardingProgress step={2} total={2} />
+        </View>
+      </View>
       <Animated.View
         entering={FadeInUp.duration(220)}
         style={{ flex: 1, justifyContent: 'center', gap: spacing.xl }}
@@ -74,10 +91,17 @@ export default function Permissions() {
               <Button label="Open Settings" variant="secondary" onPress={() => Linking.openSettings()} />
             </Animated.View>
           )}
+          {!cameraDenied && notifDenied && (
+            <Animated.View entering={FadeIn.duration(250)} style={{ marginBottom: spacing.xs }}>
+              <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
+                No daily nudge for now. Turn it on later in Settings whenever you want one.
+              </Text>
+            </Animated.View>
+          )}
           <Button
             label={cameraDenied ? 'Continue without camera' : 'Continue'}
             loadingLabel="Setting up…"
-            onPress={cameraDenied ? finish : requestAndContinue}
+            onPress={cameraDenied || notifDenied ? finish : requestAndContinue}
             loading={requesting}
             disabled={requesting}
           />
