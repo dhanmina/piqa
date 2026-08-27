@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
-import { router } from 'expo-router';
-import { supabase } from '../../lib/supabase';
+import { router, useFocusEffect } from 'expo-router';
 import { signOut } from '../../lib/auth';
+import { fetchProfile, fetchStats, fetchArchiveMosaic, type ProfileInfo, type Stats } from '../../lib/profile';
 import { MosaicGrid, type MosaicPhoto } from '../../components/MosaicGrid';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { Card } from '../../components/Card';
@@ -11,9 +11,6 @@ import { Button } from '../../components/Button';
 import { Divider } from '../../components/Divider';
 import { Screen } from '../../components/Screen';
 import { colors, height, spacing, touchTarget, type } from '../../lib/theme';
-
-type Stats = { current_count: number; longest_count: number };
-type ProfileInfo = { display_name: string | null; avatar_url: string | null; created_at: string };
 
 const PERSON_ICON = { ios: 'person.fill', android: 'person' } as const;
 
@@ -53,47 +50,47 @@ function Avatar({ url, name }: { url: string | null | undefined; name: string | 
 export default function Profile() {
   const [photos, setPhotos] = useState<MosaicPhoto[]>([]);
   const [photosLoading, setPhotosLoading] = useState(true);
+  const [photosError, setPhotosError] = useState(false);
+
   const [stats, setStats] = useState<Stats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(false);
+
   const [profileInfo, setProfileInfo] = useState<ProfileInfo | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState(false);
+
   const [signingOut, setSigningOut] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    supabase.rpc('get_profile_mosaic').then(async ({ data }) => {
-      const rows: { storage_path: string; captured_at: string }[] = data ?? [];
-      if (rows.length === 0) {
-        setPhotosLoading(false);
-        return;
-      }
-      const paths = rows.map((r) => r.storage_path);
-      const { data: signed } = await supabase.storage.from('captures').createSignedUrls(paths, 3600);
-      const urlByPath = new Map<string, string>();
-      signed?.forEach((s) => {
-        if (s.signedUrl && s.path) urlByPath.set(s.path, s.signedUrl);
-      });
-      const mosaic: MosaicPhoto[] = rows
-        .map((r) => ({ url: urlByPath.get(r.storage_path), capturedAt: r.captured_at }))
-        .filter((p): p is MosaicPhoto => !!p.url);
-      setPhotos(mosaic);
-      setPhotosLoading(false);
-    });
-
-    supabase.rpc('get_today_state').then(({ data }) => {
-      setStats(data?.[0] ?? null);
-      setStatsLoading(false);
-    });
-
-    supabase
-      .from('profiles')
-      .select('display_name, avatar_url, created_at')
-      .single()
-      .then(({ data }) => {
-        setProfileInfo(data ?? null);
-        setProfileLoading(false);
-      });
+  const loadProfile = useCallback(async () => {
+    const { data, error } = await fetchProfile();
+    setProfileError(!!error);
+    if (!error) setProfileInfo(data);
+    setProfileLoading(false);
   }, []);
+
+  const loadStats = useCallback(async () => {
+    const { data, error } = await fetchStats();
+    setStatsError(!!error);
+    if (!error) setStats(data);
+    setStatsLoading(false);
+  }, []);
+
+  const loadArchive = useCallback(async () => {
+    const { data, error } = await fetchArchiveMosaic();
+    setPhotosError(!!error);
+    if (!error) setPhotos(data);
+    setPhotosLoading(false);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+      loadStats();
+      loadArchive();
+    }, [loadProfile, loadStats, loadArchive])
+  );
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -115,7 +112,7 @@ export default function Profile() {
   }
 
   const archiveLabel =
-    !photosLoading && photos.length > 0
+    !photosLoading && !photosError && photos.length > 0
       ? `Your archive · ${photos.length} ${pluralize(photos.length, 'photo')}`
       : 'Your archive';
 
@@ -129,33 +126,64 @@ export default function Profile() {
               {profileLoading ? ' ' : (profileInfo?.display_name ?? 'Your profile')}
             </Text>
             <Text style={{ ...type.caption, color: colors.textMuted }}>
-              {!profileLoading && profileInfo ? tenureLabel(profileInfo.created_at) : ' '}
+              {profileError
+                ? "Couldn't load profile."
+                : !profileLoading && profileInfo
+                  ? tenureLabel(profileInfo.created_at)
+                  : ' '}
             </Text>
           </View>
+          <Pressable
+            onPress={() =>
+              router.push({ pathname: '/edit-profile', params: { displayName: profileInfo?.display_name ?? '' } })
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Edit profile"
+            style={{
+              minHeight: touchTarget.min,
+              paddingHorizontal: spacing.sm,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ ...type.caption, color: colors.textPrimary, fontWeight: '600' }}>Edit</Text>
+          </Pressable>
         </View>
 
         <Card style={{ flexDirection: 'row', gap: spacing.lg }}>
-          <View style={{ gap: spacing.xxs }}>
-            <Text style={{ ...type.hero, color: colors.textPrimary }}>
-              {statsLoading ? '…' : (stats?.current_count ?? 0)}
+          {statsError ? (
+            <Text style={{ ...type.caption, color: colors.textMuted, flex: 1, textAlign: 'center' }}>
+              Couldn't load your stats. Check your connection and try again.
             </Text>
-            <Text style={{ ...type.caption, color: colors.textMuted }}>
-              Current {pluralize(stats?.current_count ?? 0, 'day')}
-            </Text>
-          </View>
-          <View style={{ gap: spacing.xxs }}>
-            <Text style={{ ...type.hero, color: colors.textPrimary }}>
-              {statsLoading ? '…' : (stats?.longest_count ?? 0)}
-            </Text>
-            <Text style={{ ...type.caption, color: colors.textMuted }}>
-              Longest {pluralize(stats?.longest_count ?? 0, 'day')}
-            </Text>
-          </View>
+          ) : (
+            <>
+              <View style={{ gap: spacing.xxs }}>
+                <Text style={{ ...type.hero, color: colors.textPrimary }}>
+                  {statsLoading ? '…' : (stats?.current_count ?? 0)}
+                </Text>
+                <Text style={{ ...type.caption, color: colors.textMuted }}>
+                  Current {pluralize(stats?.current_count ?? 0, 'day')}
+                </Text>
+              </View>
+              <View style={{ gap: spacing.xxs }}>
+                <Text style={{ ...type.hero, color: colors.textPrimary }}>
+                  {statsLoading ? '…' : (stats?.longest_count ?? 0)}
+                </Text>
+                <Text style={{ ...type.caption, color: colors.textMuted }}>
+                  Longest {pluralize(stats?.longest_count ?? 0, 'day')}
+                </Text>
+              </View>
+            </>
+          )}
         </Card>
 
         <View style={{ gap: spacing.sm }}>
           <Text style={{ ...type.body, color: colors.textMuted }}>{archiveLabel}</Text>
-          {photosLoading ? null : photos.length > 0 ? (
+          {photosLoading ? null : photosError ? (
+            <Text style={{ ...type.caption, color: colors.textMuted }}>
+              Couldn't load your archive. Check your connection and try again.
+            </Text>
+          ) : photos.length > 0 ? (
             <MosaicGrid photos={photos} onPressPhoto={(p) => setViewerUrl(p.url)} />
           ) : (
             <Text style={{ ...type.caption, color: colors.textMuted }}>
