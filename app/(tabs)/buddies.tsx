@@ -23,6 +23,7 @@ export default function BuddiesScreen() {
 
   const [requests, setRequests] = useState<PendingRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(true);
+  const [requestsError, setRequestsError] = useState(false);
   const [respondingId, setRespondingId] = useState<string | null>(null);
 
   const loadBuddies = useCallback(async () => {
@@ -33,8 +34,9 @@ export default function BuddiesScreen() {
   }, []);
 
   const loadRequests = useCallback(async () => {
-    const { data } = await fetchPendingRequests();
-    setRequests(data);
+    const { data, error } = await fetchPendingRequests();
+    setRequestsError(!!error);
+    if (!error) setRequests(data);
     setRequestsLoading(false);
   }, []);
 
@@ -68,7 +70,13 @@ export default function BuddiesScreen() {
 
         <Button label="Add a buddy" variant="secondary" onPress={() => router.push('/add-buddy')} />
 
-        {!requestsLoading && requests.length > 0 && (
+        {!requestsLoading && requestsError && (
+          <Text style={{ ...type.caption, color: colors.textMuted }}>
+            Couldn't load your requests. Check your connection and try again.
+          </Text>
+        )}
+
+        {!requestsLoading && !requestsError && requests.length > 0 && (
           <View style={{ gap: spacing.sm }}>
             <Text style={{ ...type.body, color: colors.textMuted }}>Requests</Text>
             {requests.map((r) => (
