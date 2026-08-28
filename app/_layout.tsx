@@ -50,6 +50,7 @@ export default function RootLayout() {
           <Stack.Screen name="capture" options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="recap" options={{ presentation: 'modal' }} />
           <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="add-buddy" options={{ presentation: 'modal' }} />
         </Stack.Protected>
       </Stack>
     </AuthStateProvider>

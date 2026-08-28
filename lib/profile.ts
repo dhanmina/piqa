@@ -1,11 +1,11 @@
 import { supabase } from './supabase';
 
-export type ProfileInfo = { display_name: string | null; avatar_url: string | null; created_at: string };
+export type ProfileInfo = { username: string; display_name: string | null; avatar_url: string | null; created_at: string };
 export type Stats = { current_count: number; longest_count: number };
 export type MosaicPhoto = { url: string; capturedAt: string };
 
 export async function fetchProfile(): Promise<{ data: ProfileInfo | null; error: Error | null }> {
-  const { data, error } = await supabase.from('profiles').select('display_name, avatar_url, created_at').single();
+  const { data, error } = await supabase.from('profiles').select('username, display_name, avatar_url, created_at').single();
   if (error) return { data: null, error: new Error(error.message) };
   return { data, error: null };
 }

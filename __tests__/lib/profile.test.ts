@@ -27,7 +27,7 @@ describe('fetchProfile', () => {
     mockFrom.mockReturnValue({
       select: jest.fn().mockReturnValue({
         single: jest.fn().mockResolvedValue({
-          data: { display_name: 'Dhan', avatar_url: null, created_at: '2026-01-01' },
+          data: { username: 'dhan', display_name: 'Dhan', avatar_url: null, created_at: '2026-01-01' },
           error: null,
         }),
       }),
@@ -35,7 +35,7 @@ describe('fetchProfile', () => {
     const result = await fetchProfile();
     expect(mockFrom).toHaveBeenCalledWith('profiles');
     expect(result).toEqual({
-      data: { display_name: 'Dhan', avatar_url: null, created_at: '2026-01-01' },
+      data: { username: 'dhan', display_name: 'Dhan', avatar_url: null, created_at: '2026-01-01' },
       error: null,
     });
   });
