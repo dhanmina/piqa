@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Image, ScrollView, Text, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 import { router, useFocusEffect } from 'expo-router';
 import { signOut } from '../../lib/auth';
@@ -10,7 +10,8 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Divider } from '../../components/Divider';
 import { Screen } from '../../components/Screen';
-import { colors, height, spacing, touchTarget, type } from '../../lib/theme';
+import { TextLink } from '../../components/TextLink';
+import { colors, height, spacing, type } from '../../lib/theme';
 
 const PERSON_ICON = { ios: 'person.fill', android: 'person' } as const;
 const MOSAIC_CAP = 27;
@@ -136,32 +137,25 @@ export default function Profile() {
                   : ' '}
             </Text>
           </View>
-          <Pressable
+          <TextLink
+            label="Edit"
+            inline
+            accessibilityLabel="Edit profile"
             onPress={() =>
               router.push({ pathname: '/edit-profile', params: { displayName: profileInfo?.display_name ?? '' } })
             }
-            accessibilityRole="button"
-            accessibilityLabel="Edit profile"
-            style={{
-              minHeight: touchTarget.min,
-              paddingHorizontal: spacing.sm,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text style={{ ...type.caption, color: colors.textPrimary, fontWeight: '600' }}>Edit</Text>
-          </Pressable>
+          />
         </View>
 
-        <Card style={{ flexDirection: 'row', gap: spacing.lg }}>
+        <Card>
           {statsError ? (
-            <Text style={{ ...type.caption, color: colors.textMuted, flex: 1, textAlign: 'center' }}>
+            <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
               Couldn't load your stats. Check your connection and try again.
             </Text>
           ) : (
-            <>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <View
-                style={{ flex: 1, gap: spacing.xxs }}
+                style={{ gap: spacing.xxs }}
                 accessible
                 accessibilityLabel={
                   statsLoading
@@ -176,8 +170,9 @@ export default function Profile() {
                   Current {pluralize(stats?.current_count ?? 0, 'day')}
                 </Text>
               </View>
+              <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: colors.border }} />
               <View
-                style={{ flex: 1, gap: spacing.xxs }}
+                style={{ gap: spacing.xxs, alignItems: 'flex-end' }}
                 accessible
                 accessibilityLabel={
                   statsLoading
@@ -185,14 +180,14 @@ export default function Profile() {
                     : `Longest streak: ${stats?.longest_count ?? 0} ${pluralize(stats?.longest_count ?? 0, 'day')}`
                 }
               >
-                <Text style={{ ...type.hero, color: colors.textPrimary }}>
+                <Text style={{ ...type.title, color: colors.textPrimary }}>
                   {statsLoading ? '…' : (stats?.longest_count ?? 0)}
                 </Text>
                 <Text style={{ ...type.caption, color: colors.textMuted }}>
                   Longest {pluralize(stats?.longest_count ?? 0, 'day')}
                 </Text>
               </View>
-            </>
+            </View>
           )}
         </Card>
 
@@ -205,22 +200,11 @@ export default function Profile() {
           ) : photos.length > 0 ? (
             <>
               <MosaicGrid photos={photos} onPressPhoto={(p) => setViewerUrl(p.url)} />
-              <Pressable
-                onPress={() => router.push('/(tabs)/timeline')}
-                accessibilityRole="button"
+              <TextLink
+                label="See full archive"
                 accessibilityLabel="See full archive in Timeline"
-                style={{
-                  alignSelf: 'center',
-                  minHeight: touchTarget.min,
-                  paddingHorizontal: spacing.md,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Text style={{ ...type.caption, color: colors.textPrimary, fontWeight: '600' }}>
-                  See full archive
-                </Text>
-              </Pressable>
+                onPress={() => router.push('/(tabs)/timeline')}
+              />
             </>
           ) : (
             <Text style={{ ...type.caption, color: colors.textMuted }}>
@@ -233,24 +217,13 @@ export default function Profile() {
 
         <Divider />
 
-        <Pressable
-          onPress={confirmSignOut}
+        <TextLink
+          label={signingOut ? 'Signing out...' : 'Sign out'}
+          variant="muted"
           disabled={signingOut}
-          accessibilityRole="button"
           accessibilityLabel={signingOut ? 'Signing out' : 'Sign out'}
-          accessibilityState={{ disabled: signingOut }}
-          style={{
-            alignSelf: 'center',
-            minHeight: touchTarget.min,
-            paddingHorizontal: spacing.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Text style={{ ...type.body, color: colors.textMuted }}>
-            {signingOut ? 'Signing out...' : 'Sign out'}
-          </Text>
-        </Pressable>
+          onPress={confirmSignOut}
+        />
       </ScrollView>
 
       <PhotoViewerModal url={viewerUrl} onClose={() => setViewerUrl(null)} />
