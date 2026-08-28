@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, Image, ScrollView, Text, View } from 'react-native';
-import { SymbolView } from 'expo-symbols';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { signOut } from '../../lib/auth';
 import { fetchProfile, fetchStats, fetchArchiveMosaic, type ProfileInfo, type Stats } from '../../lib/profile';
@@ -11,9 +10,9 @@ import { Button } from '../../components/Button';
 import { Divider } from '../../components/Divider';
 import { Screen } from '../../components/Screen';
 import { TextLink } from '../../components/TextLink';
-import { colors, height, spacing, type } from '../../lib/theme';
+import { Avatar } from '../../components/Avatar';
+import { colors, spacing, type } from '../../lib/theme';
 
-const PERSON_ICON = { ios: 'person.fill', android: 'person' } as const;
 const MOSAIC_CAP = 27;
 
 function pluralize(count: number, singular: string): string {
@@ -23,30 +22,6 @@ function pluralize(count: number, singular: string): string {
 function tenureLabel(createdAt: string): string {
   const since = new Date(createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   return `Capturing since ${since}`;
-}
-
-function Avatar({ url, name }: { url: string | null | undefined; name: string | null | undefined }) {
-  const size = height.control;
-  const baseStyle = {
-    width: size,
-    height: size,
-    borderRadius: size / 2,
-    backgroundColor: colors.surfaceRaised,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    overflow: 'hidden' as const,
-  };
-  if (url) return <Image source={{ uri: url }} style={baseStyle} accessibilityLabel="Your profile photo" />;
-  const initial = name?.trim()?.[0]?.toUpperCase();
-  return (
-    <View style={baseStyle}>
-      {initial ? (
-        <Text style={{ ...type.title, color: colors.textPrimary }}>{initial}</Text>
-      ) : (
-        <SymbolView name={PERSON_ICON} size={22} tintColor={colors.textMuted} />
-      )}
-    </View>
-  );
 }
 
 export default function Profile() {
@@ -124,7 +99,7 @@ export default function Profile() {
     <Screen>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.lg }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-          <Avatar url={profileInfo?.avatar_url} name={profileInfo?.display_name} />
+          <Avatar url={profileInfo?.avatar_url} name={profileInfo?.display_name} accessibilityLabel="Your profile photo" />
           <View style={{ gap: spacing.xxs, flexShrink: 1 }}>
             <Text style={{ ...type.title, color: colors.textPrimary }} numberOfLines={1}>
               {profileLoading ? ' ' : (profileInfo?.display_name ?? 'Your profile')}
