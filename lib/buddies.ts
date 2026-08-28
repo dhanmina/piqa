@@ -87,6 +87,11 @@ export async function fetchBuddies(): Promise<{ data: Buddy[]; error: Error | nu
     signed?.forEach((s) => {
       if (s.signedUrl && s.path) urlByPath.set(s.path, s.signedUrl);
     });
+    pathsToSign.forEach((p) => {
+      if (!urlByPath.has(p)) {
+        console.warn(`fetchBuddies: no signed url resolved for path "${p}"`);
+      }
+    });
   }
 
   return {
