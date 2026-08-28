@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { fetchProfile } from '../lib/profile';
 import { searchProfiles, sendBuddyRequest, type SearchResult } from '../lib/buddies';
@@ -29,6 +29,7 @@ export default function AddBuddy() {
   const [query, setQuery] = useState(u ?? '');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,11 +39,13 @@ export default function AddBuddy() {
   const runSearch = useCallback(async (q: string) => {
     if (q.trim().length < 2) {
       setResults([]);
+      setSearchError(false);
       return;
     }
     setSearching(true);
-    const { data } = await searchProfiles(q);
-    setResults(data);
+    const { data, error } = await searchProfiles(q);
+    setSearchError(!!error);
+    if (!error) setResults(data);
     setSearching(false);
   }, []);
 
@@ -55,9 +58,11 @@ export default function AddBuddy() {
     setSendingId(result.id);
     const { error } = await sendBuddyRequest(result.username);
     setSendingId(null);
-    if (!error) {
-      setResults((prev) => prev.map((r) => (r.id === result.id ? { ...r, relationship: 'pending_sent' } : r)));
+    if (error) {
+      Alert.alert('Could not send request', error.message);
+      return;
     }
+    setResults((prev) => prev.map((r) => (r.id === result.id ? { ...r, relationship: 'pending_sent' } : r)));
   }
 
   function handleShare() {
@@ -97,7 +102,11 @@ export default function AddBuddy() {
       <FilledField placeholder="Search by username" value={query} onChangeText={setQuery} autoComplete="off" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-        {searching ? null : query.trim().length >= 2 && results.length === 0 ? (
+        {searching ? null : searchError ? (
+          <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
+            Couldn't search. Check your connection and try again.
+          </Text>
+        ) : query.trim().length >= 2 && results.length === 0 ? (
           <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>No one found.</Text>
         ) : (
           results.map((r) => (

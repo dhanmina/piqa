@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import {
   fetchBuddies,
@@ -57,10 +57,12 @@ export default function BuddiesScreen() {
     setRespondingId(request.requestId);
     const { error } = await respondToBuddyRequest(request.requestId, accept);
     setRespondingId(null);
-    if (!error) {
-      setRequests((prev) => prev.filter((r) => r.requestId !== request.requestId));
-      if (accept) loadBuddies();
+    if (error) {
+      Alert.alert(accept ? 'Could not accept' : 'Could not decline', error.message);
+      return;
     }
+    setRequests((prev) => prev.filter((r) => r.requestId !== request.requestId));
+    if (accept) loadBuddies();
   }
 
   return (
