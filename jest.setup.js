@@ -21,3 +21,17 @@ if (fs.existsSync(envPath)) {
     }
   }
 }
+
+// Mock react-native-reanimated for Jest (doesn't run in native environment)
+jest.mock('react-native-reanimated', () => ({
+  __esModule: true,
+  default: {
+    View: require('react-native').View,
+  },
+  useAnimatedStyle: () => ({}),
+  useSharedValue: () => ({ value: 0 }),
+  withSpring: (value) => value,
+  Animated: {
+    View: require('react-native').View,
+  },
+}));
