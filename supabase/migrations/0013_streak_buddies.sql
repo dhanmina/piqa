@@ -47,8 +47,9 @@ begin
       end
     from public.profiles p
     left join public.streak_buddies sb
-      on (sb.requester_id = auth.uid() and sb.recipient_id = p.id)
-      or (sb.recipient_id = auth.uid() and sb.requester_id = p.id)
+      on ((sb.requester_id = auth.uid() and sb.recipient_id = p.id)
+        or (sb.recipient_id = auth.uid() and sb.requester_id = p.id))
+      and sb.status in ('pending', 'accepted')
     where p.id <> auth.uid()
       and p.username ilike '%' || trim(query) || '%'
     order by p.username
@@ -81,6 +82,8 @@ begin
     raise exception 'A request already exists with this person';
   end if;
 
+  perform pg_advisory_xact_lock(hashtext(auth.uid()::text));
+
   if (select count(*) from public.streak_buddies
       where status = 'accepted' and (requester_id = auth.uid() or recipient_id = auth.uid())) >= 3 then
     raise exception 'You already have 3 buddies';
@@ -107,6 +110,14 @@ begin
   end if;
 
   if accept then
+    if req.requester_id::text < auth.uid()::text then
+      perform pg_advisory_xact_lock(hashtext(req.requester_id::text));
+      perform pg_advisory_xact_lock(hashtext(auth.uid()::text));
+    else
+      perform pg_advisory_xact_lock(hashtext(auth.uid()::text));
+      perform pg_advisory_xact_lock(hashtext(req.requester_id::text));
+    end if;
+
     if (select count(*) from public.streak_buddies
         where status = 'accepted' and (requester_id = req.requester_id or recipient_id = req.requester_id)) >= 3
     or (select count(*) from public.streak_buddies

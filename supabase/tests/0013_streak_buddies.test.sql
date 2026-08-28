@@ -1,6 +1,6 @@
 -- supabase/tests/0013_streak_buddies.test.sql
 begin;
-select plan(12);
+select plan(14);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com'),
@@ -8,7 +8,9 @@ insert into auth.users (id, email) values
   ('33333333-3333-3333-3333-333333333333', 'carol@example.com'),
   ('44444444-4444-4444-4444-444444444444', 'dave@example.com'),
   ('55555555-5555-5555-5555-555555555555', 'erin@example.com'),
-  ('66666666-6666-6666-6666-666666666666', 'frank@example.com');
+  ('66666666-6666-6666-6666-666666666666', 'frank@example.com'),
+  ('77777777-7777-7777-7777-777777777777', 'grace@example.com'),
+  ('88888888-8888-8888-8888-888888888888', 'henry@example.com');
 
 update public.profiles set username = 'alice' where id = '11111111-1111-1111-1111-111111111111';
 update public.profiles set username = 'bob' where id = '22222222-2222-2222-2222-222222222222';
@@ -16,6 +18,8 @@ update public.profiles set username = 'carol' where id = '33333333-3333-3333-333
 update public.profiles set username = 'dave' where id = '44444444-4444-4444-4444-444444444444';
 update public.profiles set username = 'erin' where id = '55555555-5555-5555-5555-555555555555';
 update public.profiles set username = 'frank' where id = '66666666-6666-6666-6666-666666666666';
+update public.profiles set username = 'grace' where id = '77777777-7777-7777-7777-777777777777';
+update public.profiles set username = 'henry' where id = '88888888-8888-8888-8888-888888888888';
 
 -- Alice already has 3 accepted buddies (carol, dave, erin) so cap tests
 -- don't need a fourth round trip through send/respond.
@@ -23,6 +27,14 @@ insert into public.streak_buddies (requester_id, recipient_id, status) values
   ('11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333', 'accepted'),
   ('11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444444', 'accepted'),
   ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', 'accepted');
+
+-- Grace is also already at the 3-buddy cap (via carol, dave, erin) so we
+-- can exercise the recipient-side branch of respond_buddy_request's cap
+-- check without disturbing alice's cap assertions above.
+insert into public.streak_buddies (requester_id, recipient_id, status) values
+  ('33333333-3333-3333-3333-333333333333', '77777777-7777-7777-7777-777777777777', 'accepted'),
+  ('44444444-4444-4444-4444-444444444444', '77777777-7777-7777-7777-777777777777', 'accepted'),
+  ('55555555-5555-5555-5555-555555555555', '77777777-7777-7777-7777-777777777777', 'accepted');
 
 set local role authenticated;
 set local "request.jwt.claim.sub" = '11111111-1111-1111-1111-111111111111';
@@ -61,6 +73,14 @@ select is(
   (select relationship from search_profiles('frank')),
   'pending_sent',
   'requester sees pending_sent for the person they just requested'
+);
+
+-- Bob's request to frank is still pending (frank hasn't responded yet),
+-- so resending should hit the duplicate-request check.
+select throws_ok(
+  $$ select send_buddy_request('frank') $$,
+  'A request already exists with this person',
+  'cannot resend a request while one is already pending'
 );
 
 -- Switch to frank (the recipient) to check the mirrored relationship view.
@@ -112,6 +132,23 @@ select is(
     and recipient_id = '44444444-4444-4444-4444-444444444444'),
   'declined',
   'recipient declining sets status to declined'
+);
+
+-- Henry requests grace, who is already at the 3-buddy cap. This exercises
+-- the recipient-side branch of respond_buddy_request's two-sided cap
+-- check, which the assertions above never hit.
+set local "request.jwt.claim.sub" = '88888888-8888-8888-8888-888888888888';
+select send_buddy_request('grace');
+
+set local "request.jwt.claim.sub" = '77777777-7777-7777-7777-777777777777';
+select throws_ok(
+  format(
+    'select respond_buddy_request(%L, true)',
+    (select id from public.streak_buddies where requester_id = '88888888-8888-8888-8888-888888888888'
+      and recipient_id = '77777777-7777-7777-7777-777777777777')
+  ),
+  'Buddy cap reached',
+  'recipient already at the cap cannot accept a new request'
 );
 
 select * from finish();
