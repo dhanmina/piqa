@@ -8,11 +8,13 @@ const POP_SPRING = { damping: 14, stiffness: 300 };
 const HERO_HEIGHT = 260;
 
 export function CapturedTodayCard({
-  onPress,
+  onView,
+  onAddCapture,
   imageUrl,
   count = 1,
 }: {
-  onPress: () => void;
+  onView: () => void;
+  onAddCapture: () => void;
   imageUrl?: string | null;
   count?: number;
 }) {
@@ -25,7 +27,7 @@ export function CapturedTodayCard({
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onView}>
       <Animated.View style={scaleStyle}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <View style={{ width: '100%', height: HERO_HEIGHT }}>
@@ -36,6 +38,24 @@ export function CapturedTodayCard({
                 <Text style={{ ...type.hero, color: colors.textPrimary }}>{'✓'}</Text>
               </View>
             )}
+            <Pressable
+              onPress={onAddCapture}
+              hitSlop={8}
+              style={({ pressed }) => ({
+                position: 'absolute',
+                top: spacing.sm,
+                right: spacing.sm,
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: 'rgba(0,0,0,0.55)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Text style={{ ...type.bodyBold, color: colors.textPrimary, lineHeight: 20 }}>+</Text>
+            </Pressable>
             <View
               style={{
                 position: 'absolute',
@@ -45,20 +65,10 @@ export function CapturedTodayCard({
                 paddingHorizontal: spacing.md,
                 paddingVertical: spacing.sm,
                 backgroundColor: 'rgba(0,0,0,0.55)',
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: spacing.sm,
               }}
             >
-              <Text
-                style={{ ...type.bodyBold, color: colors.textPrimary, flexShrink: 1 }}
-                numberOfLines={1}
-              >
+              <Text style={{ ...type.bodyBold, color: colors.textPrimary }} numberOfLines={1}>
                 {count > 1 ? `Captured today · ${count} photos` : 'Captured today'}
-              </Text>
-              <Text style={{ ...type.caption, color: colors.textMuted, flexShrink: 0 }}>
-                Tap to add another
               </Text>
             </View>
           </View>

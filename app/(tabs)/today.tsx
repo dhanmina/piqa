@@ -6,6 +6,7 @@ import { requestWidgetUpdate } from 'react-native-android-widget';
 import { supabase } from '../../lib/supabase';
 import { PeekBackCard } from '../../components/PeekBackCard';
 import { CapturedTodayCard } from '../../components/CapturedTodayCard';
+import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { Card } from '../../components/Card';
 import { WeekStrip, type DayCell, type DayCellState } from '../../components/WeekStrip';
 import { Button } from '../../components/Button';
@@ -67,8 +68,9 @@ export default function Today() {
   const params = useLocalSearchParams<{ justCaptured?: string; localPreviewUri?: string }>();
   const [state, setState] = useState<TodayState | null>(null);
   const [peek, setPeek] = useState<Peek>(null);
-  const [todayPhotoUrl, setTodayPhotoUrl] = useState<string | null>(null);
+  const [todayPhotoUrls, setTodayPhotoUrls] = useState<string[]>([]);
   const [todayCaptureCount, setTodayCaptureCount] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [capturedDates, setCapturedDates] = useState<Set<string>>(new Set());
   const [frozenDates, setFrozenDates] = useState<Set<string>>(new Set());
 
@@ -114,7 +116,10 @@ export default function Today() {
     setState((prev) => (prev ? { ...prev, captured_today: true } : prev));
     setCapturedDates((prev) => new Set(prev).add(todayISO));
     setTodayCaptureCount((prev) => prev + 1);
-    if (params.localPreviewUri) setTodayPhotoUrl(params.localPreviewUri);
+    if (params.localPreviewUri) {
+      const uri = params.localPreviewUri;
+      setTodayPhotoUrls((prev) => [...prev, uri]);
+    }
     router.setParams({ justCaptured: undefined, localPreviewUri: undefined });
   }, [params.justCaptured, params.localPreviewUri, todayISO]);
 
@@ -132,16 +137,16 @@ export default function Today() {
     if (!state?.captured_today) return;
     supabase
       .from('captures')
-      .select('storage_path', { count: 'exact' })
+      .select('storage_path')
       .eq('captured_at', todayISO)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .then(async ({ data, count }) => {
-        setTodayCaptureCount(count ?? 0);
-        const row = data?.[0];
-        if (!row) return;
-        const { data: signed } = await supabase.storage.from('captures').createSignedUrl(row.storage_path, 3600);
-        if (signed?.signedUrl) setTodayPhotoUrl(signed.signedUrl);
+      .order('created_at', { ascending: true })
+      .then(async ({ data }) => {
+        const rows = data ?? [];
+        setTodayCaptureCount(rows.length);
+        const signed = await Promise.all(
+          rows.map((row) => supabase.storage.from('captures').createSignedUrl(row.storage_path, 3600))
+        );
+        setTodayPhotoUrls(signed.map((s) => s.data?.signedUrl).filter((u): u is string => !!u));
       });
   }, [state?.captured_today, todayISO]);
 
@@ -197,9 +202,10 @@ export default function Today() {
             </View>
           ) : (
             <CapturedTodayCard
-              imageUrl={todayPhotoUrl}
+              imageUrl={todayPhotoUrls[todayPhotoUrls.length - 1] ?? null}
               count={todayCaptureCount}
-              onPress={() => router.push('/capture')}
+              onView={() => setViewerOpen(true)}
+              onAddCapture={() => router.push('/capture')}
             />
           )}
 
@@ -211,6 +217,13 @@ export default function Today() {
           </View>
         </Animated.View>
       </ScrollView>
+
+      <PhotoViewerModal
+        urls={todayPhotoUrls}
+        initialIndex={Math.max(todayPhotoUrls.length - 1, 0)}
+        visible={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+      />
     </Screen>
   );
 }
