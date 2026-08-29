@@ -73,6 +73,7 @@ Every screen composes from these instead of inline styles — extracted after th
 | `SelectableRow` | pressable choice-list row (onboarding intent chips; reusable for any future choice list) |
 | `Divider` | 1px `border`-colored hairline |
 | `FieldError` | error message row — `⚠` glyph + bold caption, reserves its height so appearing/disappearing never shifts layout |
+| `TextLink` | tappable text-only action (`default`: bold `textPrimary` caption for wayfinding — Edit, See full archive; `muted`: `textMuted` body for a de-emphasized/destructive-adjacent action — Sign out) — use instead of a bespoke `Pressable` + `Text` whenever a screen needs a tertiary action that isn't a `Button` |
 | `PhotoViewerModal` | full-screen photo viewer — transparent `Modal` over a 90%-black backdrop, tap to dismiss; shared by Timeline and Profile's mosaic |
 | `AuthHero` | the "piqa" wordmark + tagline, centered — shared by sign-in and sign-up so both carry the same brand weight |
 
