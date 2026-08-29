@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import { router } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { requestWidgetUpdate } from 'react-native-android-widget';
 import { supabase } from '../../lib/supabase';
 import { PeekBackCard } from '../../components/PeekBackCard';
@@ -64,6 +64,7 @@ function StreakUrgencyDot({ capturedToday }: { capturedToday: boolean }) {
 }
 
 export default function Today() {
+  const params = useLocalSearchParams<{ justCaptured?: string; localPreviewUri?: string }>();
   const [state, setState] = useState<TodayState | null>(null);
   const [peek, setPeek] = useState<Peek>(null);
   const [todayPhotoUrl, setTodayPhotoUrl] = useState<string | null>(null);
@@ -73,7 +74,7 @@ export default function Today() {
   const todayISO = toISODate(new Date());
   const weekStart = startOfWeek(new Date());
 
-  useEffect(() => {
+  const loadToday = useCallback(() => {
     supabase.rpc('get_today_state').then(({ data }) => setState(data?.[0] ?? null));
 
     supabase.rpc('get_peek_back').then(async ({ data }) => {
@@ -101,7 +102,19 @@ export default function Today() {
       .gte('date', weekStartISO)
       .lte('date', weekEndISO)
       .then(({ data }) => setFrozenDates(new Set((data ?? []).map((r) => r.date as string))));
-  }, []);
+  }, [weekStart]);
+
+  useFocusEffect(loadToday);
+
+  // Optimistic: the remote upload (lib/captureQueue.ts processQueue) runs in the background,
+  // so reflect the capture immediately instead of waiting for it to land and a refetch to pick it up.
+  useEffect(() => {
+    if (!params.justCaptured) return;
+    setState((prev) => (prev ? { ...prev, captured_today: true } : prev));
+    setCapturedDates((prev) => new Set(prev).add(todayISO));
+    if (params.localPreviewUri) setTodayPhotoUrl(params.localPreviewUri);
+    router.setParams({ justCaptured: undefined, localPreviewUri: undefined });
+  }, [params.justCaptured, params.localPreviewUri, todayISO]);
 
   useEffect(() => {
     if (!state) return;

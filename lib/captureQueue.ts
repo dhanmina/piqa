@@ -38,7 +38,7 @@ export async function enqueueCapture(localUri: string, themeTag?: string): Promi
   } catch (error) {
     return { error: error as Error };
   }
-  await processQueue();
+  processQueue();
   return { error: null };
 }
 

@@ -12,6 +12,12 @@ import { colors, spacing, radius, type, touchTarget } from '../lib/theme';
 
 const PRESS_SPRING = { damping: 18, stiffness: 400 };
 const SHUTTER_SIZE = 72;
+// enqueueCapture is now a local file copy, not a network round trip — it resolves in a
+// few ms, which reads as "nothing happened" without a floor under the Saving state.
+const MIN_SAVING_MS = 450;
+// Explicit "Saved" beat so confirming reads as a positive result, not just a spinner
+// that disappears into a screen change.
+const SAVED_DISPLAY_MS = 450;
 const TORCH_ON_ICON = { ios: 'bolt.fill', android: 'flash_on' } as const;
 const TORCH_OFF_ICON = { ios: 'bolt.slash.fill', android: 'flash_off' } as const;
 
@@ -21,7 +27,8 @@ export default function Capture() {
   const [preview, setPreview] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const saving = saveStatus !== 'idle';
   const [saveError, setSaveError] = useState<string | null>(null);
   const shutterScale = useSharedValue(1);
   const shutterStyle = useAnimatedStyle(() => ({ transform: [{ scale: shutterScale.value }] }));
@@ -36,15 +43,20 @@ export default function Capture() {
 
   async function confirm() {
     if (!preview) return;
-    setSaving(true);
+    setSaveStatus('saving');
     setSaveError(null);
+    const start = Date.now();
     const { error } = await enqueueCapture(preview);
-    setSaving(false);
     if (error) {
+      setSaveStatus('idle');
       setSaveError("Couldn't save that photo. Try again.");
       return;
     }
-    router.dismissTo('/(tabs)/today');
+    const remaining = MIN_SAVING_MS - (Date.now() - start);
+    if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
+    setSaveStatus('saved');
+    await new Promise((resolve) => setTimeout(resolve, SAVED_DISPLAY_MS));
+    router.dismissTo({ pathname: '/(tabs)/today', params: { justCaptured: '1', localPreviewUri: preview } });
   }
 
   if (!permission) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
@@ -100,7 +112,12 @@ export default function Capture() {
                   <Button label="Retake" variant="secondary" onPress={() => setPreview(null)} disabled={saving} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Button label="Confirm" loadingLabel="Saving…" loading={saving} onPress={confirm} />
+                  <Button
+                    label="Confirm"
+                    loadingLabel={saveStatus === 'saved' ? 'Saved' : 'Saving…'}
+                    loading={saving}
+                    onPress={confirm}
+                  />
                 </View>
               </View>
             </View>
