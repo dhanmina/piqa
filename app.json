@@ -15,11 +15,13 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.dhanmina.piqa"
+      "package": "com.joinpiqa.app",
+      "versionCode": 20
     },
     "plugins": [
       "expo-router",
       "expo-web-browser",
+      "./plugins/withIncreasedGradleMemory",
       [
         "react-native-android-widget",
         {
@@ -37,6 +39,19 @@
           ]
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "695fe1c2-f6a3-485f-b8b9-1b0314618f44"
+      }
+    },
+    "owner": "dhanmina",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/695fe1c2-f6a3-485f-b8b9-1b0314618f44"
+    }
   }
 }
