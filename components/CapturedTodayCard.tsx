@@ -7,7 +7,15 @@ import { colors, spacing, type } from '../lib/theme';
 const POP_SPRING = { damping: 14, stiffness: 300 };
 const HERO_HEIGHT = 260;
 
-export function CapturedTodayCard({ onPress, imageUrl }: { onPress: () => void; imageUrl?: string | null }) {
+export function CapturedTodayCard({
+  onPress,
+  imageUrl,
+  count = 1,
+}: {
+  onPress: () => void;
+  imageUrl?: string | null;
+  count?: number;
+}) {
   const scale = useSharedValue(0.92);
 
   useEffect(() => {
@@ -40,10 +48,18 @@ export function CapturedTodayCard({ onPress, imageUrl }: { onPress: () => void; 
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                gap: spacing.sm,
               }}
             >
-              <Text style={{ ...type.bodyBold, color: colors.textPrimary }}>Captured today</Text>
-              <Text style={{ ...type.caption, color: colors.textMuted }}>Tap to add another</Text>
+              <Text
+                style={{ ...type.bodyBold, color: colors.textPrimary, flexShrink: 1 }}
+                numberOfLines={1}
+              >
+                {count > 1 ? `Captured today · ${count} photos` : 'Captured today'}
+              </Text>
+              <Text style={{ ...type.caption, color: colors.textMuted, flexShrink: 0 }}>
+                Tap to add another
+              </Text>
             </View>
           </View>
         </Card>

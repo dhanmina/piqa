@@ -68,6 +68,7 @@ export default function Today() {
   const [state, setState] = useState<TodayState | null>(null);
   const [peek, setPeek] = useState<Peek>(null);
   const [todayPhotoUrl, setTodayPhotoUrl] = useState<string | null>(null);
+  const [todayCaptureCount, setTodayCaptureCount] = useState(0);
   const [capturedDates, setCapturedDates] = useState<Set<string>>(new Set());
   const [frozenDates, setFrozenDates] = useState<Set<string>>(new Set());
 
@@ -112,6 +113,7 @@ export default function Today() {
     if (!params.justCaptured) return;
     setState((prev) => (prev ? { ...prev, captured_today: true } : prev));
     setCapturedDates((prev) => new Set(prev).add(todayISO));
+    setTodayCaptureCount((prev) => prev + 1);
     if (params.localPreviewUri) setTodayPhotoUrl(params.localPreviewUri);
     router.setParams({ justCaptured: undefined, localPreviewUri: undefined });
   }, [params.justCaptured, params.localPreviewUri, todayISO]);
@@ -130,11 +132,12 @@ export default function Today() {
     if (!state?.captured_today) return;
     supabase
       .from('captures')
-      .select('storage_path')
+      .select('storage_path', { count: 'exact' })
       .eq('captured_at', todayISO)
       .order('created_at', { ascending: false })
       .limit(1)
-      .then(async ({ data }) => {
+      .then(async ({ data, count }) => {
+        setTodayCaptureCount(count ?? 0);
         const row = data?.[0];
         if (!row) return;
         const { data: signed } = await supabase.storage.from('captures').createSignedUrl(row.storage_path, 3600);
@@ -193,7 +196,11 @@ export default function Today() {
               </Text>
             </View>
           ) : (
-            <CapturedTodayCard imageUrl={todayPhotoUrl} onPress={() => router.push('/capture')} />
+            <CapturedTodayCard
+              imageUrl={todayPhotoUrl}
+              count={todayCaptureCount}
+              onPress={() => router.push('/capture')}
+            />
           )}
 
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
