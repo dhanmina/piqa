@@ -59,11 +59,12 @@ test('signInWithEmail calls signInWithPassword with the given credentials', asyn
   expect(result.error).toBeNull();
 });
 
-test('signUpWithEmail calls signUp with the given credentials', async () => {
-  const result = await signUpWithEmail('user@example.com', 'hunter2');
+test('signUpWithEmail calls signUp with the given credentials and username', async () => {
+  const result = await signUpWithEmail('user@example.com', 'hunter2', 'Dhan_99');
   expect(supabase.auth.signUp).toHaveBeenCalledWith({
     email: 'user@example.com',
     password: 'hunter2',
+    options: { data: { username: 'dhan_99' } },
   });
   expect(result.error).toBeNull();
 });

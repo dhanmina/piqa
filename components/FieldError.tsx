@@ -9,7 +9,6 @@ export function FieldError({ message }: { message: string | null }) {
           accessibilityLiveRegion="polite"
           style={{ ...type.caption, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' }}
         >
-          {'⚠ '}
           {message}
         </Text>
       ) : null}

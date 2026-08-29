@@ -1,10 +1,10 @@
-export type FormError = { message: string; field?: 'email' | 'password' | 'confirmPassword' };
+export type FormError = { message: string; field?: 'username' | 'email' | 'password' | 'confirmPassword' };
 
 type AuthLikeError = { name?: string; code?: string; message: string };
 
 export function mapAuthError(error: AuthLikeError): FormError {
   if (error.name === 'AuthRetryableFetchError') {
-    return { message: "Couldn't connect. Check your connection and try again." };
+    return { message: 'Connection failed. Try again.' };
   }
 
   switch (error.code) {
@@ -16,7 +16,7 @@ export function mapAuthError(error: AuthLikeError): FormError {
       return { message: 'Too many attempts. Try again in a minute.' };
     case 'user_already_exists':
     case 'email_exists':
-      return { message: 'An account with this email already exists.', field: 'email' };
+      return { message: 'Email already registered.', field: 'email' };
     case 'weak_password':
       return { message: 'Password must be at least 8 characters.', field: 'password' };
     case 'email_address_invalid':

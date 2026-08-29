@@ -42,7 +42,7 @@ export default function SignIn() {
         <AuthHero tagline="Capture daily. Keep your streak. Peek into your past." />
 
         <Button
-          label="Sign in with Google"
+          label="Continue with Google"
           loadingLabel="Opening Google…"
           variant="secondary"
           onPress={handleGoogleSignIn}

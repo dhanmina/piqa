@@ -37,6 +37,12 @@ export async function fetchArchiveMosaic(): Promise<{ data: MosaicPhoto[]; error
   return { data: mosaic, error: null };
 }
 
+export async function checkUsernameAvailable(username: string): Promise<{ data: boolean | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('is_username_available', { check_username: username.toLowerCase() });
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data, error: null };
+}
+
 export async function updateDisplayName(name: string): Promise<{ error: Error | null }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: new Error('Not signed in') };

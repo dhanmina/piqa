@@ -41,8 +41,12 @@ export async function signInWithEmail(email: string, password: string) {
   return { error };
 }
 
-export async function signUpWithEmail(email: string, password: string) {
-  const { error } = await supabase.auth.signUp({ email, password });
+export async function signUpWithEmail(email: string, password: string, username: string) {
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { username: username.toLowerCase() } },
+  });
   return { error };
 }
 

@@ -1,4 +1,4 @@
-import { fetchProfile, fetchStats, fetchArchiveMosaic, updateDisplayName } from '../../lib/profile';
+import { fetchProfile, fetchStats, fetchArchiveMosaic, updateDisplayName, checkUsernameAvailable } from '../../lib/profile';
 import { supabase } from '../../lib/supabase';
 
 jest.mock('../../lib/supabase', () => ({
@@ -99,6 +99,22 @@ describe('fetchArchiveMosaic', () => {
     mockRpc.mockResolvedValue({ data: null, error: { message: 'network down' } });
     const result = await fetchArchiveMosaic();
     expect(result.data).toEqual([]);
+    expect(result.error).toBeInstanceOf(Error);
+  });
+});
+
+describe('checkUsernameAvailable', () => {
+  test('lowercases the username and returns the RPC result', async () => {
+    mockRpc.mockResolvedValue({ data: true, error: null });
+    const result = await checkUsernameAvailable('Dhan_99');
+    expect(mockRpc).toHaveBeenCalledWith('is_username_available', { check_username: 'dhan_99' });
+    expect(result).toEqual({ data: true, error: null });
+  });
+
+  test('returns an error instead of throwing when the RPC fails', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'network down' } });
+    const result = await checkUsernameAvailable('dhan');
+    expect(result.data).toBeNull();
     expect(result.error).toBeInstanceOf(Error);
   });
 });
