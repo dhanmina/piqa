@@ -56,7 +56,7 @@ export default function Permissions() {
           <SymbolView name={BACK_ICON} size={22} tintColor={colors.textPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <OnboardingProgress step={2} total={2} />
+          <OnboardingProgress step={3} total={3} />
         </View>
       </View>
       <Animated.View

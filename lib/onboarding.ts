@@ -18,3 +18,10 @@ export async function getOnboardingStatus(): Promise<boolean> {
   const { data } = await supabase.from('profiles').select('onboarded_at').eq('id', user.id).single();
   return !!data?.onboarded_at;
 }
+
+export async function getNeedsUsername(): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data } = await supabase.from('profiles').select('needs_username').eq('id', user.id).single();
+  return !!data?.needs_username;
+}

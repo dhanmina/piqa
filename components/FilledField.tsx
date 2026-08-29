@@ -15,6 +15,7 @@ export const FilledField = forwardRef<TextInput, {
   revealable?: boolean;
   keyboardType?: 'email-address';
   error?: boolean;
+  editable?: boolean;
   returnKeyType?: ReturnKeyTypeOptions;
   onSubmitEditing?: TextInputProps['onSubmitEditing'];
   onBlur?: TextInputProps['onBlur'];
@@ -29,6 +30,7 @@ export const FilledField = forwardRef<TextInput, {
     revealable,
     keyboardType,
     error,
+    editable,
     returnKeyType,
     onSubmitEditing,
     onBlur,
@@ -49,6 +51,7 @@ export const FilledField = forwardRef<TextInput, {
         placeholderTextColor={colors.textMuted}
         secureTextEntry={secureTextEntry && !revealed}
         autoCapitalize="none"
+        editable={editable}
         keyboardType={keyboardType}
         returnKeyType={returnKeyType}
         onSubmitEditing={onSubmitEditing}

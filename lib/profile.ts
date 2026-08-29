@@ -43,6 +43,20 @@ export async function checkUsernameAvailable(username: string): Promise<{ data: 
   return { data, error: null };
 }
 
+export async function setUsername(username: string): Promise<{ error: Error | null }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: new Error('Not signed in') };
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ username: username.trim().toLowerCase(), needs_username: false })
+    .eq('id', user.id)
+    .select('id')
+    .single();
+  if (error) return { error: new Error(error.message) };
+  return { error: null };
+}
+
 export async function updateDisplayName(name: string): Promise<{ error: Error | null }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: new Error('Not signed in') };

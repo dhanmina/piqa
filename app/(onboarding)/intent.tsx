@@ -16,7 +16,7 @@ export default function Intent() {
   }
   return (
     <Screen>
-      <OnboardingProgress step={1} total={2} />
+      <OnboardingProgress step={2} total={3} />
       <Animated.View
         entering={FadeInUp.duration(220)}
         style={{ flex: 1, justifyContent: 'center', gap: spacing.xl }}

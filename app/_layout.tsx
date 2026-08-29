@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import type { Session } from '@supabase/supabase-js';
 import { getSession } from '../lib/auth';
-import { getOnboardingStatus } from '../lib/onboarding';
+import { getOnboardingStatus, getNeedsUsername } from '../lib/onboarding';
 import { supabase } from '../lib/supabase';
 import { AuthStateProvider } from '../lib/authState';
 
@@ -10,13 +10,16 @@ export default function RootLayout() {
   const [checked, setChecked] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [onboarded, setOnboarded] = useState(false);
+  const [needsUsername, setNeedsUsername] = useState(false);
 
   useEffect(() => {
     async function resolve(session: Session | null) {
       const isSignedIn = !!session;
       const isOnboarded = isSignedIn ? await getOnboardingStatus() : false;
+      const needsUsernameNext = isSignedIn && !isOnboarded ? await getNeedsUsername() : false;
       setSignedIn(isSignedIn);
       setOnboarded(isOnboarded);
+      setNeedsUsername(needsUsernameNext);
       setChecked(true);
     }
 
@@ -34,7 +37,15 @@ export default function RootLayout() {
   // boot (e.g. `piqa:///`) requests. That still needs a real app/index.tsx,
   // which redirects into whichever group below is actually active.
   return (
-    <AuthStateProvider value={{ signedIn, onboarded, markOnboarded: () => setOnboarded(true) }}>
+    <AuthStateProvider
+      value={{
+        signedIn,
+        onboarded,
+        needsUsername,
+        markOnboarded: () => setOnboarded(true),
+        markUsernameSet: () => setNeedsUsername(false),
+      }}
+    >
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Protected guard={!signedIn}>
