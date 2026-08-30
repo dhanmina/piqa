@@ -1,22 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Dimensions, Modal, Pressable, View } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import { Dimensions, Image, Modal, Pressable, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSharedValue } from 'react-native-reanimated';
+import { Carousel, Pagination } from 'react-native-reanimated-carousel';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SWIPE_THRESHOLD = 100;
-const STACK_VISIBLE = 3;
-
-function rotateFrom(length: number, start: number): number[] {
-  if (length === 0) return [];
-  return Array.from({ length }, (_, i) => (start + i) % length);
-}
 
 export function PhotoViewerModal({
   url,
@@ -33,67 +20,7 @@ export function PhotoViewerModal({
 }) {
   const images = urls && urls.length ? urls : url ? [url] : [];
   const isVisible = visible ?? images.length > 0;
-  const [order, setOrder] = useState<number[]>(() => rotateFrom(images.length, initialIndex));
-
-  useEffect(() => {
-    if (isVisible) setOrder(rotateFrom(images.length, initialIndex));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isVisible]);
-
-  const backDepth = STACK_VISIBLE - 1;
-  const backScale = 1 - backDepth * 0.05;
-  const backOpacity = 1 - backDepth * 0.25;
-  const backTranslateY = backDepth * 14;
-
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const scale = useSharedValue(1);
-  const cardOpacity = useSharedValue(1);
-  const zIndexSV = useSharedValue(STACK_VISIBLE);
-
-  function sendToBack() {
-    setOrder((prev) => [...prev.slice(1), prev[0]]);
-    translateX.value = 0;
-    translateY.value = 0;
-    scale.value = 1;
-    cardOpacity.value = 1;
-    zIndexSV.value = STACK_VISIBLE;
-  }
-
-  const pan = Gesture.Pan()
-    .onUpdate((e) => {
-      translateX.value = e.translationX;
-      translateY.value = e.translationY;
-    })
-    .onEnd((e) => {
-      const distance = Math.hypot(e.translationX, e.translationY);
-      if (distance > SWIPE_THRESHOLD) {
-        zIndexSV.value = 0;
-        scale.value = withTiming(backScale, { duration: 220 });
-        cardOpacity.value = withTiming(backOpacity, { duration: 220 });
-        translateX.value = withTiming(0, { duration: 220 });
-        translateY.value = withTiming(backTranslateY, { duration: 220 }, (finished) => {
-          if (finished) runOnJS(sendToBack)();
-        });
-      } else {
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
-      }
-    });
-
-  const topCardStyle = useAnimatedStyle(() => ({
-    zIndex: zIndexSV.value,
-    opacity: cardOpacity.value,
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
-      { rotate: `${(translateX.value / SCREEN_WIDTH) * 25}deg` },
-    ],
-  }));
-
-  const stack = order.slice(0, STACK_VISIBLE).map((imgIndex, depth) => ({ imgIndex, depth }));
-  const renderOrder = [...stack].reverse();
+  const progress = useSharedValue(0);
 
   return (
     <Modal visible={isVisible} transparent animationType="fade" onRequestClose={onClose}>
@@ -103,48 +30,41 @@ export function PhotoViewerModal({
           onPress={onClose}
         >
           {images.length > 1 ? (
-            <View style={{ width: SCREEN_WIDTH, height: '70%', alignItems: 'center', justifyContent: 'center' }}>
-              {renderOrder.map(({ imgIndex, depth }) => {
-                const staticStyle = {
-                  position: 'absolute' as const,
-                  width: '86%' as const,
-                  height: '100%' as const,
-                  zIndex: STACK_VISIBLE - depth,
-                  transform: [{ scale: 1 - depth * 0.05 }, { translateY: depth * 14 }],
-                  opacity: 1 - depth * 0.25,
-                };
-
-                if (depth === 0) {
-                  return (
-                    <GestureDetector gesture={pan} key={imgIndex}>
-                      <Animated.View style={[staticStyle, topCardStyle]}>
-                        <Animated.Image
-                          source={{ uri: images[imgIndex] }}
-                          style={{ width: '100%', height: '100%', borderRadius: 16 }}
-                          resizeMode="cover"
-                        />
-                      </Animated.View>
-                    </GestureDetector>
-                  );
-                }
-
-                return (
-                  <View key={imgIndex} style={staticStyle}>
-                    <Animated.Image
-                      source={{ uri: images[imgIndex] }}
-                      style={{ width: '100%', height: '100%', borderRadius: 16 }}
+            <View
+              style={{
+                width: SCREEN_WIDTH,
+                height: '70%',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+              }}
+            >
+              <Carousel
+                style={{ width: '100%', height: '100%' }}
+                data={images}
+                defaultIndex={Math.min(initialIndex, images.length - 1)}
+                loop
+                progress={progress}
+                renderItem={({ item }) => (
+                  <View style={{ width: '100%', height: '100%', alignItems: 'center' }}>
+                    <Image
+                      source={{ uri: item }}
+                      style={{ width: '86%', height: '100%', borderRadius: 16 }}
                       resizeMode="cover"
                     />
                   </View>
-                );
-              })}
+                )}
+              />
+              <Pagination
+                progress={progress}
+                count={images.length}
+                dotStyle={{ width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' }}
+                activeDotStyle={{ backgroundColor: '#fff' }}
+                containerStyle={{ position: 'absolute', bottom: 12, gap: 6 }}
+              />
             </View>
           ) : images[0] ? (
-            <Animated.Image
-              source={{ uri: images[0] }}
-              style={{ width: '100%', height: '70%' }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: images[0] }} style={{ width: '100%', height: '70%' }} resizeMode="contain" />
           ) : null}
         </Pressable>
       </GestureHandlerRootView>
