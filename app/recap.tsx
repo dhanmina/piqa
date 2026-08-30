@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import { getSignedUrls } from '../lib/signedUrlCache';
 import { RecapSlideshow } from '../components/RecapSlideshow';
 import { Screen } from '../components/Screen';
 import { colors, radius, spacing, touchTarget, type } from '../lib/theme';
@@ -17,8 +18,8 @@ export default function Recap() {
     supabase.rpc(rpc).then(async ({ data }) => {
       const paths: string[] = (data ?? []).map((r: any) => r.storage_path);
       if (paths.length === 0) return;
-      const { data: signed } = await supabase.storage.from('captures').createSignedUrls(paths, 3600);
-      setPhotos((signed ?? []).map((s) => s.signedUrl).filter((url): url is string => !!url));
+      const signedByPath = await getSignedUrls(paths);
+      setPhotos(paths.map((p) => signedByPath.get(p)).filter((url): url is string => !!url));
     });
   }, [isYear]);
 
