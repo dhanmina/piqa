@@ -38,7 +38,8 @@
             }
           ]
         }
-      ]
+      ],
+      "expo-splash-screen"
     ],
     "extra": {
       "router": {},
