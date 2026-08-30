@@ -15,12 +15,28 @@ import { colors, spacing, type } from '../../lib/theme';
 
 const MOSAIC_CAP = 27;
 
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  console.error('[profile] render crashed', error);
+  return (
+    <Screen>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md }}>
+        <Text style={{ ...type.body, color: colors.textMuted, textAlign: 'center' }}>
+          Couldn't load your profile.
+        </Text>
+        <TextLink label="Try again" onPress={retry} accessibilityLabel="Retry loading profile" />
+      </View>
+    </Screen>
+  );
+}
+
 function pluralize(count: number, singular: string): string {
   return count === 1 ? singular : `${singular}s`;
 }
 
-function tenureLabel(createdAt: string): string {
-  const since = new Date(createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+function tenureLabel(createdAt: string): string | null {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return null;
+  const since = date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   return `Capturing since ${since}`;
 }
 
@@ -108,7 +124,7 @@ export default function Profile() {
               {profileError
                 ? "Couldn't load profile."
                 : !profileLoading && profileInfo
-                  ? tenureLabel(profileInfo.created_at)
+                  ? (tenureLabel(profileInfo.created_at) ?? ' ')
                   : ' '}
             </Text>
           </View>
