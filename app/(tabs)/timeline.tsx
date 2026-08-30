@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { supabase } from '../../lib/supabase';
 import { getSignedUrls } from '../../lib/signedUrlCache';
@@ -46,6 +47,7 @@ export default function Timeline() {
   } | null>(null);
   const loadingRef = useRef(false);
   const reachedStartRef = useRef(false);
+  const monthsDataRef = useRef<Record<MonthKey, MonthData>>({});
 
   useEffect(() => {
     supabase
@@ -104,13 +106,20 @@ export default function Timeline() {
         else state = 'future';
         return { day: r.day, imageUrl, imageUrls, captureIds, state };
       });
+      // Skip the update when nothing actually changed — this refetches on every focus
+      // (see below), and replacing days with fresh objects/arrays each time forces every
+      // NetworkImage in the grid to remount and flash back through its grey placeholder,
+      // same class of bug as the peek photo's re-sign flicker in today.tsx.
+      const prevDays = monthsDataRef.current[key]?.days;
+      if (prevDays && JSON.stringify(prevDays) === JSON.stringify(days)) return;
       // Warm the cache at full-viewer resolution ahead of the tap, same as Today's
       // captured card — otherwise the fullscreen viewer shows a blank/loading gap.
       if (signedByPath.size > 0) Image.prefetch(Array.from(signedByPath.values()), 'memory-disk');
-      setMonthsData((prev) => ({
-        ...prev,
-        [key]: { year, month, leadingBlanks: new Date(year, month - 1, 1).getDay(), days },
-      }));
+      setMonthsData((prev) => {
+        const next = { ...prev, [key]: { year, month, leadingBlanks: new Date(year, month - 1, 1).getDay(), days } };
+        monthsDataRef.current = next;
+        return next;
+      });
     },
     [todayISO, createdAtISO]
   );
@@ -123,6 +132,18 @@ export default function Timeline() {
       }
     });
   }, [monthKeys, monthsData, fetchMonth]);
+
+  // monthsData is fetched once per key and never invalidated, so a capture taken while
+  // this tab sits unmounted (it's captured from Today/camera-action, not from here) leaves
+  // the current month stale until this refetch on focus picks it up.
+  useFocusEffect(
+    useCallback(() => {
+      const key = monthKeys[0];
+      if (!key) return;
+      const [y, m] = key.split('-').map(Number);
+      fetchMonth(y, m);
+    }, [monthKeys, fetchMonth])
+  );
 
   function loadOlderMonth() {
     // profileLoaded gates this so an older month can never slip in before we
