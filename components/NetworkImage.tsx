@@ -22,7 +22,7 @@ export function NetworkImage({
         source={source}
         style={StyleSheet.absoluteFill}
         contentFit={contentFit}
-        cachePolicy="disk"
+        cachePolicy="memory-disk"
         transition={200}
         accessibilityLabel={accessibilityLabel}
       />

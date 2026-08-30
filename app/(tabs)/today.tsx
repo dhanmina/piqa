@@ -3,6 +3,7 @@ import { View, Text, ScrollView } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { requestWidgetUpdate } from 'react-native-android-widget';
+import { Image } from 'expo-image';
 import { supabase } from '../../lib/supabase';
 import { PeekBackCard } from '../../components/PeekBackCard';
 import { CapturedTodayCard } from '../../components/CapturedTodayCard';
@@ -159,7 +160,12 @@ export default function Today() {
         const signed = await Promise.all(
           rows.map((row) => supabase.storage.from('captures').createSignedUrl(row.storage_path, 3600))
         );
-        setTodayPhotoUrls(signed.map((s) => s.data?.signedUrl).filter((u): u is string => !!u));
+        const urls = signed.map((s) => s.data?.signedUrl).filter((u): u is string => !!u);
+        setTodayPhotoUrls(urls);
+        // Warm the cache at full-viewer resolution ahead of the tap — the fullscreen
+        // viewer renders much larger than the thumbnail, so without this the thumbnail's
+        // cached decode doesn't cover it and opening the viewer still shows a blank/loading gap.
+        Image.prefetch(urls, 'memory-disk');
       });
   }, [state?.captured_today, todayISO]);
 
