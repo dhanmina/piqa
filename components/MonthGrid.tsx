@@ -5,7 +5,13 @@ import { colors, spacing, type } from '../lib/theme';
 import type { DayCellState } from './WeekStrip';
 import { NetworkImage } from './NetworkImage';
 
-export type MonthDay = { day: number; imageUrl: string | null; imageUrls: string[]; state: DayCellState };
+export type MonthDay = {
+  day: number;
+  imageUrl: string | null;
+  imageUrls: string[];
+  captureIds: string[];
+  state: DayCellState;
+};
 
 const FROZEN_ICON = { ios: 'snowflake', android: 'ac_unit' } as const;
 const COLUMNS = 7;

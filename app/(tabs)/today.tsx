@@ -9,6 +9,7 @@ import { getSignedUrl, getSignedUrls } from '../../lib/signedUrlCache';
 import { PeekBackCard } from '../../components/PeekBackCard';
 import { CapturedTodayCard } from '../../components/CapturedTodayCard';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
+import { deleteCapture } from '../../lib/deleteCapture';
 import { Card } from '../../components/Card';
 import { WeekStrip, type DayCell, type DayCellState } from '../../components/WeekStrip';
 import { Button } from '../../components/Button';
@@ -76,6 +77,7 @@ export default function Today() {
   const [state, setState] = useState<TodayState | null>(null);
   const [peek, setPeek] = useState<Peek>(null);
   const [todayPhotoUrls, setTodayPhotoUrls] = useState<string[]>([]);
+  const [todayCaptureIds, setTodayCaptureIds] = useState<string[]>([]);
   const [todayCaptureCount, setTodayCaptureCount] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [capturedDates, setCapturedDates] = useState<Set<string>>(new Set());
@@ -153,21 +155,33 @@ export default function Today() {
     if (!state?.captured_today) return;
     supabase
       .from('captures')
-      .select('storage_path')
+      .select('id, storage_path')
       .eq('captured_at', todayISO)
       .order('created_at', { ascending: true })
       .then(async ({ data }) => {
         const rows = data ?? [];
         setTodayCaptureCount(rows.length);
         const signedByPath = await getSignedUrls(rows.map((row) => row.storage_path));
-        const urls = rows.map((row) => signedByPath.get(row.storage_path)).filter((u): u is string => !!u);
+        const resolvedRows = rows.filter((row) => signedByPath.has(row.storage_path));
+        const urls = resolvedRows.map((row) => signedByPath.get(row.storage_path)!);
         setTodayPhotoUrls(urls);
+        setTodayCaptureIds(resolvedRows.map((row) => row.id));
         // Warm the cache at full-viewer resolution ahead of the tap — the fullscreen
         // viewer renders much larger than the thumbnail, so without this the thumbnail's
         // cached decode doesn't cover it and opening the viewer still shows a blank/loading gap.
         Image.prefetch(urls, 'memory-disk');
       });
   }, [state?.captured_today, todayISO]);
+
+  async function handleDeleteTodayCapture(index: number) {
+    const captureId = todayCaptureIds[index];
+    const { error } = await deleteCapture(captureId);
+    if (error) throw error;
+    setTodayPhotoUrls((prev) => prev.filter((_, i) => i !== index));
+    setTodayCaptureIds((prev) => prev.filter((_, i) => i !== index));
+    setTodayCaptureCount((prev) => Math.max(prev - 1, 0));
+    loadToday();
+  }
 
   const days: DayCell[] = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
@@ -242,6 +256,8 @@ export default function Today() {
         initialIndex={Math.max(todayPhotoUrls.length - 1, 0)}
         visible={viewerOpen}
         onClose={() => setViewerOpen(false)}
+        captureIds={todayCaptureIds}
+        onDelete={handleDeleteTodayCapture}
       />
     </Screen>
   );

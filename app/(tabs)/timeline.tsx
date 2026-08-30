@@ -6,6 +6,7 @@ import { getSignedUrls } from '../../lib/signedUrlCache';
 import { MonthGrid, type MonthDay } from '../../components/MonthGrid';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { Screen } from '../../components/Screen';
+import { deleteCapture } from '../../lib/deleteCapture';
 import { colors, spacing, type } from '../../lib/theme';
 import type { DayCellState } from '../../components/WeekStrip';
 
@@ -36,7 +37,13 @@ export default function Timeline() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [monthKeys, setMonthKeys] = useState<MonthKey[]>([monthKey(now.getFullYear(), now.getMonth() + 1)]);
   const [monthsData, setMonthsData] = useState<Record<MonthKey, MonthData>>({});
-  const [viewer, setViewer] = useState<{ urls: string[]; initialIndex: number } | null>(null);
+  const [viewer, setViewer] = useState<{
+    urls: string[];
+    captureIds: string[];
+    initialIndex: number;
+    year: number;
+    month: number;
+  } | null>(null);
   const loadingRef = useRef(false);
   const reachedStartRef = useRef(false);
 
@@ -56,7 +63,8 @@ export default function Timeline() {
       const key = monthKey(year, month);
       const { data, error } = await supabase.rpc('get_timeline_month', { year, month });
       if (error) console.error('[timeline] get_timeline_month failed', year, month, error);
-      const rows: { day: number; storage_paths: string[] | null; frozen: boolean }[] = data ?? [];
+      const rows: { day: number; storage_paths: string[] | null; capture_ids: string[] | null; frozen: boolean }[] =
+        data ?? [];
       const paths = rows.flatMap((r) => r.storage_paths ?? []);
       let signedByPath = new Map<string, string>();
       if (paths.length > 0) {
@@ -68,10 +76,12 @@ export default function Timeline() {
       }
       const days: MonthDay[] = rows.map((r) => {
         const iso = toISODate(year, month, r.day);
-        const capturedCount = r.storage_paths?.length ?? 0;
-        const imageUrls = (r.storage_paths ?? [])
-          .map((p) => signedByPath.get(p))
-          .filter((u): u is string => !!u);
+        const dayPaths = r.storage_paths ?? [];
+        const dayIds = r.capture_ids ?? [];
+        const resolvedMask = dayPaths.map((p) => signedByPath.has(p));
+        const capturedCount = dayPaths.length;
+        const imageUrls = dayPaths.filter((_, i) => resolvedMask[i]).map((p) => signedByPath.get(p)!);
+        const captureIds = dayIds.filter((_, i) => resolvedMask[i]);
         if (imageUrls.length !== capturedCount) {
           console.error(
             '[timeline] signed url count mismatch for day',
@@ -92,7 +102,7 @@ export default function Timeline() {
         else if (createdAtISO && iso < createdAtISO) state = 'future';
         else if (iso < todayISO) state = 'missed';
         else state = 'future';
-        return { day: r.day, imageUrl, imageUrls, state };
+        return { day: r.day, imageUrl, imageUrls, captureIds, state };
       });
       // Warm the cache at full-viewer resolution ahead of the tap, same as Today's
       // captured card — otherwise the fullscreen viewer shows a blank/loading gap.
@@ -135,6 +145,20 @@ export default function Timeline() {
     loadingRef.current = false;
   }
 
+  async function handleDeleteFromViewer(index: number) {
+    if (!viewer) return;
+    const captureId = viewer.captureIds[index];
+    const { error } = await deleteCapture(captureId);
+    if (error) throw error;
+    setViewer((prev) => {
+      if (!prev) return prev;
+      const urls = prev.urls.filter((_, i) => i !== index);
+      const captureIds = prev.captureIds.filter((_, i) => i !== index);
+      return urls.length > 0 ? { ...prev, urls, captureIds } : null;
+    });
+    fetchMonth(viewer.year, viewer.month);
+  }
+
   const firstMonth = monthsData[monthKeys[0]];
   const hasAnyCaptureSoFar = Object.values(monthsData).some((m) => m.days.some((d) => d.imageUrl));
 
@@ -165,7 +189,9 @@ export default function Timeline() {
               <MonthGrid
                 leadingBlanks={data.leadingBlanks}
                 days={data.days}
-                onPressDay={(d) => setViewer({ urls: d.imageUrls, initialIndex: 0 })}
+                onPressDay={(d) =>
+                  setViewer({ urls: d.imageUrls, captureIds: d.captureIds, initialIndex: 0, year: data.year, month: data.month })
+                }
               />
             </View>
           );
@@ -177,6 +203,8 @@ export default function Timeline() {
         initialIndex={viewer?.initialIndex ?? 0}
         visible={!!viewer}
         onClose={() => setViewer(null)}
+        captureIds={viewer?.captureIds ?? []}
+        onDelete={handleDeleteFromViewer}
       />
     </Screen>
   );
