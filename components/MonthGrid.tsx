@@ -5,7 +5,7 @@ import { colors, spacing, type } from '../lib/theme';
 import type { DayCellState } from './WeekStrip';
 import { NetworkImage } from './NetworkImage';
 
-export type MonthDay = { day: number; imageUrl: string | null; state: DayCellState };
+export type MonthDay = { day: number; imageUrl: string | null; imageUrls: string[]; state: DayCellState };
 
 const FROZEN_ICON = { ios: 'snowflake', android: 'ac_unit' } as const;
 const COLUMNS = 7;
@@ -63,7 +63,9 @@ export function MonthGrid({
                   backgroundColor: 'rgba(0,0,0,0.55)',
                 }}
               >
-                <Text style={{ ...type.caption, fontSize: 12, color: colors.textPrimary }}>{d.day}</Text>
+                <Text style={{ ...type.caption, fontSize: 12, color: colors.textPrimary }}>
+                  {d.imageUrls.length > 1 ? `${d.day} · ${d.imageUrls.length}` : d.day}
+                </Text>
               </View>
             </>
           ) : (

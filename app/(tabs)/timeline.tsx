@@ -56,8 +56,8 @@ export default function Timeline() {
       const key = monthKey(year, month);
       const { data, error } = await supabase.rpc('get_timeline_month', { year, month });
       if (error) console.error('[timeline] get_timeline_month failed', year, month, error);
-      const rows: { day: number; storage_path: string | null; frozen: boolean }[] = data ?? [];
-      const paths = rows.filter((r) => r.storage_path).map((r) => r.storage_path as string);
+      const rows: { day: number; storage_paths: string[] | null; frozen: boolean }[] = data ?? [];
+      const paths = rows.flatMap((r) => r.storage_paths ?? []);
       let signedByPath = new Map<string, string>();
       if (paths.length > 0) {
         try {
@@ -68,7 +68,23 @@ export default function Timeline() {
       }
       const days: MonthDay[] = rows.map((r) => {
         const iso = toISODate(year, month, r.day);
-        const imageUrl = r.storage_path ? (signedByPath.get(r.storage_path) ?? null) : null;
+        const capturedCount = r.storage_paths?.length ?? 0;
+        const imageUrls = (r.storage_paths ?? [])
+          .map((p) => signedByPath.get(p))
+          .filter((u): u is string => !!u);
+        if (imageUrls.length !== capturedCount) {
+          console.error(
+            '[timeline] signed url count mismatch for day',
+            iso,
+            'expected',
+            capturedCount,
+            'got',
+            imageUrls.length,
+            'paths',
+            r.storage_paths
+          );
+        }
+        const imageUrl = imageUrls.length > 0 ? imageUrls[imageUrls.length - 1] : null;
         let state: DayCellState;
         if (imageUrl) state = 'captured';
         else if (iso === todayISO) state = 'today';
@@ -76,7 +92,7 @@ export default function Timeline() {
         else if (createdAtISO && iso < createdAtISO) state = 'future';
         else if (iso < todayISO) state = 'missed';
         else state = 'future';
-        return { day: r.day, imageUrl, state };
+        return { day: r.day, imageUrl, imageUrls, state };
       });
       // Warm the cache at full-viewer resolution ahead of the tap, same as Today's
       // captured card — otherwise the fullscreen viewer shows a blank/loading gap.
@@ -149,11 +165,7 @@ export default function Timeline() {
               <MonthGrid
                 leadingBlanks={data.leadingBlanks}
                 days={data.days}
-                onPressDay={(d) => {
-                  const captured = data.days.filter((day) => day.imageUrl);
-                  const initialIndex = captured.findIndex((day) => day.day === d.day);
-                  setViewer({ urls: captured.map((day) => day.imageUrl as string), initialIndex: Math.max(initialIndex, 0) });
-                }}
+                onPressDay={(d) => setViewer({ urls: d.imageUrls, initialIndex: 0 })}
               />
             </View>
           );

@@ -44,7 +44,6 @@ export function PhotoViewerModal({
                 style={{ width: '100%', height: '100%' }}
                 data={images}
                 defaultIndex={Math.min(initialIndex, images.length - 1)}
-                loop
                 progress={progress}
                 renderItem={({ item }) => (
                   <View style={{ width: '100%', height: '100%', alignItems: 'center' }}>

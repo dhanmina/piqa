@@ -25,6 +25,7 @@ export function NetworkImage({
         cachePolicy="memory-disk"
         transition={200}
         accessibilityLabel={accessibilityLabel}
+        onError={(e) => console.error('[NetworkImage] load failed', source.uri, e.error)}
       />
     </View>
   );
