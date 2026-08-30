@@ -33,7 +33,11 @@ export async function enqueueCapture(localUri: string, themeTag?: string): Promi
     const localPath = `${QUEUE_DIR}${Date.now()}.jpg`;
     await FileSystem.copyAsync({ from: localUri, to: localPath });
     const items = await readIndex();
-    items.push({ localPath, themeTag, capturedAt: new Date().toISOString().slice(0, 10) });
+    // Local date, not toISOString() — that's UTC, so the capture would land on the
+    // wrong day for anyone whose local midnight isn't UTC midnight.
+    const now = new Date();
+    const capturedAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    items.push({ localPath, themeTag, capturedAt });
     await writeIndex(items);
   } catch (error) {
     return { error: error as Error };

@@ -31,8 +31,13 @@ function streakHeroLabel(count: number | undefined): string {
 }
 
 // Matches the capturedAt format lib/captureQueue.ts already writes to `captures.captured_at`.
+// Local date components, not toISOString() — that converts to UTC, so the day boundary
+// lands at UTC midnight instead of the device's local midnight.
 function toISODate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function pluralize(count: number, singular: string): string {
