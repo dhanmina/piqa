@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { supabase } from '../../lib/supabase';
+import { getSignedUrls } from '../../lib/signedUrlCache';
 import { MonthGrid, type MonthDay } from '../../components/MonthGrid';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { Screen } from '../../components/Screen';
@@ -34,7 +36,7 @@ export default function Timeline() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [monthKeys, setMonthKeys] = useState<MonthKey[]>([monthKey(now.getFullYear(), now.getMonth() + 1)]);
   const [monthsData, setMonthsData] = useState<Record<MonthKey, MonthData>>({});
-  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ urls: string[]; initialIndex: number } | null>(null);
   const loadingRef = useRef(false);
   const reachedStartRef = useRef(false);
 
@@ -52,15 +54,17 @@ export default function Timeline() {
   const fetchMonth = useCallback(
     async (year: number, month: number) => {
       const key = monthKey(year, month);
-      const { data } = await supabase.rpc('get_timeline_month', { year, month });
+      const { data, error } = await supabase.rpc('get_timeline_month', { year, month });
+      if (error) console.error('[timeline] get_timeline_month failed', year, month, error);
       const rows: { day: number; storage_path: string | null; frozen: boolean }[] = data ?? [];
       const paths = rows.filter((r) => r.storage_path).map((r) => r.storage_path as string);
-      const signedByPath = new Map<string, string>();
+      let signedByPath = new Map<string, string>();
       if (paths.length > 0) {
-        const { data: signed } = await supabase.storage.from('captures').createSignedUrls(paths, 3600);
-        signed?.forEach((s) => {
-          if (s.signedUrl && s.path) signedByPath.set(s.path, s.signedUrl);
-        });
+        try {
+          signedByPath = await getSignedUrls(paths);
+        } catch (err) {
+          console.error('[timeline] getSignedUrls failed', err);
+        }
       }
       const days: MonthDay[] = rows.map((r) => {
         const iso = toISODate(year, month, r.day);
@@ -74,6 +78,9 @@ export default function Timeline() {
         else state = 'future';
         return { day: r.day, imageUrl, state };
       });
+      // Warm the cache at full-viewer resolution ahead of the tap, same as Today's
+      // captured card — otherwise the fullscreen viewer shows a blank/loading gap.
+      if (signedByPath.size > 0) Image.prefetch(Array.from(signedByPath.values()), 'memory-disk');
       setMonthsData((prev) => ({
         ...prev,
         [key]: { year, month, leadingBlanks: new Date(year, month - 1, 1).getDay(), days },
@@ -142,14 +149,23 @@ export default function Timeline() {
               <MonthGrid
                 leadingBlanks={data.leadingBlanks}
                 days={data.days}
-                onPressDay={(d) => setViewerUrl(d.imageUrl)}
+                onPressDay={(d) => {
+                  const captured = data.days.filter((day) => day.imageUrl);
+                  const initialIndex = captured.findIndex((day) => day.day === d.day);
+                  setViewer({ urls: captured.map((day) => day.imageUrl as string), initialIndex: Math.max(initialIndex, 0) });
+                }}
               />
             </View>
           );
         }}
       />
 
-      <PhotoViewerModal url={viewerUrl} onClose={() => setViewerUrl(null)} />
+      <PhotoViewerModal
+        urls={viewer?.urls ?? []}
+        initialIndex={viewer?.initialIndex ?? 0}
+        visible={!!viewer}
+        onClose={() => setViewer(null)}
+      />
     </Screen>
   );
 }

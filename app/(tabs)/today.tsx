@@ -5,6 +5,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { requestWidgetUpdate } from 'react-native-android-widget';
 import { Image } from 'expo-image';
 import { supabase } from '../../lib/supabase';
+import { getSignedUrl, getSignedUrls } from '../../lib/signedUrlCache';
 import { PeekBackCard } from '../../components/PeekBackCard';
 import { CapturedTodayCard } from '../../components/CapturedTodayCard';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
@@ -90,14 +91,10 @@ export default function Today() {
       // Skip re-signing the same photo on every focus — a fresh signed URL swaps
       // the Image's uri and forces a visible reload/blink even though nothing changed.
       if (row.storage_path === peekStoragePathRef.current) return;
-      // 24h TTL: the ref caches this URL until storage_path changes (next day), so
-      // a 1h TTL would expire mid-session and leave a dead image with no refresh.
-      const { data: signed } = await supabase.storage
-        .from('captures')
-        .createSignedUrl(row.storage_path, 60 * 60 * 24);
-      if (signed?.signedUrl) {
+      const signedUrl = await getSignedUrl(row.storage_path);
+      if (signedUrl) {
         peekStoragePathRef.current = row.storage_path;
-        setPeek({ imageUrl: signed.signedUrl, label: row.label });
+        setPeek({ imageUrl: signedUrl, label: row.label });
       }
     });
 
@@ -157,10 +154,8 @@ export default function Today() {
       .then(async ({ data }) => {
         const rows = data ?? [];
         setTodayCaptureCount(rows.length);
-        const signed = await Promise.all(
-          rows.map((row) => supabase.storage.from('captures').createSignedUrl(row.storage_path, 3600))
-        );
-        const urls = signed.map((s) => s.data?.signedUrl).filter((u): u is string => !!u);
+        const signedByPath = await getSignedUrls(rows.map((row) => row.storage_path));
+        const urls = rows.map((row) => signedByPath.get(row.storage_path)).filter((u): u is string => !!u);
         setTodayPhotoUrls(urls);
         // Warm the cache at full-viewer resolution ahead of the tap — the fullscreen
         // viewer renders much larger than the thumbnail, so without this the thumbnail's
