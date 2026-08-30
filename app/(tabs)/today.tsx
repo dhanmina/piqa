@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -73,9 +73,12 @@ export default function Today() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [capturedDates, setCapturedDates] = useState<Set<string>>(new Set());
   const [frozenDates, setFrozenDates] = useState<Set<string>>(new Set());
+  const peekStoragePathRef = useRef<string | null>(null);
 
   const todayISO = toISODate(new Date());
-  const weekStart = startOfWeek(new Date());
+  // Stable reference across renders — a fresh Date() here recreated loadToday every
+  // render, which retriggered useFocusEffect and caused an infinite refetch loop.
+  const weekStart = useMemo(() => startOfWeek(new Date()), [todayISO]);
 
   const loadToday = useCallback(() => {
     supabase.rpc('get_today_state').then(({ data }) => setState(data?.[0] ?? null));
@@ -83,8 +86,18 @@ export default function Today() {
     supabase.rpc('get_peek_back').then(async ({ data }) => {
       const row = data?.[0];
       if (!row) return;
-      const { data: signed } = await supabase.storage.from('captures').createSignedUrl(row.storage_path, 3600);
-      if (signed?.signedUrl) setPeek({ imageUrl: signed.signedUrl, label: row.label });
+      // Skip re-signing the same photo on every focus — a fresh signed URL swaps
+      // the Image's uri and forces a visible reload/blink even though nothing changed.
+      if (row.storage_path === peekStoragePathRef.current) return;
+      // 24h TTL: the ref caches this URL until storage_path changes (next day), so
+      // a 1h TTL would expire mid-session and leave a dead image with no refresh.
+      const { data: signed } = await supabase.storage
+        .from('captures')
+        .createSignedUrl(row.storage_path, 60 * 60 * 24);
+      if (signed?.signedUrl) {
+        peekStoragePathRef.current = row.storage_path;
+        setPeek({ imageUrl: signed.signedUrl, label: row.label });
+      }
     });
 
     const weekEnd = new Date(weekStart);
