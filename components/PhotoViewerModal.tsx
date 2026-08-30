@@ -1,5 +1,6 @@
-import { Dimensions, Image, Modal, Pressable, View } from 'react-native';
+import { Dimensions, Modal, Pressable, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { NetworkImage } from './NetworkImage';
 import { useSharedValue } from 'react-native-reanimated';
 import { Carousel, Pagination } from 'react-native-reanimated-carousel';
 
@@ -47,10 +48,10 @@ export function PhotoViewerModal({
                 progress={progress}
                 renderItem={({ item }) => (
                   <View style={{ width: '100%', height: '100%', alignItems: 'center' }}>
-                    <Image
+                    <NetworkImage
                       source={{ uri: item }}
                       style={{ width: '86%', height: '100%', borderRadius: 16 }}
-                      resizeMode="cover"
+                      contentFit="cover"
                     />
                   </View>
                 )}
@@ -64,7 +65,7 @@ export function PhotoViewerModal({
               />
             </View>
           ) : images[0] ? (
-            <Image source={{ uri: images[0] }} style={{ width: '100%', height: '70%' }} resizeMode="contain" />
+            <NetworkImage source={{ uri: images[0] }} style={{ width: '100%', height: '70%' }} contentFit="contain" />
           ) : null}
         </Pressable>
       </GestureHandlerRootView>

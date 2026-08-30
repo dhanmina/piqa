@@ -1,4 +1,5 @@
-import { Image, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { colors, height, type } from '../lib/theme';
 
@@ -24,7 +25,10 @@ export function Avatar({
     justifyContent: 'center' as const,
     overflow: 'hidden' as const,
   };
-  if (url) return <Image source={{ uri: url }} style={baseStyle} accessibilityLabel={accessibilityLabel} />;
+  if (url)
+    return (
+      <Image source={{ uri: url }} style={baseStyle} accessibilityLabel={accessibilityLabel} cachePolicy="disk" />
+    );
   const initial = name?.trim()?.[0]?.toUpperCase();
   return (
     <View style={baseStyle}>

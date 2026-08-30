@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Image, ImageStyle, LayoutChangeEvent, Pressable, View } from 'react-native';
+import { ImageStyle, LayoutChangeEvent, Pressable, View } from 'react-native';
 import { spacing, radius } from '../lib/theme';
+import { NetworkImage } from './NetworkImage';
 
 export type MosaicPhoto = { url: string; capturedAt: string };
 
@@ -32,7 +33,7 @@ export function MosaicGrid({ photos, onPressPhoto }: { photos: MosaicPhoto[]; on
           accessibilityRole={onPressPhoto ? 'button' : 'image'}
           accessibilityLabel={photoLabel(p.capturedAt)}
         >
-          <Image source={{ uri: p.url }} style={tileStyle} resizeMode="cover" />
+          <NetworkImage source={{ uri: p.url }} style={tileStyle} contentFit="cover" />
         </Pressable>
       ))}
     </View>

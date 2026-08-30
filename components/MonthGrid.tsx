@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Image, LayoutChangeEvent, Pressable, Text, View, ViewStyle } from 'react-native';
+import { LayoutChangeEvent, Pressable, Text, View, ViewStyle } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 import { colors, spacing, type } from '../lib/theme';
 import type { DayCellState } from './WeekStrip';
+import { NetworkImage } from './NetworkImage';
 
 export type MonthDay = { day: number; imageUrl: string | null; state: DayCellState };
 
@@ -44,11 +45,11 @@ export function MonthGrid({
         >
           {d.imageUrl ? (
             <>
-              <Image
+              <NetworkImage
                 testID={`day-photo-${d.day}`}
                 source={{ uri: d.imageUrl }}
                 style={{ width: '100%', height: '100%', borderRadius: CELL_RADIUS }}
-                resizeMode="cover"
+                contentFit="cover"
               />
               <View
                 testID={`day-badge-${d.day}`}

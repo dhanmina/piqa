@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Card } from './Card';
+import { NetworkImage } from './NetworkImage';
 import { colors, spacing, type } from '../lib/theme';
 
 const POP_SPRING = { damping: 14, stiffness: 300 };
@@ -32,7 +33,7 @@ export function CapturedTodayCard({
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <View style={{ width: '100%', height: HERO_HEIGHT }}>
             {imageUrl ? (
-              <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              <NetworkImage source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
             ) : (
               <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ ...type.hero, color: colors.textPrimary }}>{'✓'}</Text>

@@ -1,4 +1,5 @@
-import { Image, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { Avatar } from './Avatar';
 import { Card } from './Card';
@@ -45,6 +46,7 @@ export function BuddyRow({ buddy, onReact }: { buddy: Buddy; onReact: (captureId
             source={{ uri: buddy.todayPhotoUrl }}
             accessibilityLabel={`${displayName}'s photo today`}
             style={{ width: 44, height: 44, borderRadius: radius.card }}
+            cachePolicy="disk"
           />
           <Pressable
             onPress={() => onReact(buddy.todayCaptureId!)}
