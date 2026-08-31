@@ -295,6 +295,16 @@ export default function Capture() {
                 outputs={[photoOutput]}
                 torchMode={torchMode}
                 zoom={zoom}
+                // Without this, Camera2's auto-exposure algorithm is free to pick a lower
+                // adaptive FPS range (this device offers 3-8/6-24/etc alongside 30-30) - pins
+                // the preview to a fixed 30fps instead.
+                constraints={[{ fps: 30 }]}
+                onError={(error) => {
+                  // Rapid pinch updates cancel each other's in-flight setZoom call by
+                  // design (latest wins) - that's not a real error, just noisy to log.
+                  if (error.message.includes('OperationCanceledException')) return;
+                  console.warn('[capture] camera runtime error', error);
+                }}
                 // Default 'performance' mode (SurfaceView) doesn't support the focus-ring
                 // overlay layered on top of this view below - that mismatch is what caused
                 // the stutter while panning. 'compatible' (TextureView) supports layering.
