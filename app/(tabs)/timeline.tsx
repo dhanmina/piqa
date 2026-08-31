@@ -1,23 +1,21 @@
-import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { supabase } from '../../lib/supabase';
-import { getSignedUrls } from '../../lib/signedUrlCache';
-import { MonthGrid, type MonthDay } from '../../components/MonthGrid';
+import { MonthGrid } from '../../components/MonthGrid';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { Screen } from '../../components/Screen';
 import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
 import { TextLink } from '../../components/TextLink';
 import { deleteCapture } from '../../lib/deleteCapture';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { queryKeys, fetchTimelineMonth, invalidateCaptureQueries, type MonthData } from '../../lib/captureQueries';
 import { colors, spacing, type } from '../../lib/theme';
-import type { DayCellState } from '../../components/WeekStrip';
 
 const EMPTY_ICON = { ios: 'calendar', android: 'calendar_month' } as const;
 
 type MonthKey = string; // `${year}-${month}`
-type MonthData = { year: number; month: number; leadingBlanks: number; days: MonthDay[] };
 
 function monthKey(year: number, month: number): MonthKey {
   return `${year}-${month}`;
@@ -42,7 +40,6 @@ function Timeline() {
   const [createdAtISO, setCreatedAtISO] = useState<string | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [monthKeys, setMonthKeys] = useState<MonthKey[]>([monthKey(now.getFullYear(), now.getMonth() + 1)]);
-  const [monthsData, setMonthsData] = useState<Record<MonthKey, MonthData>>({});
   // A near-empty current month (e.g. the 1st of the month, or a month with no
   // captures yet) renders content shorter than the viewport, so the inverted
   // FlatList never becomes scrollable and `onEndReached` — the only other
@@ -60,7 +57,6 @@ function Timeline() {
   } | null>(null);
   const loadingRef = useRef(false);
   const reachedStartRef = useRef(false);
-  const monthsDataRef = useRef<Record<MonthKey, MonthData>>({});
   const listRef = useRef<FlatList<MonthKey>>(null);
 
   useEffect(() => {
@@ -77,95 +73,41 @@ function Timeline() {
     })();
   }, []);
 
-  const fetchMonth = useCallback(
-    async (year: number, month: number) => {
-      const key = monthKey(year, month);
-      let data, error;
-      try {
-        ({ data, error } = await supabase.rpc('get_timeline_month', { year, month }));
-      } catch (err) {
-        console.error('[timeline] get_timeline_month threw', year, month, err);
-        return;
-      }
-      if (error) console.error('[timeline] get_timeline_month failed', year, month, error);
-      const rows: { day: number; storage_paths: string[] | null; capture_ids: string[] | null; frozen: boolean }[] =
-        data ?? [];
-      const paths = rows.flatMap((r) => r.storage_paths ?? []);
-      let signedByPath = new Map<string, string>();
-      if (paths.length > 0) {
-        try {
-          signedByPath = await getSignedUrls(paths);
-        } catch (err) {
-          console.error('[timeline] getSignedUrls failed', err);
-        }
-      }
-      const days: MonthDay[] = rows.map((r) => {
-        const iso = toISODate(year, month, r.day);
-        const dayPaths = r.storage_paths ?? [];
-        const dayIds = r.capture_ids ?? [];
-        const resolvedMask = dayPaths.map((p) => signedByPath.has(p));
-        const capturedCount = dayPaths.length;
-        const imageUrls = dayPaths.filter((_, i) => resolvedMask[i]).map((p) => signedByPath.get(p)!);
-        const captureIds = dayIds.filter((_, i) => resolvedMask[i]);
-        if (imageUrls.length !== capturedCount) {
-          console.error(
-            '[timeline] signed url count mismatch for day',
-            iso,
-            'expected',
-            capturedCount,
-            'got',
-            imageUrls.length,
-            'paths',
-            r.storage_paths
-          );
-        }
-        const imageUrl = imageUrls.length > 0 ? imageUrls[imageUrls.length - 1] : null;
-        let state: DayCellState;
-        if (imageUrl) state = 'captured';
-        else if (iso === todayISO) state = 'today';
-        else if (r.frozen) state = 'frozen';
-        else if (createdAtISO && iso < createdAtISO) state = 'future';
-        else if (iso < todayISO) state = 'missed';
-        else state = 'future';
-        return { day: r.day, imageUrl, imageUrls, captureIds, state };
-      });
-      // Skip the update when nothing actually changed — this refetches on every focus
-      // (see below), and replacing days with fresh objects/arrays each time forces every
-      // NetworkImage in the grid to remount and flash back through its grey placeholder,
-      // same class of bug as the peek photo's re-sign flicker in today.tsx.
-      const prevDays = monthsDataRef.current[key]?.days;
-      if (prevDays && JSON.stringify(prevDays) === JSON.stringify(days)) return;
-      // Warm the cache at full-viewer resolution ahead of the tap, same as Today's
-      // captured card — otherwise the fullscreen viewer shows a blank/loading gap.
-      if (signedByPath.size > 0) Image.prefetch(Array.from(signedByPath.values()), 'memory-disk');
-      setMonthsData((prev) => {
-        const next = { ...prev, [key]: { year, month, leadingBlanks: new Date(year, month - 1, 1).getDay(), days } };
-        monthsDataRef.current = next;
-        return next;
-      });
-    },
-    [todayISO, createdAtISO]
-  );
-
-  useEffect(() => {
-    monthKeys.forEach((key) => {
-      if (!monthsData[key]) {
-        const [y, m] = key.split('-').map(Number);
-        fetchMonth(y, m);
-      }
+  const monthQueries = useQueries({
+    queries: monthKeys.map((key) => {
+      const [y, m] = key.split('-').map(Number);
+      return {
+        queryKey: queryKeys.timelineMonth(y, m),
+        queryFn: () => fetchTimelineMonth(y, m, todayISO, createdAtISO),
+      };
+    }),
+  });
+  // Memoized (not rebuilt as a fresh object every render) because the viewport-backfill
+  // effect below depends on this reference to know when new month data actually arrived --
+  // React Query gives each query result a stable `data` reference across renders where the
+  // content hasn't changed (structural sharing), so this only recomputes on a real change.
+  const monthsData: Record<MonthKey, MonthData> = useMemo(() => {
+    const next: Record<MonthKey, MonthData> = {};
+    monthKeys.forEach((key, i) => {
+      const data = monthQueries[i].data;
+      if (data) next[key] = data;
     });
-  }, [monthKeys, monthsData, fetchMonth]);
+    return next;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthKeys, ...monthQueries.map((q) => q.data)]);
 
-  // monthsData is fetched once per key and never invalidated, so a capture taken while
-  // this tab sits unmounted (it's captured from Today/camera-action, not from here) leaves
-  // the current month stale until this refetch on focus picks it up.
+  const queryClient = useQueryClient();
+
+  // monthsData is fetched once per key and never invalidated by time passing, so a capture
+  // taken while this tab sits unmounted (it's captured from Today/camera-action, not from
+  // here) leaves the current month stale until this refetch on focus picks it up.
   useFocusEffect(
     useCallback(() => {
       const key = monthKeys[0];
       if (!key) return;
       const [y, m] = key.split('-').map(Number);
-      fetchMonth(y, m);
-    }, [monthKeys, fetchMonth])
+      queryClient.invalidateQueries({ queryKey: queryKeys.timelineMonth(y, m) });
+    }, [monthKeys, queryClient])
   );
 
   function loadOlderMonth() {
@@ -217,7 +159,7 @@ function Timeline() {
       const captureIds = prev.captureIds.filter((_, i) => i !== index);
       return urls.length > 0 ? { ...prev, urls, captureIds } : null;
     });
-    fetchMonth(viewer.year, viewer.month);
+    invalidateCaptureQueries(queryClient);
   }
 
   const firstMonth = monthsData[monthKeys[0]];
