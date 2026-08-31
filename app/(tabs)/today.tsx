@@ -76,6 +76,7 @@ export default function Today() {
   const [todayCaptureIds, setTodayCaptureIds] = useState<string[]>([]);
   const [todayCaptureCount, setTodayCaptureCount] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [peekViewerOpen, setPeekViewerOpen] = useState(false);
   const [capturedDates, setCapturedDates] = useState<Set<string>>(new Set());
   const [frozenDates, setFrozenDates] = useState<Set<string>>(new Set());
   const peekStoragePathRef = useRef<string | null>(null);
@@ -239,7 +240,7 @@ export default function Today() {
             </View>
           </View>
 
-          {peek ? <PeekBackCard peek={peek} /> : null}
+          {peek ? <PeekBackCard peek={peek} onPress={() => setPeekViewerOpen(true)} /> : null}
 
           <Card style={{ gap: spacing.md }}>
             <View style={{ gap: spacing.xxs }}>
@@ -264,7 +265,6 @@ export default function Today() {
               imageUrl={todayPhotoUrls[todayPhotoUrls.length - 1] ?? null}
               count={todayCaptureCount}
               onView={() => setViewerOpen(true)}
-              onAddCapture={() => router.push('/capture')}
             />
           )}
 
@@ -285,6 +285,8 @@ export default function Today() {
         captureIds={todayCaptureIds}
         onDelete={handleDeleteTodayCapture}
       />
+
+      <PhotoViewerModal url={peek?.imageUrl} visible={peekViewerOpen} onClose={() => setPeekViewerOpen(false)} />
     </Screen>
   );
 }
