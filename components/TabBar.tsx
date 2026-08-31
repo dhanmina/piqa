@@ -1,42 +1,28 @@
+import type { ComponentType } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
-import { colors, spacing, touchTarget, type } from '../lib/theme';
+import { CameraIcon, HomeIcon, PeopleIcon, PersonIcon, TimelineIcon } from './NavIcons';
+import { colors, radius, spacing, touchTarget, type } from '../lib/theme';
 
-type SymbolName = NonNullable<SymbolViewProps['name']>;
+type IconComponent = ComponentType<{ size: number; color: string }>;
 
 const PRESS_SPRING = { damping: 18, stiffness: 400 };
 const CAMERA_ROUTE = 'camera-action';
-const FAB_SIZE = 56;
+const FAB_SIZE = 52;
+const BAR_HEIGHT = 60;
 
-// Native icon system per platform (SF Symbols on iOS, Material Symbols on
-// Android) instead of a generic vector-icon font, so the icons look correct
-// on iOS once that platform ships.
-const TABS: Record<string, { label: string; icon: SymbolName; iconFocused: SymbolName }> = {
-  today: {
-    label: 'Today',
-    icon: { ios: 'house', android: 'home' },
-    iconFocused: { ios: 'house.fill', android: 'home_filled' },
-  },
-  timeline: {
-    label: 'Timeline',
-    icon: { ios: 'calendar', android: 'calendar_month' },
-    iconFocused: { ios: 'calendar', android: 'calendar_month' },
-  },
-  buddies: {
-    label: 'Buddies',
-    icon: { ios: 'person.2', android: 'group' },
-    iconFocused: { ios: 'person.2.fill', android: 'group' },
-  },
-  profile: {
-    label: 'Profile',
-    icon: { ios: 'person.crop.circle', android: 'account_circle' },
-    iconFocused: { ios: 'person.crop.circle.fill', android: 'account_circle' },
-  },
+// Exact icon shapes chosen by the user (see components/NavIcons.tsx) — solid,
+// chunky, rounded Font Awesome-style glyphs, drawn via react-native-svg for
+// pixel fidelity rather than a same-name font glyph from a different family.
+// One shape per icon (no separate outline/filled pair) — focused vs.
+// unfocused reads through color plus the baseline tick below, not a shape swap.
+const TABS: Record<string, { label: string; Icon: IconComponent }> = {
+  today: { label: 'Today', Icon: HomeIcon },
+  timeline: { label: 'Timeline', Icon: TimelineIcon },
+  buddies: { label: 'Buddies', Icon: PeopleIcon },
+  profile: { label: 'Profile', Icon: PersonIcon },
 };
-
-const CAMERA_ICON: SymbolName = { ios: 'camera.fill', android: 'camera' };
 
 export function TabBar({ state, navigation, insets }: BottomTabBarProps) {
   function pressRoute(routeKey: string, routeName: string, isFocused: boolean) {
@@ -49,43 +35,52 @@ export function TabBar({ state, navigation, insets }: BottomTabBarProps) {
   const cameraRoute = state.routes.find((route) => route.name === CAMERA_ROUTE);
 
   return (
-    <View>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: colors.surface,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          paddingTop: spacing.sm,
-          paddingBottom: insets.bottom + spacing.xs,
-          paddingHorizontal: spacing.xs,
-        }}
-      >
-        {state.routes.map((route, index) => {
-          if (route.name === CAMERA_ROUTE) {
-            return <View key={route.key} style={{ flex: 1 }} />;
-          }
-          const config = TABS[route.name];
-          if (!config) return null;
-          const isFocused = state.index === index;
-          return (
-            <TabItem
-              key={route.key}
-              focused={isFocused}
-              label={config.label}
-              icon={isFocused ? config.iconFocused : config.icon}
-              onPress={() => pressRoute(route.key, route.name, isFocused)}
-            />
-          );
-        })}
-      </View>
+    <View style={{ paddingHorizontal: spacing.md, paddingBottom: insets.bottom + spacing.sm }}>
+      <View style={{ position: 'relative' }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: radius.button,
+            height: BAR_HEIGHT,
+            paddingHorizontal: spacing.xs,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.35,
+            shadowRadius: 16,
+            elevation: 8,
+          }}
+        >
+          {state.routes.map((route, index) => {
+            if (route.name === CAMERA_ROUTE) {
+              return <View key={route.key} style={{ flex: 1 }} />;
+            }
+            const config = TABS[route.name];
+            if (!config) return null;
+            const isFocused = state.index === index;
+            return (
+              <TabItem
+                key={route.key}
+                focused={isFocused}
+                label={config.label}
+                Icon={config.Icon}
+                onPress={() => pressRoute(route.key, route.name, isFocused)}
+              />
+            );
+          })}
+        </View>
 
-      {cameraRoute ? (
-        <CameraTabButton
-          onPress={() => pressRoute(cameraRoute.key, cameraRoute.name, state.routes[state.index].key === cameraRoute.key)}
-        />
-      ) : null}
+        {cameraRoute ? (
+          <CameraTabButton
+            onPress={() =>
+              pressRoute(cameraRoute.key, cameraRoute.name, state.routes[state.index].key === cameraRoute.key)
+            }
+          />
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -93,12 +88,12 @@ export function TabBar({ state, navigation, insets }: BottomTabBarProps) {
 function TabItem({
   focused,
   label,
-  icon,
+  Icon,
   onPress,
 }: {
   focused: boolean;
   label: string;
-  icon: SymbolName;
+  Icon: IconComponent;
   onPress: () => void;
 }) {
   const scale = useSharedValue(1);
@@ -129,12 +124,10 @@ function TabItem({
           scaleStyle,
         ]}
       >
-        <SymbolView
-          name={icon}
-          size={22}
-          tintColor={focused ? colors.textPrimary : colors.textMuted}
-        />
-        <Text style={{ ...type.caption, color: focused ? colors.textPrimary : colors.textMuted }}>{label}</Text>
+        <Icon size={20} color={focused ? colors.textPrimary : colors.textMuted} />
+        <Text style={{ ...type.caption, fontSize: 11, color: focused ? colors.textPrimary : colors.textMuted }}>
+          {label}
+        </Text>
         {/* Baseline tick, not a filled pill — same axis-mark language as the streak trace. */}
         <View
           style={{
@@ -163,7 +156,7 @@ function CameraTabButton({ onPress }: { onPress: () => void }) {
       onPressOut={() => {
         scale.value = withSpring(1, PRESS_SPRING);
       }}
-      style={{ position: 'absolute', top: -FAB_SIZE / 2, alignSelf: 'center' }}
+      style={{ position: 'absolute', top: -FAB_SIZE / 2 + 6, alignSelf: 'center' }}
     >
       <Animated.View
         style={[
@@ -183,7 +176,7 @@ function CameraTabButton({ onPress }: { onPress: () => void }) {
           scaleStyle,
         ]}
       >
-        <SymbolView name={CAMERA_ICON} size={26} tintColor={colors.background} />
+        <CameraIcon size={21} color={colors.background} />
       </Animated.View>
     </Pressable>
   );

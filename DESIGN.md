@@ -65,6 +65,7 @@ System font (RN default) — no custom font family. Monospace is reserved for **
 - **Instrument plate (`RegistrationMark`, used by `PeekBackCard` and `CapturedTodayCard`):** a photo framed with four corner registration ticks and a small stamped tab (caption label + monospace value) in the top-left, instead of a bottom gradient caption. Reads as a filed archival record, not a social card.
 - **Stat readout strip (`Chip`):** replaced a bordered pill "tag" — pill chips read as social/gamified badges, which conflicts with the product's no-badges rule. Takes `stats: {value, label}[]` and renders a hairline-bounded row, monospace value over a small caps label, divided by a vertical rule between entries.
 - **Baseline tab tick (`TabBar`):** the active tab drops the filled rounded-rect indicator for a small `trace`-colored tick beneath the icon — the same axis-mark language as the streak trace, everywhere in the app.
+- **Floating nav bar + shared icon set (`TabBar`, `components/NavIcons.tsx`):** the bar pulls in from both screen edges (`spacing.md` margin) and fully rounds (`radius.button`) instead of running edge-to-edge with a hairline top border — softer footprint, `surface` fill, `border` outline, a soft drop shadow instead of a flat divider line. Icons switched from `expo-symbols` (SF Symbols on iOS / Material Symbols on Android — two different symbol catalogs with no shared visual language) to user-specified solid, rounded glyphs drawn directly via `react-native-svg` (`NavIcons.tsx`) — one shape renders identically on both platforms. No separate outline/filled pair per icon; focused vs. unfocused state reads through color (`textPrimary`/`textMuted`) plus the baseline tick, not a shape swap. `react-native-svg` is a real added native dependency (the trace and every other pattern above deliberately avoid one) — justified here because arbitrary icon curves aren't reproducible as plain `View` borders the way the trace's straight/dashed segments are.
 - **No redundant capture entry point:** Today's uncaptured state is a quiet pending indicator (open ring + caption), not a duplicate full-width button — the camera FAB docked in `TabBar` is the app's one capture action, matching Material's one-FAB-one-primary-action rule.
 
 ## Component pattern (native Android, Material 3-informed — unchanged by this redesign)
@@ -73,7 +74,7 @@ System font (RN default) — no custom font family. Monospace is reserved for **
 - **Text fields:** same pill shape as buttons — `surface` fill, placeholder-driven, transparent 1.5px border by default (constant-width to avoid layout shift).
 - **Loading/disabled states:** buttons disable and swap label text (e.g. "Sign in" → "Signing in…") while a request is in flight.
 - **Error states:** no hue, no emoji/symbol glyphs — the implicated field's border switches to `textPrimary` via `FilledField`'s `error` prop, paired with a bold `textPrimary` caption from `FieldError`, which reserves one caption line-height whether or not a message is shown. Sign-up's username field speaks up only on a problem (bad format, taken, couldn't check) — silent on success, matching Instagram/Twitter-style silent-success/vocal-failure convention. Copy is mapped from Supabase error codes to product language in `lib/authErrors.ts`.
-- **Icons:** `expo-symbols`' `SymbolView` — real SF Symbols on iOS, real Material Symbols on Android, from one `{ ios, android }` name pair.
+- **Icons:** `expo-symbols`' `SymbolView` — real SF Symbols on iOS, real Material Symbols on Android, from one `{ ios, android }` name pair. This is still correct for icons *outside* the nav bar (settings gear, back chevron, password eye toggle, frozen/multi-photo badges) — the nav bar's icons deliberately moved off it, see Recorder-world patterns above; the two systems coexist on purpose, not an inconsistency to fix.
 
 ## Shared components (`components/`)
 
@@ -84,6 +85,7 @@ System font (RN default) — no custom font family. Monospace is reserved for **
 | `FilledField` | pill-shaped text input, placeholder-driven |
 | `Card` | `surface` background, `radius.card` — the base plate for stats, forms, list containers |
 | `RegistrationMark` | corner registration tick — the instrument-plate framing shared by `PeekBackCard` and `CapturedTodayCard` |
+| `NavIcons` | `HomeIcon`/`TimelineIcon`/`CameraIcon`/`PeopleIcon`/`PersonIcon` — the nav bar's shared icon set, exact SVG paths via `react-native-svg`, one shape on both platforms |
 | `Chip` | two-up (or more) monospace stat readout strip — see Recorder-world patterns above |
 | `SelectableRow` | pressable choice-list row (onboarding intent chips) |
 | `Divider` | 1px `border`-colored hairline |
