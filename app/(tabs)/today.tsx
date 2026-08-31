@@ -14,7 +14,6 @@ import { Card } from '../../components/Card';
 import { WeekStrip, type DayCell, type DayCellState } from '../../components/WeekStrip';
 import { Screen } from '../../components/Screen';
 import { StreakWidget } from '../../widgets/StreakWidget';
-import { Chip } from '../../components/Chip';
 import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
 import { colors, spacing, type } from '../../lib/theme';
 
@@ -277,7 +276,8 @@ export default function Today() {
             <View style={{ gap: spacing.xxs }}>
               <Text style={{ ...type.title, color: colors.textPrimary }}>This week</Text>
               <Text style={{ ...type.caption, color: colors.textMuted }}>
-                Every capture builds your archive and keeps your streak alive.
+                <Text style={{ ...type.data, color: colors.textPrimary }}>{state?.freezes_remaining ?? 0}</Text>
+                {' '}{pluralize(state?.freezes_remaining ?? 0, 'freeze')} left this week
               </Text>
             </View>
             <WeekStrip days={days} />
@@ -298,13 +298,6 @@ export default function Today() {
               onView={() => setViewerOpen(true)}
             />
           )}
-
-          <Chip
-            stats={[
-              { value: String(state?.freezes_remaining ?? 0), label: 'Rest days left' },
-              ...(state?.longest_count ? [{ value: `${state.longest_count}d`, label: 'Longest streak' }] : []),
-            ]}
-          />
         </Animated.View>
       </ScrollView>
 
