@@ -3,13 +3,14 @@ import { View, Text, ScrollView } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { requestWidgetUpdate } from 'react-native-android-widget';
-import { Image } from 'expo-image';
 import { supabase } from '../../lib/supabase';
-import { getSignedUrl, getSignedUrls } from '../../lib/signedUrlCache';
+import { getSignedUrl } from '../../lib/signedUrlCache';
 import { PeekBackCard } from '../../components/PeekBackCard';
 import { CapturedTodayCard } from '../../components/CapturedTodayCard';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { deleteCapture } from '../../lib/deleteCapture';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys, fetchTodayCaptures, invalidateCaptureQueries, type TodayCaptures } from '../../lib/captureQueries';
 import { Card } from '../../components/Card';
 import { WeekStrip, type DayCell, type DayCellState } from '../../components/WeekStrip';
 import { Screen } from '../../components/Screen';
@@ -71,9 +72,6 @@ export default function Today() {
   const params = useLocalSearchParams<{ justCaptured?: string; localPreviewUri?: string }>();
   const [state, setState] = useState<TodayState | null>(null);
   const [peek, setPeek] = useState<Peek>(null);
-  const [todayPhotoUrls, setTodayPhotoUrls] = useState<string[]>([]);
-  const [todayCaptureIds, setTodayCaptureIds] = useState<string[]>([]);
-  const [todayCaptureCount, setTodayCaptureCount] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [peekViewerOpen, setPeekViewerOpen] = useState(false);
   const [capturedDates, setCapturedDates] = useState<Set<string>>(new Set());
@@ -89,6 +87,16 @@ export default function Today() {
   // Stable reference across renders — a fresh Date() here recreated loadToday every
   // render, which retriggered useFocusEffect and caused an infinite refetch loop.
   const weekStart = useMemo(() => startOfWeek(new Date()), [todayISO]);
+
+  const queryClient = useQueryClient();
+  const todayCapturesQuery = useQuery({
+    queryKey: queryKeys.todayCaptures(todayISO),
+    queryFn: () => fetchTodayCaptures(todayISO),
+    enabled: !!state?.captured_today,
+  });
+  const todayPhotoUrls = todayCapturesQuery.data?.urls ?? [];
+  const todayCaptureIds = todayCapturesQuery.data?.ids ?? [];
+  const todayCaptureCount = todayCapturesQuery.data?.count ?? 0;
 
   const loadToday = useCallback(() => {
     supabase.rpc('get_today_state', { p_today: todayISO }).then(({ data }) => {
@@ -143,10 +151,13 @@ export default function Today() {
     optimisticCapturedTodayRef.current = true;
     setState((prev) => (prev ? { ...prev, captured_today: true } : prev));
     setCapturedDates((prev) => new Set(prev).add(todayISO));
-    setTodayCaptureCount((prev) => prev + 1);
     if (params.localPreviewUri) {
       const uri = params.localPreviewUri;
-      setTodayPhotoUrls((prev) => [...prev, uri]);
+      queryClient.setQueryData(queryKeys.todayCaptures(todayISO), (prev: TodayCaptures | undefined) => ({
+        ids: prev?.ids ?? [],
+        urls: [...(prev?.urls ?? []), uri],
+        count: (prev?.count ?? 0) + 1,
+      }));
     }
     router.setParams({ justCaptured: undefined, localPreviewUri: undefined });
   }, [params.justCaptured, params.localPreviewUri, todayISO]);
@@ -161,52 +172,19 @@ export default function Today() {
     });
   }, [state]);
 
-  useEffect(() => {
-    if (!state?.captured_today) return;
-    let cancelled = false;
-
-    function fetchTodayCaptures(attempt: number) {
-      supabase
-        .from('captures')
-        .select('id, storage_path')
-        .eq('captured_at', todayISO)
-        .order('created_at', { ascending: true })
-        .then(async ({ data }) => {
-          if (cancelled) return;
-          const rows = data ?? [];
-          // The queued upload (lib/captureQueue.ts processQueue) runs in the background and
-          // may not have landed yet, so an empty result right after an optimistic capture
-          // doesn't mean "no photos" — retry briefly instead of clobbering the local preview.
-          if (rows.length === 0 && todayPhotoUrls.length > 0 && attempt < 3) {
-            setTimeout(() => fetchTodayCaptures(attempt + 1), 1500);
-            return;
-          }
-          setTodayCaptureCount(rows.length);
-          const signedByPath = await getSignedUrls(rows.map((row) => row.storage_path));
-          const resolvedRows = rows.filter((row) => signedByPath.has(row.storage_path));
-          const urls = resolvedRows.map((row) => signedByPath.get(row.storage_path)!);
-          setTodayPhotoUrls(urls);
-          setTodayCaptureIds(resolvedRows.map((row) => row.id));
-          // Warm the cache at full-viewer resolution ahead of the tap — the fullscreen
-          // viewer renders much larger than the thumbnail, so without this the thumbnail's
-          // cached decode doesn't cover it and opening the viewer still shows a blank/loading gap.
-          Image.prefetch(urls, 'memory-disk');
-        });
-    }
-
-    fetchTodayCaptures(0);
-    return () => {
-      cancelled = true;
-    };
-  }, [state?.captured_today, todayISO]);
-
   async function handleDeleteTodayCapture(index: number) {
     const captureId = todayCaptureIds[index];
     const { error } = await deleteCapture(captureId);
     if (error) throw error;
-    setTodayPhotoUrls((prev) => prev.filter((_, i) => i !== index));
-    setTodayCaptureIds((prev) => prev.filter((_, i) => i !== index));
-    setTodayCaptureCount((prev) => Math.max(prev - 1, 0));
+    queryClient.setQueryData(queryKeys.todayCaptures(todayISO), (prev: TodayCaptures | undefined) => {
+      if (!prev) return prev;
+      return {
+        ids: prev.ids.filter((_, i) => i !== index),
+        urls: prev.urls.filter((_, i) => i !== index),
+        count: Math.max(prev.count - 1, 0),
+      };
+    });
+    invalidateCaptureQueries(queryClient);
     loadToday();
   }
 
