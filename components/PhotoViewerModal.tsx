@@ -1,8 +1,10 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Modal, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, Pressable } from 'react-native-gesture-handler';
 import { NetworkImage } from './NetworkImage';
+import { ConfirmDialog } from './ConfirmDialog';
+import { Snackbar, SNACKBAR_DURATION_MS } from './Snackbar';
 import { CloseIcon, TrashIcon } from './Icons';
 import { Carousel } from 'react-native-reanimated-carousel';
 import { colors, radius, spacing, touchTarget, type, PHOTO_ASPECT_RATIO } from '../lib/theme';
@@ -53,33 +55,40 @@ export function PhotoViewerModal({
   const isVisible = visible ?? images.length > 0;
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [deleting, setDeleting] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setActiveIndex(initialIndex);
   }, [initialIndex, visible]);
 
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
+
   const canDelete = !!onDelete && !!captureIds && captureIds.length === images.length && images.length > 0;
 
-  function confirmDelete() {
-    Alert.alert('Delete this photo?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setDeleting(true);
-          try {
-            await onDelete!(activeIndex);
-            if (images.length <= 1) onClose();
-          } catch (err) {
-            console.error('[PhotoViewerModal] delete failed', err);
-            Alert.alert('Could not delete photo', 'Check your connection and try again.');
-          } finally {
-            setDeleting(false);
-          }
-        },
-      },
-    ]);
+  async function handleConfirmDelete() {
+    setDeleting(true);
+    try {
+      await onDelete!(activeIndex);
+      setConfirmVisible(false);
+      setSnackbarMessage('Photo deleted');
+      if (images.length <= 1) {
+        // Hold the viewer open just long enough for the confirmation to register
+        // before it closes, instead of yanking the screen away mid-message.
+        closeTimer.current = setTimeout(onClose, SNACKBAR_DURATION_MS);
+      }
+    } catch (err) {
+      console.error('[PhotoViewerModal] delete failed', err);
+      setConfirmVisible(false);
+      Alert.alert('Could not delete photo', 'Check your connection and try again.');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -153,7 +162,7 @@ export function PhotoViewerModal({
 
               {canDelete ? (
                 <Pressable
-                  onPress={confirmDelete}
+                  onPress={() => setConfirmVisible(true)}
                   disabled={deleting}
                   accessibilityRole="button"
                   accessibilityLabel="Delete photo"
@@ -172,8 +181,23 @@ export function PhotoViewerModal({
               )}
             </View>
           </SafeAreaView>
+
+          <SafeAreaView pointerEvents="none" edges={['bottom']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+            <Snackbar message={snackbarMessage} onDismiss={() => setSnackbarMessage(null)} />
+          </SafeAreaView>
         </Pressable>
       </GestureHandlerRootView>
+
+      <ConfirmDialog
+        visible={confirmVisible}
+        title="Delete this photo?"
+        message="This cannot be undone."
+        confirmLabel="Delete"
+        confirmLoadingLabel="Deleting…"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmVisible(false)}
+        loading={deleting}
+      />
     </Modal>
   );
 }
