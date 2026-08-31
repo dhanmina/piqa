@@ -64,19 +64,17 @@ function Timeline() {
   const listRef = useRef<FlatList<MonthKey>>(null);
 
   useEffect(() => {
-    supabase
-      .from('profiles')
-      .select('created_at')
-      .single()
-      .then(({ data, error }) => {
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('profiles').select('created_at').single();
         if (error) console.error('[timeline] profile fetch failed', error);
         setCreatedAtISO(data?.created_at?.slice(0, 10) ?? null);
-        setProfileLoaded(true);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('[timeline] profile fetch threw', err);
+      } finally {
         setProfileLoaded(true);
-      });
+      }
+    })();
   }, []);
 
   const fetchMonth = useCallback(
@@ -175,19 +173,26 @@ function Timeline() {
     // know the account's created_at boundary (createdAtISO alone can't tell
     // "not fetched yet" apart from "no created_at value").
     if (loadingRef.current || reachedStartRef.current || !profileLoaded) return;
-    const lastKey = monthKeys[monthKeys.length - 1];
-    const [y, m] = lastKey.split('-').map(Number);
-    const older = prevMonth(y, m);
-    if (createdAtISO) {
-      const createdMonthIndex = Number(createdAtISO.slice(0, 4)) * 12 + Number(createdAtISO.slice(5, 7));
-      const olderMonthIndex = older.year * 12 + older.month;
-      if (olderMonthIndex < createdMonthIndex) {
-        reachedStartRef.current = true;
-        return;
-      }
-    }
     loadingRef.current = true;
-    setMonthKeys((prev) => [...prev, monthKey(older.year, older.month)]);
+    // Compute the next key from `prev`, not the outer `monthKeys` closure — onEndReached
+    // and the viewport-backfill effect can both call this before React commits the first
+    // update, and both would otherwise compute and push the same stale "older" key twice.
+    setMonthKeys((prev) => {
+      const lastKey = prev[prev.length - 1];
+      const [y, m] = lastKey.split('-').map(Number);
+      const older = prevMonth(y, m);
+      if (createdAtISO) {
+        const createdMonthIndex = Number(createdAtISO.slice(0, 4)) * 12 + Number(createdAtISO.slice(5, 7));
+        const olderMonthIndex = older.year * 12 + older.month;
+        if (olderMonthIndex < createdMonthIndex) {
+          reachedStartRef.current = true;
+          return prev;
+        }
+      }
+      const key = monthKey(older.year, older.month);
+      if (prev.includes(key)) return prev;
+      return [...prev, key];
+    });
     loadingRef.current = false;
   }
 
