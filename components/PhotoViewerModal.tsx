@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Modal, Pressable, View } from 'react-native';
+import { memo, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, Modal, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, Pressable } from 'react-native-gesture-handler';
 import { SymbolView } from 'expo-symbols';
 import { NetworkImage } from './NetworkImage';
 import { useSharedValue } from 'react-native-reanimated';
@@ -11,6 +11,18 @@ import { colors, radius, spacing, touchTarget, PHOTO_ASPECT_RATIO } from '../lib
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CLOSE_ICON = { ios: 'xmark', android: 'close' } as const;
 const TRASH_ICON = { ios: 'trash', android: 'delete' } as const;
+
+const CarouselPhoto = memo(function CarouselPhoto({ uri }: { uri: string }) {
+  return (
+    <View style={{ width: '100%', height: '100%', alignItems: 'center' }}>
+      <NetworkImage
+        source={{ uri }}
+        style={{ width: '86%', aspectRatio: PHOTO_ASPECT_RATIO, borderRadius: 16 }}
+        contentFit="cover"
+      />
+    </View>
+  );
+});
 
 const iconButtonStyle = {
   width: touchTarget.min,
@@ -94,18 +106,11 @@ export function PhotoViewerModal({
               <Carousel
                 style={{ width: '100%', height: '100%' }}
                 data={images}
+                renderWindowSize={3}
                 defaultIndex={Math.min(initialIndex, images.length - 1)}
                 progress={progress}
                 onSnapToItem={setActiveIndex}
-                renderItem={({ item }) => (
-                  <View style={{ width: '100%', height: '100%', alignItems: 'center' }}>
-                    <NetworkImage
-                      source={{ uri: item }}
-                      style={{ width: '86%', aspectRatio: PHOTO_ASPECT_RATIO, borderRadius: 16 }}
-                      contentFit="cover"
-                    />
-                  </View>
-                )}
+                renderItem={({ item }) => <CarouselPhoto uri={item} />}
               />
               <Pagination
                 progress={progress}
