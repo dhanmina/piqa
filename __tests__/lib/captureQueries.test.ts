@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { getSignedUrls } from '../../lib/signedUrlCache';
-import { queryKeys, fetchTodayCaptures, invalidateCaptureQueries } from '../../lib/captureQueries';
+import { queryKeys, fetchTodayCaptures, fetchTimelineMonth, invalidateCaptureQueries } from '../../lib/captureQueries';
 
 jest.mock('../../lib/supabase', () => ({
   supabase: { from: jest.fn(), rpc: jest.fn() },
@@ -101,4 +101,41 @@ test('invalidateCaptureQueries invalidates the todayCaptures, timelineMonth and 
   expect(spy).toHaveBeenCalledWith({ queryKey: ['todayCaptures'] });
   expect(spy).toHaveBeenCalledWith({ queryKey: ['timelineMonth'] });
   expect(spy).toHaveBeenCalledWith({ queryKey: ['recap'] });
+});
+
+test('queryKeys.timelineMonth builds a key scoped to year and month', () => {
+  expect(queryKeys.timelineMonth(2026, 9)).toEqual(['timelineMonth', 2026, 9]);
+});
+
+test('fetchTimelineMonth maps rows to days, resolving signed urls and per-day state', async () => {
+  (supabase.rpc as jest.Mock).mockResolvedValue({
+    data: [
+      { day: 1, storage_paths: ['p1'], capture_ids: ['c1'], frozen: false },
+      { day: 2, storage_paths: [], capture_ids: [], frozen: true },
+      { day: 3, storage_paths: [], capture_ids: [], frozen: false },
+    ],
+  });
+  (getSignedUrls as jest.Mock).mockResolvedValue(new Map([['p1', 'https://signed/p1']]));
+
+  const result = await fetchTimelineMonth(2026, 9, '2026-09-03', null);
+
+  expect(supabase.rpc).toHaveBeenCalledWith('get_timeline_month', { year: 2026, month: 9 });
+  expect(result.year).toBe(2026);
+  expect(result.month).toBe(9);
+  expect(result.days).toEqual([
+    { day: 1, imageUrl: 'https://signed/p1', imageUrls: ['https://signed/p1'], captureIds: ['c1'], state: 'captured' },
+    { day: 2, imageUrl: null, imageUrls: [], captureIds: [], state: 'frozen' },
+    { day: 3, imageUrl: null, imageUrls: [], captureIds: [], state: 'today' },
+  ]);
+});
+
+test('fetchTimelineMonth marks a day before the account was created as future, not missed', async () => {
+  (supabase.rpc as jest.Mock).mockResolvedValue({
+    data: [{ day: 1, storage_paths: [], capture_ids: [], frozen: false }],
+  });
+  (getSignedUrls as jest.Mock).mockResolvedValue(new Map());
+
+  const result = await fetchTimelineMonth(2026, 9, '2026-09-15', '2026-09-02');
+
+  expect(result.days[0].state).toBe('future');
 });

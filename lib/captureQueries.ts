@@ -1,10 +1,12 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import type { DayCellState } from '../components/WeekStrip';
 import { supabase } from './supabase';
 import { getSignedUrls } from './signedUrlCache';
 
 export const queryKeys = {
   todayCaptures: (dateISO: string) => ['todayCaptures', dateISO] as const,
+  timelineMonth: (year: number, month: number) => ['timelineMonth', year, month] as const,
 };
 
 export type TodayCaptures = { ids: string[]; urls: string[]; count: number };
@@ -41,6 +43,70 @@ export async function fetchTodayCaptures(dateISO: string): Promise<TodayCaptures
     await sleep(EMPTY_RETRY_DELAY_MS);
   }
   return { ids: [], urls: [], count: 0 };
+}
+
+export type MonthDay = {
+  day: number;
+  imageUrl: string | null;
+  imageUrls: string[];
+  captureIds: string[];
+  state: DayCellState;
+};
+export type MonthData = { year: number; month: number; leadingBlanks: number; days: MonthDay[] };
+
+export async function fetchTimelineMonth(
+  year: number,
+  month: number,
+  todayISO: string,
+  createdAtISO: string | null
+): Promise<MonthData> {
+  const { data, error } = await supabase.rpc('get_timeline_month', { year, month });
+  if (error) console.error('[timeline] get_timeline_month failed', year, month, error);
+  const rows: { day: number; storage_paths: string[] | null; capture_ids: string[] | null; frozen: boolean }[] =
+    data ?? [];
+  const paths = rows.flatMap((r) => r.storage_paths ?? []);
+  let signedByPath = new Map<string, string>();
+  if (paths.length > 0) {
+    try {
+      signedByPath = await getSignedUrls(paths);
+    } catch (err) {
+      console.error('[timeline] getSignedUrls failed', err);
+    }
+  }
+  const days: MonthDay[] = rows.map((r) => {
+    const iso = `${year}-${String(month).padStart(2, '0')}-${String(r.day).padStart(2, '0')}`;
+    const dayPaths = r.storage_paths ?? [];
+    const dayIds = r.capture_ids ?? [];
+    const resolvedMask = dayPaths.map((p) => signedByPath.has(p));
+    const capturedCount = dayPaths.length;
+    const imageUrls = dayPaths.filter((_, i) => resolvedMask[i]).map((p) => signedByPath.get(p)!);
+    const captureIds = dayIds.filter((_, i) => resolvedMask[i]);
+    if (imageUrls.length !== capturedCount) {
+      console.error(
+        '[timeline] signed url count mismatch for day',
+        iso,
+        'expected',
+        capturedCount,
+        'got',
+        imageUrls.length,
+        'paths',
+        r.storage_paths
+      );
+    }
+    const imageUrl = imageUrls.length > 0 ? imageUrls[imageUrls.length - 1] : null;
+    let state: DayCellState;
+    if (imageUrl) state = 'captured';
+    else if (iso === todayISO) state = 'today';
+    else if (r.frozen) state = 'frozen';
+    else if (createdAtISO && iso < createdAtISO) state = 'future';
+    else if (iso < todayISO) state = 'missed';
+    else state = 'future';
+    return { day: r.day, imageUrl, imageUrls, captureIds, state };
+  });
+  // Warm the cache at full-viewer resolution ahead of the tap, same as Today's captured
+  // card -- otherwise the fullscreen viewer shows a blank/loading gap.
+  if (signedByPath.size > 0) Image.prefetch(Array.from(signedByPath.values()), 'memory-disk');
+  return { year, month, leadingBlanks: new Date(year, month - 1, 1).getDay(), days };
 }
 
 // Every screen that shows a capture list calls this after a successful delete, so a
