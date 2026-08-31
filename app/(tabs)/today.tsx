@@ -80,6 +80,11 @@ export default function Today() {
   const [capturedDates, setCapturedDates] = useState<Set<string>>(new Set());
   const [frozenDates, setFrozenDates] = useState<Set<string>>(new Set());
   const peekStoragePathRef = useRef<string | null>(null);
+  // Set on an optimistic capture, cleared once the server confirms it. Guards
+  // loadToday's refetch (which useFocusEffect reruns on every return-to-tab,
+  // including the one right after capturing) from clobbering the optimistic
+  // captured_today back to false while the queued upload/insert is still in flight.
+  const optimisticCapturedTodayRef = useRef(false);
 
   const todayISO = toISODate(new Date());
   // Stable reference across renders — a fresh Date() here recreated loadToday every
@@ -87,7 +92,15 @@ export default function Today() {
   const weekStart = useMemo(() => startOfWeek(new Date()), [todayISO]);
 
   const loadToday = useCallback(() => {
-    supabase.rpc('get_today_state').then(({ data }) => setState(data?.[0] ?? null));
+    supabase.rpc('get_today_state', { p_today: todayISO }).then(({ data }) => {
+      const row = data?.[0] ?? null;
+      if (row && !row.captured_today && optimisticCapturedTodayRef.current) {
+        setState({ ...row, captured_today: true });
+        return;
+      }
+      if (row?.captured_today) optimisticCapturedTodayRef.current = false;
+      setState(row);
+    });
 
     supabase.rpc('get_peek_back').then(async ({ data }) => {
       const row = data?.[0];
@@ -128,6 +141,7 @@ export default function Today() {
   // so reflect the capture immediately instead of waiting for it to land and a refetch to pick it up.
   useEffect(() => {
     if (!params.justCaptured) return;
+    optimisticCapturedTodayRef.current = true;
     setState((prev) => (prev ? { ...prev, captured_today: true } : prev));
     setCapturedDates((prev) => new Set(prev).add(todayISO));
     setTodayCaptureCount((prev) => prev + 1);
@@ -150,24 +164,41 @@ export default function Today() {
 
   useEffect(() => {
     if (!state?.captured_today) return;
-    supabase
-      .from('captures')
-      .select('id, storage_path')
-      .eq('captured_at', todayISO)
-      .order('created_at', { ascending: true })
-      .then(async ({ data }) => {
-        const rows = data ?? [];
-        setTodayCaptureCount(rows.length);
-        const signedByPath = await getSignedUrls(rows.map((row) => row.storage_path));
-        const resolvedRows = rows.filter((row) => signedByPath.has(row.storage_path));
-        const urls = resolvedRows.map((row) => signedByPath.get(row.storage_path)!);
-        setTodayPhotoUrls(urls);
-        setTodayCaptureIds(resolvedRows.map((row) => row.id));
-        // Warm the cache at full-viewer resolution ahead of the tap — the fullscreen
-        // viewer renders much larger than the thumbnail, so without this the thumbnail's
-        // cached decode doesn't cover it and opening the viewer still shows a blank/loading gap.
-        Image.prefetch(urls, 'memory-disk');
-      });
+    let cancelled = false;
+
+    function fetchTodayCaptures(attempt: number) {
+      supabase
+        .from('captures')
+        .select('id, storage_path')
+        .eq('captured_at', todayISO)
+        .order('created_at', { ascending: true })
+        .then(async ({ data }) => {
+          if (cancelled) return;
+          const rows = data ?? [];
+          // The queued upload (lib/captureQueue.ts processQueue) runs in the background and
+          // may not have landed yet, so an empty result right after an optimistic capture
+          // doesn't mean "no photos" — retry briefly instead of clobbering the local preview.
+          if (rows.length === 0 && todayPhotoUrls.length > 0 && attempt < 3) {
+            setTimeout(() => fetchTodayCaptures(attempt + 1), 1500);
+            return;
+          }
+          setTodayCaptureCount(rows.length);
+          const signedByPath = await getSignedUrls(rows.map((row) => row.storage_path));
+          const resolvedRows = rows.filter((row) => signedByPath.has(row.storage_path));
+          const urls = resolvedRows.map((row) => signedByPath.get(row.storage_path)!);
+          setTodayPhotoUrls(urls);
+          setTodayCaptureIds(resolvedRows.map((row) => row.id));
+          // Warm the cache at full-viewer resolution ahead of the tap — the fullscreen
+          // viewer renders much larger than the thumbnail, so without this the thumbnail's
+          // cached decode doesn't cover it and opening the viewer still shows a blank/loading gap.
+          Image.prefetch(urls, 'memory-disk');
+        });
+    }
+
+    fetchTodayCaptures(0);
+    return () => {
+      cancelled = true;
+    };
   }, [state?.captured_today, todayISO]);
 
   async function handleDeleteTodayCapture(index: number) {
