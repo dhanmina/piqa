@@ -124,7 +124,7 @@ function TabItem({
           scaleStyle,
         ]}
       >
-        <Icon size={20} color={focused ? colors.textPrimary : colors.textMuted} />
+        <Icon size={26} color={focused ? colors.textPrimary : colors.textMuted} />
         <Text style={{ ...type.caption, fontSize: 11, color: focused ? colors.textPrimary : colors.textMuted }}>
           {label}
         </Text>
@@ -176,7 +176,7 @@ function CameraTabButton({ onPress }: { onPress: () => void }) {
           scaleStyle,
         ]}
       >
-        <CameraIcon size={21} color={colors.background} />
+        <CameraIcon size={27} color={colors.background} />
       </Animated.View>
     </Pressable>
   );
