@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
@@ -30,7 +30,7 @@ function prevMonth(year: number, month: number): { year: number; month: number }
   return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
 }
 
-export default function Timeline() {
+function Timeline() {
   const now = new Date();
   const todayISO = toISODate(now.getFullYear(), now.getMonth() + 1, now.getDate());
 
@@ -54,8 +54,13 @@ export default function Timeline() {
       .from('profiles')
       .select('created_at')
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) console.error('[timeline] profile fetch failed', error);
         setCreatedAtISO(data?.created_at?.slice(0, 10) ?? null);
+        setProfileLoaded(true);
+      })
+      .catch((err) => {
+        console.error('[timeline] profile fetch threw', err);
         setProfileLoaded(true);
       });
   }, []);
@@ -63,7 +68,13 @@ export default function Timeline() {
   const fetchMonth = useCallback(
     async (year: number, month: number) => {
       const key = monthKey(year, month);
-      const { data, error } = await supabase.rpc('get_timeline_month', { year, month });
+      let data, error;
+      try {
+        ({ data, error } = await supabase.rpc('get_timeline_month', { year, month }));
+      } catch (err) {
+        console.error('[timeline] get_timeline_month threw', year, month, err);
+        return;
+      }
       if (error) console.error('[timeline] get_timeline_month failed', year, month, error);
       const rows: { day: number; storage_paths: string[] | null; capture_ids: string[] | null; frozen: boolean }[] =
         data ?? [];
@@ -228,5 +239,36 @@ export default function Timeline() {
         onDelete={handleDeleteFromViewer}
       />
     </Screen>
+  );
+}
+
+class TimelineErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: { componentStack: string }) {
+    console.error('[timeline] render crashed', error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <Screen style={{ paddingHorizontal: spacing.md }}>
+          <Text style={{ ...type.body, color: colors.textMuted }}>Timeline failed to load: {this.state.error.message}</Text>
+        </Screen>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function TimelineScreen() {
+  return (
+    <TimelineErrorBoundary>
+      <Timeline />
+    </TimelineErrorBoundary>
   );
 }
