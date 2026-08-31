@@ -3,7 +3,7 @@ import { Text, View, Pressable, Linking } from 'react-native';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import { SymbolView } from 'expo-symbols';
 import { router } from 'expo-router';
-import { Camera } from 'expo-camera';
+import { useCameraPermission } from 'react-native-vision-camera';
 import * as Notifications from 'expo-notifications';
 import { markOnboardingComplete } from '../../lib/onboarding';
 import { useAuthState } from '../../lib/authState';
@@ -20,6 +20,7 @@ export default function Permissions() {
   const [cameraDenied, setCameraDenied] = useState(false);
   const [notifDenied, setNotifDenied] = useState(false);
   const { markOnboarded } = useAuthState();
+  const { requestPermission: requestCameraPermission } = useCameraPermission();
 
   async function finish() {
     await markOnboardingComplete();
@@ -33,10 +34,9 @@ export default function Permissions() {
 
   async function requestAndContinue() {
     setRequesting(true);
-    const camera = await Camera.requestCameraPermissionsAsync();
+    const cameraOk = await requestCameraPermission();
     const notif = await Notifications.requestPermissionsAsync();
     setRequesting(false);
-    const cameraOk = camera.status === 'granted';
     const notifOk = notif.status === 'granted';
     setCameraDenied(!cameraOk);
     setNotifDenied(!notifOk);

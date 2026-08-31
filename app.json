@@ -16,7 +16,8 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.joinpiqa.app",
-      "versionCode": 20
+      "versionCode": 20,
+      "permissions": ["android.permission.CAMERA"]
     },
     "plugins": [
       "expo-router",
