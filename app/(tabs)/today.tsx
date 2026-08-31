@@ -15,6 +15,7 @@ import { WeekStrip, type DayCell, type DayCellState } from '../../components/Wee
 import { Screen } from '../../components/Screen';
 import { StreakWidget } from '../../widgets/StreakWidget';
 import { Chip } from '../../components/Chip';
+import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
 import { colors, spacing, type } from '../../lib/theme';
 
 type TodayState = { current_count: number; longest_count: number; freezes_remaining: number; captured_today: boolean };
@@ -193,7 +194,10 @@ export default function Today() {
 
   return (
     <Screen>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: TAB_BAR_CLEARANCE }}
+      >
         <Animated.View entering={FadeInUp.duration(220)} style={{ gap: spacing.lg }}>
           <View style={{ gap: spacing.xxs }}>
             <Text

@@ -10,7 +10,15 @@ type IconComponent = ComponentType<{ size: number; color: string }>;
 const PRESS_SPRING = { damping: 18, stiffness: 400 };
 const CAMERA_ROUTE = 'camera-action';
 const FAB_SIZE = 52;
-const BAR_HEIGHT = 60;
+const BAR_HEIGHT = 72;
+
+// expo-router's bottom-tabs lays the tab bar out as a normal flex sibling
+// below the screen content by default — the screen's own flex:1 area stops
+// exactly above it, a hard cut, not a float. Each tab screen's scrollable
+// content needs this much extra bottom clearance (on top of whatever its own
+// SafeAreaView already reserves for the device inset) so real content never
+// sits permanently under the pill once the bar is pulled out of that flow.
+export const TAB_BAR_CLEARANCE = BAR_HEIGHT + spacing.lg;
 
 // Exact icon shapes chosen by the user (see components/NavIcons.tsx) — solid,
 // chunky, rounded Font Awesome-style glyphs, drawn via react-native-svg for
@@ -35,18 +43,38 @@ export function TabBar({ state, navigation, insets }: BottomTabBarProps) {
   const cameraRoute = state.routes.find((route) => route.name === CAMERA_ROUTE);
 
   return (
-    <View style={{ paddingHorizontal: spacing.md, paddingBottom: insets.bottom + spacing.sm }}>
+    // position: absolute pulls this out of expo-router's default flex layout
+    // (screen content above, tab bar row below) — without it, the screen's
+    // flex:1 area stops exactly above this component and nothing ever shows
+    // through the gaps around the pill, which isn't floating, just a second
+    // reserved row. Floating over real content instead of a flat color.
+    <View
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: spacing.md,
+        paddingBottom: insets.bottom + spacing.sm,
+      }}
+    >
       <View style={{ position: 'relative' }}>
         <View
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: colors.surface,
+            // surfaceRaised, not surface: a drop shadow barely reads against a
+            // near-black ground (this is exactly why Material's dark theme
+            // convention leans on tonal elevation instead — a lighter surface
+            // step reads as "closer to the viewer" even where a shadow washes
+            // out). surface (#161616) sat too close to the screen's own
+            // background (#0A0A0A) to separate as a distinct floating layer.
+            backgroundColor: colors.surfaceRaised,
             borderWidth: 1,
             borderColor: colors.border,
             borderRadius: radius.button,
             height: BAR_HEIGHT,
-            paddingHorizontal: spacing.xs,
+            paddingHorizontal: spacing.sm,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 8 },
             shadowOpacity: 0.35,
@@ -119,7 +147,7 @@ function TabItem({
             minWidth: touchTarget.min,
             minHeight: touchTarget.min,
             paddingHorizontal: spacing.sm,
-            paddingVertical: spacing.xs,
+            paddingVertical: spacing.sm,
           },
           scaleStyle,
         ]}

@@ -11,6 +11,7 @@ import { Screen } from '../../components/Screen';
 import { TextLink } from '../../components/TextLink';
 import { Avatar } from '../../components/Avatar';
 import { Chip } from '../../components/Chip';
+import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
 import { colors, spacing, touchTarget, type } from '../../lib/theme';
 
 const MOSAIC_CAP = 27;
@@ -95,7 +96,10 @@ export default function Profile() {
 
   return (
     <Screen>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.lg }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ gap: spacing.lg, paddingBottom: TAB_BAR_CLEARANCE }}
+      >
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ ...type.title, color: colors.textPrimary }}>Profile</Text>
           <Pressable

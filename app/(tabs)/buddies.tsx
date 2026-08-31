@@ -14,6 +14,7 @@ import { PendingRequestRow } from '../../components/PendingRequestRow';
 import { Button } from '../../components/Button';
 import { Divider } from '../../components/Divider';
 import { Screen } from '../../components/Screen';
+import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
 import { colors, spacing, type } from '../../lib/theme';
 
 export default function BuddiesScreen() {
@@ -67,7 +68,10 @@ export default function BuddiesScreen() {
 
   return (
     <Screen>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.lg }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ gap: spacing.lg, paddingBottom: TAB_BAR_CLEARANCE }}
+      >
         <Text style={{ ...type.screenTitle, color: colors.textPrimary }}>Buddies</Text>
 
         <Button label="Add a buddy" variant="secondary" onPress={() => router.push('/add-buddy')} />

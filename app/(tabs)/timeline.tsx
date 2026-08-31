@@ -8,6 +8,7 @@ import { getSignedUrls } from '../../lib/signedUrlCache';
 import { MonthGrid, type MonthDay } from '../../components/MonthGrid';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { Screen } from '../../components/Screen';
+import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
 import { TextLink } from '../../components/TextLink';
 import { deleteCapture } from '../../lib/deleteCapture';
 import { colors, spacing, type } from '../../lib/theme';
@@ -247,7 +248,10 @@ function Timeline() {
         onContentSizeChange={(_width, height) => setContentHeight(height)}
         onEndReachedThreshold={0.5}
         onEndReached={loadOlderMonth}
-        contentContainerStyle={{ gap: spacing.lg, paddingTop: spacing.xl }}
+        // inverted flips top/bottom visually — paddingTop here lands at the
+        // screen's visual bottom, where the floating nav bar now sits, so it
+        // carries TAB_BAR_CLEARANCE on top of the normal breathing room.
+        contentContainerStyle={{ gap: spacing.lg, paddingTop: spacing.xl + TAB_BAR_CLEARANCE }}
         ListFooterComponent={
           loadingOlder ? (
             <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.md }}>
