@@ -17,7 +17,7 @@ const FROZEN_ICON = { ios: 'snowflake', android: 'ac_unit' } as const;
 const MULTI_PHOTO_ICON = { ios: 'square.stack.fill', android: 'photo_library' } as const;
 const COLUMNS = 7;
 const GAP = spacing.sm;
-const CELL_RADIUS = 10;
+const CELL_RADIUS = 6; // tighter than the old 10 — instrument cell, not a rounded tile
 const FALLBACK_CELL_SIZE = 44;
 // Sunday-first, matching Date#getDay() (0 = Sunday) — same order leadingBlanks aligns against.
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -69,7 +69,7 @@ export function MonthGrid({
       <View style={{ flexDirection: 'row', gap: GAP, marginBottom: spacing.xs }}>
         {WEEKDAY_LABELS.map((label, i) => (
           <View key={i} style={{ width: cellSize, alignItems: 'center' }}>
-            <Text style={{ ...type.caption, color: colors.textMuted }}>{label}</Text>
+            <Text style={{ ...type.data, fontSize: 10, color: colors.textFaint }}>{label}</Text>
           </View>
         ))}
       </View>
@@ -106,11 +106,11 @@ export function MonthGrid({
                       left: 4,
                       paddingHorizontal: 5,
                       paddingVertical: 1,
-                      borderRadius: 7,
-                      backgroundColor: colors.background,
+                      borderRadius: 4,
+                      backgroundColor: 'rgba(10,10,10,0.72)',
                     }}
                   >
-                    <Text style={{ ...type.caption, fontSize: 12, color: colors.textPrimary }}>{d.day}</Text>
+                    <Text style={{ ...type.data, fontSize: 11, color: colors.textPrimary }}>{d.day}</Text>
                   </View>
                   {d.imageUrls.length > 1 && (
                     <View
@@ -120,8 +120,8 @@ export function MonthGrid({
                         top: 4,
                         right: 4,
                         padding: 3,
-                        borderRadius: 7,
-                        backgroundColor: colors.background,
+                        borderRadius: 4,
+                        backgroundColor: 'rgba(10,10,10,0.72)',
                       }}
                     >
                       <SymbolView name={MULTI_PHOTO_ICON} size={11} tintColor={colors.textPrimary} />
@@ -129,7 +129,7 @@ export function MonthGrid({
                   )}
                 </>
               ) : (
-                <Text style={{ ...type.body, color: colors.textMuted }}>{d.day}</Text>
+                <Text style={{ ...type.data, fontSize: 12, color: colors.textFaint }}>{d.day}</Text>
               )}
               {d.state === 'frozen' && (
                 <View style={{ position: 'absolute', bottom: 4, right: 4 }} testID={`frozen-icon-${d.day}`}>
@@ -144,17 +144,19 @@ export function MonthGrid({
   );
 }
 
+// State colors match WeekStrip's trace exactly — captured/frozen/missed/today
+// mean the same ink, dash, or gap everywhere the streak is drawn in the app.
 function cellStyle(state: DayCellState): ViewStyle {
   const base: ViewStyle = { borderRadius: CELL_RADIUS, overflow: 'hidden' };
   switch (state) {
     case 'captured':
       return base;
     case 'today':
-      return { ...base, borderWidth: 1.5, borderColor: colors.textPrimary };
+      return { ...base, borderWidth: 1.5, borderColor: colors.trace };
     case 'frozen':
-      return { ...base, borderWidth: 1.5, borderColor: colors.textMuted, borderStyle: 'dashed' };
+      return { ...base, borderWidth: 1.5, borderColor: colors.accentPressed, borderStyle: 'dashed' };
     case 'missed':
-      return { ...base, backgroundColor: colors.border };
+      return { ...base, backgroundColor: colors.gridLine };
     case 'future':
     default:
       return { ...base, borderWidth: 1, borderColor: colors.border };

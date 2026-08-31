@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Card } from './Card';
 import { NetworkImage } from './NetworkImage';
+import { RegistrationMark } from './RegistrationMark';
 import { colors, spacing, type } from '../lib/theme';
 
 const POP_SPRING = { damping: 14, stiffness: 300 };
@@ -36,9 +37,16 @@ export function CapturedTodayCard({
               <NetworkImage source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
             ) : (
               <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ ...type.hero, color: colors.textPrimary }}>{'✓'}</Text>
+                <Text style={{ ...type.dataHero, color: colors.textPrimary }}>OK</Text>
               </View>
             )}
+
+            {/* Same plate framing as PeekBackCard — a stamped record, not a social card. */}
+            <RegistrationMark corner="tl" />
+            <RegistrationMark corner="tr" />
+            <RegistrationMark corner="bl" />
+            <RegistrationMark corner="br" />
+
             <Pressable
               onPress={onAddCapture}
               hitSlop={8}
@@ -49,7 +57,7 @@ export function CapturedTodayCard({
                 width: 36,
                 height: 36,
                 borderRadius: 18,
-                backgroundColor: 'rgba(0,0,0,0.55)',
+                backgroundColor: 'rgba(10,10,10,0.72)',
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: pressed ? 0.7 : 1,
@@ -57,19 +65,32 @@ export function CapturedTodayCard({
             >
               <Text style={{ ...type.bodyBold, color: colors.textPrimary, lineHeight: 20 }}>+</Text>
             </Pressable>
+
             <View
               style={{
                 position: 'absolute',
-                left: 0,
-                right: 0,
-                bottom: 0,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                backgroundColor: 'rgba(0,0,0,0.55)',
+                top: spacing.sm,
+                left: spacing.sm,
+                backgroundColor: 'rgba(10,10,10,0.72)',
+                borderRadius: 4,
+                paddingHorizontal: spacing.sm,
+                paddingVertical: spacing.xs,
+                gap: 2,
               }}
             >
-              <Text style={{ ...type.bodyBold, color: colors.textPrimary }} numberOfLines={1}>
-                {count > 1 ? `Captured today · ${count} photos` : 'Captured today'}
+              <Text
+                style={{
+                  ...type.caption,
+                  fontSize: 9,
+                  letterSpacing: 0.7,
+                  textTransform: 'uppercase',
+                  color: colors.textMuted,
+                }}
+              >
+                Captured today
+              </Text>
+              <Text style={{ ...type.data, color: colors.textPrimary }}>
+                {count > 1 ? `${count} photos` : '1 photo'}
               </Text>
             </View>
           </View>

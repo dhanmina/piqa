@@ -149,7 +149,7 @@ export default function Profile() {
                     : `Current streak: ${stats?.current_count ?? 0} ${pluralize(stats?.current_count ?? 0, 'day')}`
                 }
               >
-                <Text style={{ ...type.hero, color: colors.textPrimary }}>
+                <Text style={{ ...type.dataHero, color: colors.textPrimary }}>
                   {statsLoading ? '…' : (stats?.current_count ?? 0)}
                 </Text>
                 <Text style={{ ...type.caption, color: colors.textMuted }}>
@@ -166,7 +166,7 @@ export default function Profile() {
                     : `Longest streak: ${stats?.longest_count ?? 0} ${pluralize(stats?.longest_count ?? 0, 'day')}`
                 }
               >
-                <Text style={{ ...type.title, color: colors.textPrimary }}>
+                <Text style={{ ...type.dataLg, color: colors.textPrimary }}>
                   {statsLoading ? '…' : (stats?.longest_count ?? 0)}
                 </Text>
                 <Text style={{ ...type.caption, color: colors.textMuted }}>
@@ -178,7 +178,7 @@ export default function Profile() {
         </Card>
 
         {!statsError && !statsLoading && (
-          <Chip label={`Rest days: ${stats?.freezes_remaining ?? 0} left this week`} />
+          <Chip stats={[{ value: String(stats?.freezes_remaining ?? 0), label: 'Rest days left' }]} />
         )}
 
         <View style={{ gap: spacing.sm }}>

@@ -12,7 +12,6 @@ import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { deleteCapture } from '../../lib/deleteCapture';
 import { Card } from '../../components/Card';
 import { WeekStrip, type DayCell, type DayCellState } from '../../components/WeekStrip';
-import { Button } from '../../components/Button';
 import { Screen } from '../../components/Screen';
 import { StreakWidget } from '../../widgets/StreakWidget';
 import { Chip } from '../../components/Chip';
@@ -25,11 +24,6 @@ const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 function todayDateLabel(): string {
   return new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-}
-
-function streakHeroLabel(count: number | undefined): string {
-  if (!count) return 'Start today';
-  return `${count} day streak`;
 }
 
 // Matches the capturedAt format lib/captureQueue.ts already writes to `captures.captured_at`.
@@ -202,15 +196,41 @@ export default function Today() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
         <Animated.View entering={FadeInUp.duration(220)} style={{ gap: spacing.lg }}>
           <View style={{ gap: spacing.xxs }}>
-            <Text style={{ ...type.caption, color: colors.textMuted }}>{todayDateLabel()}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-              <Text
-                style={{ ...type.hero, color: colors.textPrimary, flexShrink: 1 }}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-              >
-                {streakHeroLabel(state?.current_count)}
-              </Text>
+            <Text
+              style={{
+                ...type.data,
+                fontSize: 11,
+                letterSpacing: 0.7,
+                textTransform: 'uppercase',
+                color: colors.textMuted,
+              }}
+            >
+              {todayDateLabel()}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }}>
+              {state?.current_count ? (
+                <>
+                  <Text style={{ ...type.dataHero, color: colors.textPrimary }} numberOfLines={1}>
+                    {state.current_count}
+                  </Text>
+                  <Text
+                    style={{
+                      ...type.caption,
+                      fontSize: 11,
+                      letterSpacing: 0.5,
+                      textTransform: 'uppercase',
+                      color: colors.textMuted,
+                      marginBottom: 6,
+                    }}
+                  >
+                    {pluralize(state.current_count, 'day')} streak
+                  </Text>
+                </>
+              ) : (
+                <Text style={{ ...type.hero, color: colors.textPrimary }} numberOfLines={1}>
+                  Start today
+                </Text>
+              )}
               <StreakUrgencyDot capturedToday={state?.captured_today ?? false} />
             </View>
           </View>
@@ -228,11 +248,12 @@ export default function Today() {
           </Card>
 
           {!state?.captured_today ? (
-            <View style={{ gap: spacing.sm }}>
-              <Button label="Capture today's photo" onPress={() => router.push('/capture')} />
-              <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
-                Any time today, no pressure.
-              </Text>
+            // No inline capture button here — the camera FAB docked in TabBar is the
+            // app's one capture action everywhere, so a second full-width button on
+            // Today would just duplicate it. This is a quiet pending state, not a CTA.
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <View style={{ width: 7, height: 7, borderRadius: 3.5, borderWidth: 1.5, borderColor: colors.textFaint }} />
+              <Text style={{ ...type.caption, color: colors.textFaint }}>Today's mark is still open</Text>
             </View>
           ) : (
             <CapturedTodayCard
@@ -243,12 +264,12 @@ export default function Today() {
             />
           )}
 
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <Chip label={`Rest days: ${state?.freezes_remaining ?? 0} left this week`} />
-            {state?.longest_count ? (
-              <Chip label={`Longest streak: ${state.longest_count} ${pluralize(state.longest_count, 'day')}`} />
-            ) : null}
-          </View>
+          <Chip
+            stats={[
+              { value: String(state?.freezes_remaining ?? 0), label: 'Rest days left' },
+              ...(state?.longest_count ? [{ value: `${state.longest_count}d`, label: 'Longest streak' }] : []),
+            ]}
+          />
         </Animated.View>
       </ScrollView>
 

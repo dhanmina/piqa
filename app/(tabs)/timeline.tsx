@@ -240,7 +240,17 @@ function Timeline() {
           if (!data) return null;
           return (
             <View style={{ gap: spacing.sm }}>
-              <Text style={{ ...type.body, color: colors.textMuted }}>{monthLabel(data.year, data.month)}</Text>
+              <Text
+                style={{
+                  ...type.data,
+                  fontSize: 11,
+                  letterSpacing: 0.7,
+                  textTransform: 'uppercase',
+                  color: colors.textMuted,
+                }}
+              >
+                {monthLabel(data.year, data.month)}
+              </Text>
               <MonthGrid
                 year={data.year}
                 month={data.month}

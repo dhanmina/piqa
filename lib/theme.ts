@@ -1,16 +1,24 @@
 export const colors = {
-  background: '#121212',
-  surface: '#1E1E1E',
-  surfaceRaised: '#242424', // stacked sheets/modals over a card — tonal elevation, no shadow
+  background: '#0A0A0A',
+  surface: '#161616',
+  surfaceRaised: '#1E1E1E', // stacked sheets/modals over a card — tonal elevation, no shadow
   textPrimary: '#F5F5F5',
   textMuted: '#8A8A8A',
+  textFaint: '#4A4A4A', // day labels, hairline captions — a step quieter than textMuted
   accent: '#FFFFFF',
   accentPressed: '#D6D6D6',
-  border: '#2C2C2C',
-  disabledBg: '#2C2C2C', // same value as border by design — codifies the existing disabled-fill convention
+  trace: '#FFFFFF', // the streak line — same value as accent, named for where it's drawn
+  border: '#262626',
+  gridLine: '#1E1E1E', // calibration hairlines (trace baseline, plate rules) — between surface and border
+  disabledBg: '#262626', // same value as border by design — codifies the existing disabled-fill convention
   disabledText: '#8A8A8A', // same value as textMuted by design
-  pressedOverlay: '#2C2C2C', // rows/cards pressed state — same value as border
+  pressedOverlay: '#262626', // rows/cards pressed state — same value as border
 } as const;
+
+// Monospace is reserved for data and measurement — streak counts, dates, stamped
+// readouts — never for prose or labels. That split is what carries the recorder/
+// instrument character; system monospace (no font asset, no new dependency).
+const MONOSPACE = 'monospace'; // Android system monospace; Menlo on iOS when that platform ships
 
 export const type = {
   wordmark: { fontSize: 40, fontWeight: '700' as const, lineHeight: 46, letterSpacing: -1 }, // the "piqa" hero mark on sign-in/sign-up
@@ -20,6 +28,10 @@ export const type = {
   body: { fontSize: 16, fontWeight: '400' as const, lineHeight: 22 },
   bodyBold: { fontSize: 16, fontWeight: '600' as const, lineHeight: 22 },
   caption: { fontSize: 13, fontWeight: '400' as const, lineHeight: 18 },
+  // Data readouts — streak counts, dates, stamped labels, stat values.
+  dataHero: { fontSize: 40, fontWeight: '600' as const, lineHeight: 44, fontFamily: MONOSPACE },
+  dataLg: { fontSize: 17, fontWeight: '500' as const, lineHeight: 22, fontFamily: MONOSPACE },
+  data: { fontSize: 13, fontWeight: '400' as const, lineHeight: 18, fontFamily: MONOSPACE },
 };
 
 export const spacing = {
@@ -34,7 +46,7 @@ export const spacing = {
 
 export const radius = {
   button: 100, // pill/stadium shape — also used by input fields, for full shape consistency
-  card: 12,
+  card: 8, // tighter than a typical app card — reads as an instrument plate, not a rounded tile
 } as const;
 
 export const height = {

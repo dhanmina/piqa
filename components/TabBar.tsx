@@ -2,7 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
-import { colors, radius, spacing, touchTarget, type } from '../lib/theme';
+import { colors, spacing, touchTarget, type } from '../lib/theme';
 
 type SymbolName = NonNullable<SymbolViewProps['name']>;
 
@@ -125,8 +125,6 @@ function TabItem({
             minHeight: touchTarget.min,
             paddingHorizontal: spacing.sm,
             paddingVertical: spacing.xs,
-            borderRadius: radius.button,
-            backgroundColor: focused ? colors.surfaceRaised : 'transparent',
           },
           scaleStyle,
         ]}
@@ -137,6 +135,16 @@ function TabItem({
           tintColor={focused ? colors.textPrimary : colors.textMuted}
         />
         <Text style={{ ...type.caption, color: focused ? colors.textPrimary : colors.textMuted }}>{label}</Text>
+        {/* Baseline tick, not a filled pill — same axis-mark language as the streak trace. */}
+        <View
+          style={{
+            width: 14,
+            height: 2,
+            borderRadius: 1,
+            marginTop: 1,
+            backgroundColor: focused ? colors.trace : 'transparent',
+          }}
+        />
       </Animated.View>
     </Pressable>
   );
