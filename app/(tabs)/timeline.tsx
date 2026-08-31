@@ -42,6 +42,14 @@ function Timeline() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [monthKeys, setMonthKeys] = useState<MonthKey[]>([monthKey(now.getFullYear(), now.getMonth() + 1)]);
   const [monthsData, setMonthsData] = useState<Record<MonthKey, MonthData>>({});
+  // A near-empty current month (e.g. the 1st of the month, or a month with no
+  // captures yet) renders content shorter than the viewport, so the inverted
+  // FlatList never becomes scrollable and `onEndReached` — the only other
+  // trigger for loadOlderMonth — never fires. Track both heights and backfill
+  // older months until the content actually overflows, so a month with real
+  // captures further back isn't stranded behind a screen nothing can scroll.
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
   const [viewer, setViewer] = useState<{
     urls: string[];
     captureIds: string[];
@@ -182,6 +190,16 @@ function Timeline() {
     loadingRef.current = false;
   }
 
+  // Keeps requesting older months while the rendered list is shorter than the
+  // screen — see the viewportHeight/contentHeight comment above. Once content
+  // overflows (or reachedStartRef trips inside loadOlderMonth), this is a no-op
+  // and normal scroll-triggered onEndReached takes over.
+  useEffect(() => {
+    if (viewportHeight === 0 || contentHeight === 0) return;
+    if (contentHeight > viewportHeight) return;
+    loadOlderMonth();
+  }, [viewportHeight, contentHeight, monthsData, profileLoaded]);
+
   async function handleDeleteFromViewer(index: number) {
     if (!viewer) return;
     const captureId = viewer.captureIds[index];
@@ -225,6 +243,8 @@ function Timeline() {
         keyExtractor={(key) => key}
         inverted
         showsVerticalScrollIndicator={false}
+        onLayout={(e) => setViewportHeight(e.nativeEvent.layout.height)}
+        onContentSizeChange={(_width, height) => setContentHeight(height)}
         onEndReachedThreshold={0.5}
         onEndReached={loadOlderMonth}
         contentContainerStyle={{ gap: spacing.lg, paddingTop: spacing.xl }}
