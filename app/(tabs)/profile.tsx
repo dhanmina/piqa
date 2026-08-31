@@ -11,6 +11,7 @@ import { Divider } from '../../components/Divider';
 import { Screen } from '../../components/Screen';
 import { TextLink } from '../../components/TextLink';
 import { Avatar } from '../../components/Avatar';
+import { Chip } from '../../components/Chip';
 import { colors, spacing, type } from '../../lib/theme';
 
 const MOSAIC_CAP = 27;
@@ -181,6 +182,10 @@ export default function Profile() {
             </View>
           )}
         </Card>
+
+        {!statsError && !statsLoading && (
+          <Chip label={`Rest days: ${stats?.freezes_remaining ?? 0} left this week`} />
+        )}
 
         <View style={{ gap: spacing.sm }}>
           <Text style={{ ...type.body, color: colors.textMuted }}>{archiveLabel}</Text>

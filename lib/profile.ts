@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
 export type ProfileInfo = { username: string; display_name: string | null; avatar_url: string | null; created_at: string };
-export type Stats = { current_count: number; longest_count: number };
+export type Stats = { current_count: number; longest_count: number; freezes_remaining: number };
 export type MosaicPhoto = { url: string; capturedAt: string };
 
 export async function fetchProfile(): Promise<{ data: ProfileInfo | null; error: Error | null }> {

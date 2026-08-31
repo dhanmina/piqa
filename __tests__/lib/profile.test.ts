@@ -55,10 +55,16 @@ describe('fetchProfile', () => {
 
 describe('fetchStats', () => {
   test('returns the first row from get_today_state', async () => {
-    mockRpc.mockResolvedValue({ data: [{ current_count: 5, longest_count: 12 }], error: null });
+    mockRpc.mockResolvedValue({
+      data: [{ current_count: 5, longest_count: 12, freezes_remaining: 2 }],
+      error: null,
+    });
     const result = await fetchStats();
     expect(mockRpc).toHaveBeenCalledWith('get_today_state');
-    expect(result).toEqual({ data: { current_count: 5, longest_count: 12 }, error: null });
+    expect(result).toEqual({
+      data: { current_count: 5, longest_count: 12, freezes_remaining: 2 },
+      error: null,
+    });
   });
 
   test('returns an error instead of throwing when the RPC fails', async () => {
