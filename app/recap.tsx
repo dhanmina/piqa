@@ -1,27 +1,19 @@
-import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { supabase } from '../lib/supabase';
-import { getSignedUrls } from '../lib/signedUrlCache';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys, fetchRecapPhotos } from '../lib/captureQueries';
 import { RecapSlideshow } from '../components/RecapSlideshow';
 import { Screen } from '../components/Screen';
 import { colors, radius, spacing, touchTarget, type } from '../lib/theme';
 
 export default function Recap() {
-  const [photos, setPhotos] = useState<string[]>([]);
   const { range } = useLocalSearchParams<{ range?: string }>();
   const isYear = range === 'year';
-
-  useEffect(() => {
-    setPhotos([]);
-    const rpc = isYear ? 'get_grand_recap' : 'get_weekly_recap';
-    supabase.rpc(rpc).then(async ({ data }) => {
-      const paths: string[] = (data ?? []).map((r: any) => r.storage_path);
-      if (paths.length === 0) return;
-      const signedByPath = await getSignedUrls(paths);
-      setPhotos(paths.map((p) => signedByPath.get(p)).filter((url): url is string => !!url));
-    });
-  }, [isYear]);
+  const kind = isYear ? 'year' : 'week';
+  const { data: photos = [] } = useQuery({
+    queryKey: queryKeys.recap(kind),
+    queryFn: () => fetchRecapPhotos(kind),
+  });
 
   return (
     <Screen style={{ gap: spacing.md }}>
