@@ -1,6 +1,7 @@
 docs/
 TODO.md
 .impeccable/
+.superpowers/
 
 # dependencies
 node_modules/
