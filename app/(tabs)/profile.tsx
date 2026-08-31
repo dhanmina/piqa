@@ -1,20 +1,21 @@
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { signOut } from '../../lib/auth';
+import { SymbolView } from 'expo-symbols';
 import { fetchProfile, fetchStats, fetchArchiveMosaic, type ProfileInfo, type Stats } from '../../lib/profile';
 import { MosaicGrid, type MosaicPhoto } from '../../components/MosaicGrid';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { Divider } from '../../components/Divider';
 import { Screen } from '../../components/Screen';
 import { TextLink } from '../../components/TextLink';
 import { Avatar } from '../../components/Avatar';
 import { Chip } from '../../components/Chip';
-import { colors, spacing, type } from '../../lib/theme';
+import { colors, spacing, touchTarget, type } from '../../lib/theme';
 
 const MOSAIC_CAP = 27;
+
+const SETTINGS_ICON = { ios: 'gearshape', android: 'settings' } as const;
 
 export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
   console.error('[profile] render crashed', error);
@@ -54,7 +55,6 @@ export default function Profile() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState(false);
 
-  const [signingOut, setSigningOut] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
@@ -86,25 +86,6 @@ export default function Profile() {
     }, [loadProfile, loadStats, loadArchive])
   );
 
-  async function handleSignOut() {
-    setSigningOut(true);
-    const { error } = await signOut();
-    if (error) {
-      setSigningOut(false);
-      Alert.alert('Could not sign out', 'Check your connection and try again.');
-      return;
-    }
-    // No navigation call needed on success — RootLayout's onAuthStateChange
-    // listener flips `signedIn` and Stack.Protected swaps the active route group.
-  }
-
-  function confirmSignOut() {
-    Alert.alert('Sign out?', 'You can sign back in any time. Nothing is deleted.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: handleSignOut },
-    ]);
-  }
-
   const archiveLabel =
     !photosLoading && !photosError && photos.length > 0
       ? photos.length === MOSAIC_CAP
@@ -115,6 +96,19 @@ export default function Profile() {
   return (
     <Screen>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.lg }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ ...type.title, color: colors.textPrimary }}>Profile</Text>
+          <Pressable
+            onPress={() => router.push('/settings')}
+            hitSlop={touchTarget.min}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            style={{ width: touchTarget.min, height: touchTarget.min, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <SymbolView name={SETTINGS_ICON} size={22} tintColor={colors.textPrimary} />
+          </Pressable>
+        </View>
+
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
           <Avatar url={profileInfo?.avatar_url} name={profileInfo?.display_name} accessibilityLabel="Your profile photo" />
           <View style={{ gap: spacing.xxs, flexShrink: 1 }}>
@@ -210,16 +204,6 @@ export default function Profile() {
         </View>
 
         <Button label="View your year" variant="secondary" onPress={() => router.push('/recap?range=year')} />
-
-        <Divider />
-
-        <TextLink
-          label={signingOut ? 'Signing out...' : 'Sign out'}
-          variant="muted"
-          disabled={signingOut}
-          accessibilityLabel={signingOut ? 'Signing out' : 'Sign out'}
-          onPress={confirmSignOut}
-        />
       </ScrollView>
 
       <PhotoViewerModal url={viewerUrl} onClose={() => setViewerUrl(null)} />
