@@ -11,7 +11,7 @@ import Animated, {
   withDelay,
   runOnJS,
 } from 'react-native-reanimated';
-import { SymbolView } from 'expo-symbols';
+import { CloseIcon, FlashIcon, CameraRotateIcon } from '../components/Icons';
 import {
   Camera,
   useCameraPermission,
@@ -37,9 +37,6 @@ const MIN_SAVING_MS = 450;
 // Explicit "Saved" beat so confirming reads as a positive result, not just a spinner
 // that disappears into a screen change.
 const SAVED_DISPLAY_MS = 450;
-const TORCH_ON_ICON = { ios: 'bolt.fill', android: 'flash_on' } as const;
-const TORCH_OFF_ICON = { ios: 'bolt.slash.fill', android: 'flash_off' } as const;
-const FLIP_ICON = { ios: 'arrow.triangle.2.circlepath.camera', android: 'flip_camera_android' } as const;
 const FOCUS_RING_SIZE = 64;
 
 async function cropToCaptureRatio(uri: string, width: number, height: number): Promise<string> {
@@ -239,7 +236,7 @@ export default function Capture() {
               accessibilityLabel="Discard photo and close"
               style={styles.closeButton}
             >
-              <Text style={{ ...type.title, color: colors.textPrimary }}>✕</Text>
+              <CloseIcon size={20} color={colors.textPrimary} />
             </Pressable>
           </View>
           <View style={styles.previewImageContainer}>
@@ -324,7 +321,7 @@ export default function Capture() {
             accessibilityLabel="Close camera"
             style={styles.closeButton}
           >
-            <Text style={{ ...type.title, color: colors.textPrimary }}>✕</Text>
+            <CloseIcon size={20} color={colors.textPrimary} />
           </Pressable>
           <View style={{ flexDirection: 'row' }}>
             {device?.hasTorch ? (
@@ -336,7 +333,7 @@ export default function Capture() {
                 accessibilityState={{ selected: torchOn }}
                 style={styles.closeButton}
               >
-                <SymbolView name={torchOn ? TORCH_ON_ICON : TORCH_OFF_ICON} size={22} tintColor={colors.textPrimary} />
+                <FlashIcon size={22} color={torchOn ? colors.textPrimary : colors.textMuted} />
               </Pressable>
             ) : null}
             <Pressable
@@ -346,7 +343,7 @@ export default function Capture() {
               accessibilityLabel={facing === 'back' ? 'Switch to front camera' : 'Switch to back camera'}
               style={styles.closeButton}
             >
-              <SymbolView name={FLIP_ICON} size={22} tintColor={colors.textPrimary} />
+              <CameraRotateIcon size={22} color={colors.textPrimary} />
             </Pressable>
           </View>
         </View>
