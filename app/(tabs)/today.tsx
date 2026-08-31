@@ -15,7 +15,8 @@ import { WeekStrip, type DayCell, type DayCellState } from '../../components/Wee
 import { Button } from '../../components/Button';
 import { Screen } from '../../components/Screen';
 import { StreakWidget } from '../../widgets/StreakWidget';
-import { colors, radius, spacing, type } from '../../lib/theme';
+import { Chip } from '../../components/Chip';
+import { colors, spacing, type } from '../../lib/theme';
 
 type TodayState = { current_count: number; longest_count: number; freezes_remaining: number; captured_today: boolean };
 type Peek = { imageUrl: string; label: string } | null;
@@ -260,22 +261,5 @@ export default function Today() {
         onDelete={handleDeleteTodayCapture}
       />
     </Screen>
-  );
-}
-
-function Chip({ label }: { label: string }) {
-  return (
-    <View
-      style={{
-        alignSelf: 'flex-start',
-        borderRadius: radius.button,
-        borderWidth: 1,
-        borderColor: colors.border,
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.xs,
-      }}
-    >
-      <Text style={{ ...type.caption, color: colors.textMuted }}>{label}</Text>
-    </View>
   );
 }
