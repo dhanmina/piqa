@@ -9,7 +9,7 @@ type IconComponent = ComponentType<{ size: number; color: string }>;
 
 const PRESS_SPRING = { damping: 18, stiffness: 400 };
 const CAMERA_ROUTE = 'camera-action';
-const FAB_SIZE = 52;
+const FAB_SIZE = 60;
 const BAR_HEIGHT = 72;
 
 // expo-router's bottom-tabs lays the tab bar out as a normal flex sibling
@@ -204,7 +204,7 @@ function CameraTabButton({ onPress }: { onPress: () => void }) {
           scaleStyle,
         ]}
       >
-        <CameraIcon size={27} color={colors.background} />
+        <CameraIcon size={31} color={colors.background} />
       </Animated.View>
     </Pressable>
   );
