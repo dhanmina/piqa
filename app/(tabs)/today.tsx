@@ -215,8 +215,8 @@ export default function Today() {
     d.setDate(d.getDate() + i);
     const iso = toISODate(d);
     let cellState: DayCellState;
-    if (capturedDates.has(iso)) cellState = 'captured';
-    else if (iso === todayISO) cellState = 'today';
+    if (iso === todayISO) cellState = 'today';
+    else if (capturedDates.has(iso)) cellState = 'captured';
     else if (frozenDates.has(iso)) cellState = 'frozen';
     else if (iso < todayISO) cellState = 'missed';
     else cellState = 'future';
