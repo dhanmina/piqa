@@ -5,6 +5,8 @@ import { getSession } from '../lib/auth';
 import { getOnboardingStatus, getNeedsUsername } from '../lib/onboarding';
 import { supabase } from '../lib/supabase';
 import { AuthStateProvider } from '../lib/authState';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '../lib/queryClient';
 
 /**
  * DIRECTION CONTRACT — seed key 9a4f58ae
@@ -54,35 +56,37 @@ export default function RootLayout() {
   // boot (e.g. `piqa:///`) requests. That still needs a real app/index.tsx,
   // which redirects into whichever group below is actually active.
   return (
-    <AuthStateProvider
-      value={{
-        signedIn,
-        onboarded,
-        needsUsername,
-        markOnboarded: () => setOnboarded(true),
-        markUsernameSet: () => setNeedsUsername(false),
-      }}
-    >
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Protected guard={!signedIn}>
-          <Stack.Screen name="(auth)" />
-        </Stack.Protected>
-        <Stack.Protected guard={signedIn && !onboarded}>
-          <Stack.Screen name="(onboarding)" />
-        </Stack.Protected>
-        <Stack.Protected guard={signedIn && onboarded}>
-          <Stack.Screen name="(tabs)" />
-        </Stack.Protected>
-        <Stack.Protected guard={signedIn}>
-          <Stack.Screen name="capture" options={{ presentation: 'fullScreenModal' }} />
-          <Stack.Screen name="recap" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="add-buddy" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="change-password" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="settings" />
-        </Stack.Protected>
-      </Stack>
-    </AuthStateProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthStateProvider
+        value={{
+          signedIn,
+          onboarded,
+          needsUsername,
+          markOnboarded: () => setOnboarded(true),
+          markUsernameSet: () => setNeedsUsername(false),
+        }}
+      >
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Protected guard={!signedIn}>
+            <Stack.Screen name="(auth)" />
+          </Stack.Protected>
+          <Stack.Protected guard={signedIn && !onboarded}>
+            <Stack.Screen name="(onboarding)" />
+          </Stack.Protected>
+          <Stack.Protected guard={signedIn && onboarded}>
+            <Stack.Screen name="(tabs)" />
+          </Stack.Protected>
+          <Stack.Protected guard={signedIn}>
+            <Stack.Screen name="capture" options={{ presentation: 'fullScreenModal' }} />
+            <Stack.Screen name="recap" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="add-buddy" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="change-password" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="settings" />
+          </Stack.Protected>
+        </Stack>
+      </AuthStateProvider>
+    </QueryClientProvider>
   );
 }
