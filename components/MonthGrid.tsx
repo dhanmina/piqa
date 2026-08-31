@@ -14,16 +14,44 @@ export type MonthDay = {
 };
 
 const FROZEN_ICON = { ios: 'snowflake', android: 'ac_unit' } as const;
+const MULTI_PHOTO_ICON = { ios: 'square.stack.fill', android: 'photo_library' } as const;
 const COLUMNS = 7;
 const GAP = spacing.sm;
 const CELL_RADIUS = 10;
 const FALLBACK_CELL_SIZE = 44;
+// Sunday-first, matching Date#getDay() (0 = Sunday) — same order leadingBlanks aligns against.
+const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function dayAccessibilityLabel(year: number, month: number, d: MonthDay): string {
+  const dateStr = new Date(year, month - 1, d.day).toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  switch (d.state) {
+    case 'captured':
+      return d.imageUrls.length > 1 ? `${dateStr}, captured, ${d.imageUrls.length} photos` : `${dateStr}, captured`;
+    case 'frozen':
+      return `${dateStr}, missed, covered by a freeze`;
+    case 'today':
+      return `${dateStr}, today`;
+    case 'missed':
+      return `${dateStr}, missed`;
+    case 'future':
+    default:
+      return dateStr;
+  }
+}
 
 export function MonthGrid({
+  year,
+  month,
   leadingBlanks,
   days,
   onPressDay,
 }: {
+  year: number;
+  month: number;
   leadingBlanks: number;
   days: MonthDay[];
   onPressDay?: (day: MonthDay) => void;
@@ -37,53 +65,81 @@ export function MonthGrid({
   }
 
   return (
-    <View onLayout={onLayout} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: GAP }}>
-      {Array.from({ length: leadingBlanks }, (_, i) => (
-        <View key={`blank-${i}`} testID={`blank-cell-${i}`} style={cellSizeStyle} />
-      ))}
-      {days.map((d) => (
-        <Pressable
-          key={d.day}
-          testID={`day-cell-${d.day}`}
-          onPress={onPressDay ? () => onPressDay(d) : undefined}
-          disabled={!onPressDay || d.state !== 'captured'}
-          style={[cellSizeStyle, cellStyle(d.state)]}
-        >
-          {d.imageUrl ? (
-            <>
-              <NetworkImage
-                testID={`day-photo-${d.day}`}
-                source={{ uri: d.imageUrl }}
-                style={{ width: '100%', height: '100%', borderRadius: CELL_RADIUS }}
-                contentFit="cover"
-              />
-              <View
-                testID={`day-badge-${d.day}`}
-                style={{
-                  position: 'absolute',
-                  bottom: 4,
-                  left: 4,
-                  paddingHorizontal: 5,
-                  paddingVertical: 1,
-                  borderRadius: 7,
-                  backgroundColor: 'rgba(0,0,0,0.55)',
-                }}
-              >
-                <Text style={{ ...type.caption, fontSize: 12, color: colors.textPrimary }}>
-                  {d.imageUrls.length > 1 ? `${d.day} · ${d.imageUrls.length}` : d.day}
-                </Text>
-              </View>
-            </>
-          ) : (
-            <Text style={{ ...type.body, color: colors.textMuted }}>{d.day}</Text>
-          )}
-          {d.state === 'frozen' && (
-            <View style={{ position: 'absolute', bottom: 4, right: 4 }} testID={`frozen-icon-${d.day}`}>
-              <SymbolView name={FROZEN_ICON} size={16} tintColor={colors.textMuted} />
-            </View>
-          )}
-        </Pressable>
-      ))}
+    <View onLayout={onLayout}>
+      <View style={{ flexDirection: 'row', gap: GAP, marginBottom: spacing.xs }}>
+        {WEEKDAY_LABELS.map((label, i) => (
+          <View key={i} style={{ width: cellSize, alignItems: 'center' }}>
+            <Text style={{ ...type.caption, color: colors.textMuted }}>{label}</Text>
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: GAP }}>
+        {Array.from({ length: leadingBlanks }, (_, i) => (
+          <View key={`blank-${i}`} testID={`blank-cell-${i}`} style={cellSizeStyle} />
+        ))}
+        {days.map((d) => {
+          const pressable = !!onPressDay && d.state === 'captured';
+          return (
+            <Pressable
+              key={d.day}
+              testID={`day-cell-${d.day}`}
+              onPress={pressable ? () => onPressDay!(d) : undefined}
+              disabled={!pressable}
+              accessible
+              accessibilityRole={pressable ? 'button' : 'text'}
+              accessibilityLabel={dayAccessibilityLabel(year, month, d)}
+              style={[cellSizeStyle, cellStyle(d.state)]}
+            >
+              {d.imageUrl ? (
+                <>
+                  <NetworkImage
+                    testID={`day-photo-${d.day}`}
+                    source={{ uri: d.imageUrl }}
+                    style={{ width: '100%', height: '100%', borderRadius: CELL_RADIUS }}
+                    contentFit="cover"
+                  />
+                  <View
+                    testID={`day-badge-${d.day}`}
+                    style={{
+                      position: 'absolute',
+                      bottom: 4,
+                      left: 4,
+                      paddingHorizontal: 5,
+                      paddingVertical: 1,
+                      borderRadius: 7,
+                      backgroundColor: colors.background,
+                    }}
+                  >
+                    <Text style={{ ...type.caption, fontSize: 12, color: colors.textPrimary }}>{d.day}</Text>
+                  </View>
+                  {d.imageUrls.length > 1 && (
+                    <View
+                      testID={`multi-photo-icon-${d.day}`}
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        padding: 3,
+                        borderRadius: 7,
+                        backgroundColor: colors.background,
+                      }}
+                    >
+                      <SymbolView name={MULTI_PHOTO_ICON} size={11} tintColor={colors.textPrimary} />
+                    </View>
+                  )}
+                </>
+              ) : (
+                <Text style={{ ...type.body, color: colors.textMuted }}>{d.day}</Text>
+              )}
+              {d.state === 'frozen' && (
+                <View style={{ position: 'absolute', bottom: 4, right: 4 }} testID={`frozen-icon-${d.day}`}>
+                  <SymbolView name={FROZEN_ICON} size={16} tintColor={colors.textMuted} />
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }

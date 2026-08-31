@@ -2,14 +2,18 @@ import { Component, useCallback, useEffect, useRef, useState, type ReactNode } f
 import { FlatList, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
+import { SymbolView } from 'expo-symbols';
 import { supabase } from '../../lib/supabase';
 import { getSignedUrls } from '../../lib/signedUrlCache';
 import { MonthGrid, type MonthDay } from '../../components/MonthGrid';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { Screen } from '../../components/Screen';
+import { TextLink } from '../../components/TextLink';
 import { deleteCapture } from '../../lib/deleteCapture';
 import { colors, spacing, type } from '../../lib/theme';
 import type { DayCellState } from '../../components/WeekStrip';
+
+const EMPTY_ICON = { ios: 'calendar', android: 'calendar_month' } as const;
 
 type MonthKey = string; // `${year}-${month}`
 type MonthData = { year: number; month: number; leadingBlanks: number; days: MonthDay[] };
@@ -48,6 +52,7 @@ function Timeline() {
   const loadingRef = useRef(false);
   const reachedStartRef = useRef(false);
   const monthsDataRef = useRef<Record<MonthKey, MonthData>>({});
+  const listRef = useRef<FlatList<MonthKey>>(null);
 
   useEffect(() => {
     supabase
@@ -193,18 +198,29 @@ function Timeline() {
 
   const firstMonth = monthsData[monthKeys[0]];
   const hasAnyCaptureSoFar = Object.values(monthsData).some((m) => m.days.some((d) => d.imageUrl));
+  const oldestKey = monthKeys[monthKeys.length - 1];
+  const loadingOlder = monthKeys.length > 1 && !monthsData[oldestKey];
 
   return (
     <Screen style={{ paddingHorizontal: spacing.md }}>
-      <Text style={{ ...type.title, color: colors.textPrimary, marginBottom: spacing.md }}>Timeline</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
+        <Text style={{ ...type.title, color: colors.textPrimary }}>Timeline</Text>
+        {monthKeys.length > 1 ? (
+          <TextLink label="Today" inline onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })} />
+        ) : null}
+      </View>
 
       {firstMonth && !hasAnyCaptureSoFar ? (
-        <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center', paddingTop: spacing.xl }}>
-          Nothing captured yet. Your archive starts with your first photo.
-        </Text>
+        <View style={{ alignItems: 'center', paddingTop: spacing.xl, gap: spacing.sm }}>
+          <SymbolView name={EMPTY_ICON} size={28} tintColor={colors.textMuted} />
+          <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
+            Nothing captured yet. Your archive starts with your first photo.
+          </Text>
+        </View>
       ) : null}
 
       <FlatList
+        ref={listRef}
         data={monthKeys}
         keyExtractor={(key) => key}
         inverted
@@ -212,6 +228,13 @@ function Timeline() {
         onEndReachedThreshold={0.5}
         onEndReached={loadOlderMonth}
         contentContainerStyle={{ gap: spacing.lg, paddingTop: spacing.xl }}
+        ListFooterComponent={
+          loadingOlder ? (
+            <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.md }}>
+              Loading…
+            </Text>
+          ) : null
+        }
         renderItem={({ item }) => {
           const data = monthsData[item];
           if (!data) return null;
@@ -219,6 +242,8 @@ function Timeline() {
             <View style={{ gap: spacing.sm }}>
               <Text style={{ ...type.body, color: colors.textMuted }}>{monthLabel(data.year, data.month)}</Text>
               <MonthGrid
+                year={data.year}
+                month={data.month}
                 leadingBlanks={data.leadingBlanks}
                 days={data.days}
                 onPressDay={(d) =>

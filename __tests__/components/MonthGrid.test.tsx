@@ -4,6 +4,8 @@ import { MonthGrid } from '../../components/MonthGrid';
 test('shows a photo for a captured day', async () => {
   await render(
     <MonthGrid
+      year={2026}
+      month={8}
       leadingBlanks={0}
       days={[
         {
@@ -19,9 +21,11 @@ test('shows a photo for a captured day', async () => {
   expect(screen.getByTestId('day-photo-1')).toBeTruthy();
 });
 
-test('shows a day-number badge over a captured photo', async () => {
+test('shows a day-number badge over a captured photo, with no multi-photo icon for a single photo', async () => {
   await render(
     <MonthGrid
+      year={2026}
+      month={8}
       leadingBlanks={0}
       days={[
         {
@@ -36,11 +40,14 @@ test('shows a day-number badge over a captured photo', async () => {
   );
   expect(screen.getByTestId('day-badge-5')).toBeTruthy();
   expect(screen.getByText('5')).toBeTruthy();
+  expect(screen.queryByTestId('multi-photo-icon-5')).toBeNull();
 });
 
-test('shows a photo count alongside the day number for multi-capture days', async () => {
+test('shows the multi-photo icon alongside the day number, in one badge, for multi-capture days', async () => {
   await render(
     <MonthGrid
+      year={2026}
+      month={8}
       leadingBlanks={0}
       days={[
         {
@@ -53,12 +60,16 @@ test('shows a photo count alongside the day number for multi-capture days', asyn
       ]}
     />
   );
-  expect(screen.getByText('7 · 2')).toBeTruthy();
+  expect(screen.getByTestId('day-badge-7')).toBeTruthy();
+  expect(screen.getByTestId('multi-photo-icon-7')).toBeTruthy();
+  expect(screen.getByText('7')).toBeTruthy();
 });
 
 test('shows a frozen indicator on a frozen day', async () => {
   await render(
     <MonthGrid
+      year={2026}
+      month={8}
       leadingBlanks={0}
       days={[{ day: 2, imageUrl: null, imageUrls: [], captureIds: [], state: 'frozen' }]}
     />
@@ -69,6 +80,8 @@ test('shows a frozen indicator on a frozen day', async () => {
 test('renders leading blank cells to align the first day by weekday', async () => {
   await render(
     <MonthGrid
+      year={2026}
+      month={8}
       leadingBlanks={3}
       days={[{ day: 1, imageUrl: null, imageUrls: [], captureIds: [], state: 'future' }]}
     />
