@@ -7,6 +7,7 @@ import { getSignedUrls } from './signedUrlCache';
 export const queryKeys = {
   todayCaptures: (dateISO: string) => ['todayCaptures', dateISO] as const,
   timelineMonth: (year: number, month: number) => ['timelineMonth', year, month] as const,
+  recap: (kind: 'week' | 'year') => ['recap', kind] as const,
 };
 
 export type TodayCaptures = { ids: string[]; urls: string[]; count: number };
@@ -107,6 +108,15 @@ export async function fetchTimelineMonth(
   // card -- otherwise the fullscreen viewer shows a blank/loading gap.
   if (signedByPath.size > 0) Image.prefetch(Array.from(signedByPath.values()), 'memory-disk');
   return { year, month, leadingBlanks: new Date(year, month - 1, 1).getDay(), days };
+}
+
+export async function fetchRecapPhotos(kind: 'week' | 'year'): Promise<string[]> {
+  const rpc = kind === 'year' ? 'get_grand_recap' : 'get_weekly_recap';
+  const { data } = await supabase.rpc(rpc);
+  const paths: string[] = (data ?? []).map((r: any) => r.storage_path);
+  if (paths.length === 0) return [];
+  const signedByPath = await getSignedUrls(paths);
+  return paths.map((p) => signedByPath.get(p)).filter((url): url is string => !!url);
 }
 
 // Every screen that shows a capture list calls this after a successful delete, so a

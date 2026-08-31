@@ -1,7 +1,13 @@
 import { QueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { getSignedUrls } from '../../lib/signedUrlCache';
-import { queryKeys, fetchTodayCaptures, fetchTimelineMonth, invalidateCaptureQueries } from '../../lib/captureQueries';
+import {
+  queryKeys,
+  fetchTodayCaptures,
+  fetchTimelineMonth,
+  fetchRecapPhotos,
+  invalidateCaptureQueries,
+} from '../../lib/captureQueries';
 
 jest.mock('../../lib/supabase', () => ({
   supabase: { from: jest.fn(), rpc: jest.fn() },
@@ -138,4 +144,27 @@ test('fetchTimelineMonth marks a day before the account was created as future, n
   const result = await fetchTimelineMonth(2026, 9, '2026-09-15', '2026-09-02');
 
   expect(result.days[0].state).toBe('future');
+});
+
+test('queryKeys.recap builds a key scoped to the kind', () => {
+  expect(queryKeys.recap('week')).toEqual(['recap', 'week']);
+  expect(queryKeys.recap('year')).toEqual(['recap', 'year']);
+});
+
+test('fetchRecapPhotos calls get_weekly_recap for "week" and resolves signed urls', async () => {
+  (supabase.rpc as jest.Mock).mockResolvedValue({ data: [{ storage_path: 'p1' }, { storage_path: 'p2' }] });
+  (getSignedUrls as jest.Mock).mockResolvedValue(new Map([['p1', 'https://signed/p1']]));
+
+  const result = await fetchRecapPhotos('week');
+
+  expect(supabase.rpc).toHaveBeenCalledWith('get_weekly_recap');
+  expect(result).toEqual(['https://signed/p1']);
+});
+
+test('fetchRecapPhotos calls get_grand_recap for "year"', async () => {
+  (supabase.rpc as jest.Mock).mockResolvedValue({ data: [] });
+
+  await fetchRecapPhotos('year');
+
+  expect(supabase.rpc).toHaveBeenCalledWith('get_grand_recap');
 });
