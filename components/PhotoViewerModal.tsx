@@ -1,26 +1,26 @@
 import { memo, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Modal, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Modal, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, Pressable } from 'react-native-gesture-handler';
-import { SymbolView } from 'expo-symbols';
 import { NetworkImage } from './NetworkImage';
-import { useSharedValue } from 'react-native-reanimated';
-import { Carousel, Pagination } from 'react-native-reanimated-carousel';
-import { colors, radius, spacing, touchTarget, PHOTO_ASPECT_RATIO } from '../lib/theme';
+import { CloseIcon, TrashIcon } from './Icons';
+import { Carousel } from 'react-native-reanimated-carousel';
+import { colors, radius, spacing, touchTarget, type, PHOTO_ASPECT_RATIO } from '../lib/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CLOSE_ICON = { ios: 'xmark', android: 'close' } as const;
-const TRASH_ICON = { ios: 'trash', android: 'delete' } as const;
+const PLATE_WIDTH = SCREEN_WIDTH - spacing.md * 2;
+
+function pad(n: number) {
+  return n < 10 ? `0${n}` : `${n}`;
+}
 
 const CarouselPhoto = memo(function CarouselPhoto({ uri }: { uri: string }) {
   return (
-    <View style={{ width: '100%', height: '100%', alignItems: 'center' }}>
-      <NetworkImage
-        source={{ uri }}
-        style={{ width: '86%', aspectRatio: PHOTO_ASPECT_RATIO, borderRadius: 16 }}
-        contentFit="cover"
-      />
-    </View>
+    <NetworkImage
+      source={{ uri }}
+      style={{ width: '100%', aspectRatio: PHOTO_ASPECT_RATIO }}
+      contentFit="cover"
+    />
   );
 });
 
@@ -28,8 +28,6 @@ const iconButtonStyle = {
   width: touchTarget.min,
   height: touchTarget.min,
   margin: spacing.md,
-  borderRadius: radius.button,
-  backgroundColor: 'rgba(0,0,0,0.55)',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
 };
@@ -53,7 +51,6 @@ export function PhotoViewerModal({
 }) {
   const images = urls && urls.length ? urls : url ? [url] : [];
   const isVisible = visible ?? images.length > 0;
-  const progress = useSharedValue(0);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [deleting, setDeleting] = useState(false);
 
@@ -89,44 +86,59 @@ export function PhotoViewerModal({
     <Modal visible={isVisible} transparent animationType="fade" onRequestClose={onClose}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', alignItems: 'center', justifyContent: 'center' }}
+          style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}
           onPress={onClose}
         >
-          {images.length > 1 ? (
-            <View
-              style={{
-                width: SCREEN_WIDTH,
-                aspectRatio: PHOTO_ASPECT_RATIO,
-                maxHeight: '70%',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-              }}
-            >
+          <View
+            style={{
+              width: PLATE_WIDTH,
+              borderRadius: radius.card,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              overflow: 'hidden',
+            }}
+          >
+            {images.length > 1 ? (
               <Carousel
-                style={{ width: '100%', height: '100%' }}
+                style={{ width: '100%', aspectRatio: PHOTO_ASPECT_RATIO }}
                 data={images}
                 renderWindowSize={3}
                 defaultIndex={Math.min(initialIndex, images.length - 1)}
-                progress={progress}
                 onSnapToItem={setActiveIndex}
                 renderItem={({ item }) => <CarouselPhoto uri={item} />}
               />
-              <Pagination
-                progress={progress}
-                count={images.length}
-                dotStyle={{ width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' }}
-                activeDotStyle={{ backgroundColor: '#fff' }}
-                containerStyle={{ position: 'absolute', bottom: 12, gap: 6 }}
-              />
+            ) : images[0] ? (
+              <CarouselPhoto uri={images[0]} />
+            ) : null}
+
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+              }}
+            >
+              <Text
+                style={{
+                  ...type.caption,
+                  fontSize: 10.5,
+                  letterSpacing: 0.6,
+                  textTransform: 'uppercase',
+                  color: colors.textFaint,
+                }}
+              >
+                Photo
+              </Text>
+              <Text style={{ ...type.data, color: colors.textPrimary }}>
+                {pad(activeIndex + 1)} / {pad(images.length)}
+              </Text>
             </View>
-          ) : images[0] ? (
-            <NetworkImage
-              source={{ uri: images[0] }}
-              style={{ width: '100%', aspectRatio: PHOTO_ASPECT_RATIO, maxHeight: '70%' }}
-              contentFit="contain"
-            />
-          ) : null}
+          </View>
 
           <SafeAreaView pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -134,9 +146,9 @@ export function PhotoViewerModal({
                 onPress={onClose}
                 accessibilityRole="button"
                 accessibilityLabel="Close photo viewer"
-                style={iconButtonStyle}
+                style={({ pressed }) => [iconButtonStyle, pressed && { opacity: 0.6 }]}
               >
-                <SymbolView name={CLOSE_ICON} size={22} tintColor={colors.textPrimary} />
+                <CloseIcon size={22} color={colors.textPrimary} />
               </Pressable>
 
               {canDelete ? (
@@ -147,12 +159,12 @@ export function PhotoViewerModal({
                   accessibilityLabel="Delete photo"
                   accessibilityState={{ disabled: deleting, busy: deleting }}
                   testID="delete-photo-button"
-                  style={[iconButtonStyle, deleting && { opacity: 0.6 }]}
+                  style={({ pressed }) => [iconButtonStyle, (deleting || pressed) && { opacity: 0.6 }]}
                 >
                   {deleting ? (
                     <ActivityIndicator size="small" color={colors.textPrimary} />
                   ) : (
-                    <SymbolView name={TRASH_ICON} size={22} tintColor={colors.textPrimary} />
+                    <TrashIcon size={22} color={colors.textPrimary} />
                   )}
                 </Pressable>
               ) : (
