@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { changePassword } from '../lib/settings';
 import { mapAuthError } from '../lib/authErrors';
@@ -30,6 +30,7 @@ export default function ChangePassword() {
       setError(mapAuthError(saveError).message);
       return;
     }
+    Alert.alert('Password updated', 'Use your new password next time you sign in.');
     router.back();
   }
 

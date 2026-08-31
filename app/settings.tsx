@@ -79,7 +79,7 @@ export default function Settings() {
                 </View>
                 {account?.canChangePassword && (
                   <>
-                    <Divider />
+                    <View style={{ height: 1, backgroundColor: colors.border }} />
                     <TextLink
                       label="Change password"
                       accessibilityLabel="Change password"
