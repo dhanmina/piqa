@@ -6,7 +6,7 @@ import { SymbolView } from 'expo-symbols';
 import { NetworkImage } from './NetworkImage';
 import { useSharedValue } from 'react-native-reanimated';
 import { Carousel, Pagination } from 'react-native-reanimated-carousel';
-import { colors, radius, spacing, touchTarget } from '../lib/theme';
+import { colors, radius, spacing, touchTarget, PHOTO_ASPECT_RATIO } from '../lib/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CLOSE_ICON = { ios: 'xmark', android: 'close' } as const;
@@ -84,7 +84,8 @@ export function PhotoViewerModal({
             <View
               style={{
                 width: SCREEN_WIDTH,
-                height: '70%',
+                aspectRatio: PHOTO_ASPECT_RATIO,
+                maxHeight: '70%',
                 alignItems: 'center',
                 justifyContent: 'center',
                 overflow: 'hidden',
@@ -100,7 +101,7 @@ export function PhotoViewerModal({
                   <View style={{ width: '100%', height: '100%', alignItems: 'center' }}>
                     <NetworkImage
                       source={{ uri: item }}
-                      style={{ width: '86%', height: '100%', borderRadius: 16 }}
+                      style={{ width: '86%', aspectRatio: PHOTO_ASPECT_RATIO, borderRadius: 16 }}
                       contentFit="cover"
                     />
                   </View>
@@ -115,7 +116,11 @@ export function PhotoViewerModal({
               />
             </View>
           ) : images[0] ? (
-            <NetworkImage source={{ uri: images[0] }} style={{ width: '100%', height: '70%' }} contentFit="contain" />
+            <NetworkImage
+              source={{ uri: images[0] }}
+              style={{ width: '100%', aspectRatio: PHOTO_ASPECT_RATIO, maxHeight: '70%' }}
+              contentFit="contain"
+            />
           ) : null}
 
           <SafeAreaView pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>

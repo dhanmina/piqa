@@ -46,3 +46,9 @@ export const touchTarget = {
   min: 48, // Android minimum touch target (dp) — use as hitSlop floor for icon-only controls
   gap: 8, // minimum space between adjacent tappable controls
 } as const;
+
+// Every capture is cropped to this ratio (width/height) at shoot time, so any
+// container displaying a full (uncropped-by-grid) photo should use the same
+// ratio — screen-relative heights (e.g. '70%') vary by device and reintroduce
+// the per-phone mismatch the crop was meant to fix.
+export const PHOTO_ASPECT_RATIO = 3 / 4;
