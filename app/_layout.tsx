@@ -6,6 +6,23 @@ import { getOnboardingStatus, getNeedsUsername } from '../lib/onboarding';
 import { supabase } from '../lib/supabase';
 import { AuthStateProvider } from '../lib/authState';
 
+/**
+ * DIRECTION CONTRACT — seed key 9a4f58ae
+ * THESIS: the streak is one continuous ink trace on a recording roll, not a
+ *   card feed or a dot grid. Refuses the gamified-badge/rounded-card default.
+ * OWN-WORLD: near-black recording paper, one bright white trace as the sole
+ *   living accent, faint gray calibration hairlines, monospace for every
+ *   data readout (streak counts, dates, stats) against system sans for prose.
+ * STORY: the streak reads as a line the visitor is extending; a miss is a
+ *   real gap, a freeze is a dashed continuation; Peek Back is the recorder
+ *   head sliding back the roll and re-lighting an old mark.
+ * FIRST VIEWPOINT: date readout, monospace hero streak count, the 7-day
+ *   trace with today's pen-head, Peek Back's instrument plate below.
+ * FORM: assigned direction, index 5 of 7, mode operate. Lost to two named
+ *   challengers on record: Emission-Line Rail, Darkroom Safelight Bay.
+ * FINISH: unreviewed and undocumented is unfinished; this build ends with
+ *   DESIGN.md rewritten from the built world.
+ */
 export default function RootLayout() {
   const [checked, setChecked] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
