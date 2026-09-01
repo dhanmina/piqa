@@ -3,14 +3,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { CameraIcon } from './NavIcons';
-import { BAR_HEIGHT } from './TabBar';
+import { BAR_HEIGHT, FAB_GAP_ABOVE_BAR, FAB_SIZE } from './TabBar';
 import { colors, spacing } from '../lib/theme';
 
 const PRESS_SPRING = { damping: 18, stiffness: 400 };
-const FAB_SIZE = 60;
-// A real gap above the pill, not an overlapping notch -- a fully separate
-// floating action rather than something merged into the tab bar's shape.
-const GAP_ABOVE_BAR = spacing.md;
 
 // Standalone floating capture button, not part of the tab bar or its route
 // list. No FAB-as-fake-tab interception hack -- this is just a button that
@@ -30,7 +26,7 @@ export function CameraFab() {
       style={{
         position: 'absolute',
         right: spacing.lg,
-        bottom: insets.bottom + spacing.sm + BAR_HEIGHT + GAP_ABOVE_BAR,
+        bottom: insets.bottom + spacing.sm + BAR_HEIGHT + FAB_GAP_ABOVE_BAR,
       }}
     >
       <Animated.View

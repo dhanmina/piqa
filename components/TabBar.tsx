@@ -10,13 +10,22 @@ type IconComponent = ComponentType<{ size: number; color: string }>;
 const PRESS_SPRING = { damping: 18, stiffness: 400 };
 export const BAR_HEIGHT = 72;
 
+// CameraFab's own footprint, needed here too: TAB_BAR_CLEARANCE has to clear
+// the FAB, not just the bar underneath it, or the FAB overlaps scroll content
+// once a list is scrolled all the way to its floating-chrome edge.
+export const FAB_SIZE = 60;
+export const FAB_GAP_ABOVE_BAR = spacing.md;
+
 // expo-router's bottom-tabs lays the tab bar out as a normal flex sibling
 // below the screen content by default — the screen's own flex:1 area stops
 // exactly above it, a hard cut, not a float. Each tab screen's scrollable
 // content needs this much extra bottom clearance (on top of whatever its own
 // SafeAreaView already reserves for the device inset) so real content never
 // sits permanently under the pill once the bar is pulled out of that flow.
-export const TAB_BAR_CLEARANCE = BAR_HEIGHT + spacing.lg;
+// Sized to clear the CameraFab's top edge, not just the bar's — the FAB
+// floats GAP_ABOVE_BAR + FAB_SIZE above the bar, so clearing only the bar
+// left the FAB's top ~36dp overlapping scrolled-to-bottom content.
+export const TAB_BAR_CLEARANCE = spacing.sm + BAR_HEIGHT + FAB_GAP_ABOVE_BAR + FAB_SIZE;
 
 // Exact icon shapes chosen by the user (see components/NavIcons.tsx) — solid,
 // chunky, rounded Font Awesome-style glyphs, drawn via react-native-svg for
