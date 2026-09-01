@@ -2,6 +2,7 @@ docs/
 TODO.md
 .impeccable/
 .superpowers/
+.worktrees/
 
 # dependencies
 node_modules/
