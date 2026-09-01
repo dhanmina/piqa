@@ -9,7 +9,21 @@ export const queryKeys = {
   todayCaptures: (dateISO: string) => ['todayCaptures', dateISO] as const,
   timelineMonth: (year: number, month: number) => ['timelineMonth', year, month] as const,
   recap: (kind: 'week' | 'year') => ['recap', kind] as const,
+  profileCreatedAt: ['profileCreatedAt'] as const,
+  buddies: ['buddies'] as const,
+  pendingRequests: ['pendingRequests'] as const,
+  profileInfo: ['profileInfo'] as const,
+  accountInfo: ['accountInfo'] as const,
 };
+
+// created_at never changes for an account, so this is fetched once (prefetched at app
+// boot in _layout.tsx right after sign-in resolves) and cached forever -- consumers like
+// timeline.tsx read it via useQuery instead of each re-fetching it on their own mount.
+export async function fetchProfileCreatedAt(): Promise<string | null> {
+  const { data, error } = await supabase.from('profiles').select('created_at').single();
+  if (error) console.error('[profile] created_at fetch failed', error);
+  return data?.created_at?.slice(0, 10) ?? null;
+}
 
 export type TodayCaptures = { ids: string[]; urls: string[]; paths: string[]; count: number };
 

@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 import { router, useFocusEffect } from 'expo-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../lib/captureQueries';
 import { signOut } from '../lib/auth';
 import { fetchAccountInfo, type AccountInfo } from '../lib/settings';
 import { fetchProfile, type ProfileInfo } from '../lib/profile';
@@ -15,31 +17,36 @@ import { colors, spacing, touchTarget, type } from '../lib/theme';
 
 const BACK_ICON = { ios: 'chevron.left', android: 'arrow_back' } as const;
 
+async function loadAccountOrThrow(): Promise<AccountInfo | null> {
+  const { data, error } = await fetchAccountInfo();
+  if (error) throw error;
+  return data;
+}
+
+async function loadProfileOrThrow(): Promise<ProfileInfo | null> {
+  const { data, error } = await fetchProfile();
+  if (error) throw error;
+  return data;
+}
+
 export default function Settings() {
-  const [account, setAccount] = useState<AccountInfo | null>(null);
-  const [accountError, setAccountError] = useState(false);
+  const queryClient = useQueryClient();
   const [signingOut, setSigningOut] = useState(false);
 
-  const [profileInfo, setProfileInfo] = useState<ProfileInfo | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-
-  const loadAccount = useCallback(async () => {
-    const { data, error } = await fetchAccountInfo();
-    setAccountError(!!error);
-    if (!error) setAccount(data);
-  }, []);
-
-  const loadProfile = useCallback(async () => {
-    const { data, error } = await fetchProfile();
-    if (!error) setProfileInfo(data);
-    setProfileLoading(false);
-  }, []);
+  // Persisted cache (app/_layout.tsx) paints last-known account/profile immediately on
+  // reopen instead of blanking the screen every time -- see the same fix in buddies.tsx.
+  const accountQuery = useQuery({ queryKey: queryKeys.accountInfo, queryFn: loadAccountOrThrow });
+  const profileQuery = useQuery({ queryKey: queryKeys.profileInfo, queryFn: loadProfileOrThrow });
+  const account = accountQuery.data ?? null;
+  const accountError = accountQuery.isError;
+  const profileInfo = profileQuery.data ?? null;
+  const profileLoading = profileQuery.isLoading;
 
   useFocusEffect(
     useCallback(() => {
-      loadAccount();
-      loadProfile();
-    }, [loadAccount, loadProfile])
+      queryClient.invalidateQueries({ queryKey: queryKeys.accountInfo });
+      queryClient.invalidateQueries({ queryKey: queryKeys.profileInfo });
+    }, [queryClient])
   );
 
   async function handleSignOut() {

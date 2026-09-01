@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../lib/captureQueries';
 import {
   fetchBuddies,
   fetchPendingRequests,
@@ -17,41 +19,49 @@ import { Screen } from '../../components/Screen';
 import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
 import { colors, spacing, type } from '../../lib/theme';
 
-export default function BuddiesScreen() {
-  const [buddies, setBuddies] = useState<Buddy[]>([]);
-  const [buddiesLoading, setBuddiesLoading] = useState(true);
-  const [buddiesError, setBuddiesError] = useState(false);
+async function loadBuddiesOrThrow(): Promise<Buddy[]> {
+  const { data, error } = await fetchBuddies();
+  if (error) throw error;
+  return data;
+}
 
-  const [requests, setRequests] = useState<PendingRequest[]>([]);
-  const [requestsLoading, setRequestsLoading] = useState(true);
-  const [requestsError, setRequestsError] = useState(false);
+async function loadPendingRequestsOrThrow(): Promise<PendingRequest[]> {
+  const { data, error } = await fetchPendingRequests();
+  if (error) throw error;
+  return data;
+}
+
+export default function BuddiesScreen() {
+  const queryClient = useQueryClient();
   const [respondingId, setRespondingId] = useState<string | null>(null);
 
-  const loadBuddies = useCallback(async () => {
-    const { data, error } = await fetchBuddies();
-    setBuddiesError(!!error);
-    if (!error) setBuddies(data);
-    setBuddiesLoading(false);
-  }, []);
-
-  const loadRequests = useCallback(async () => {
-    const { data, error } = await fetchPendingRequests();
-    setRequestsError(!!error);
-    if (!error) setRequests(data);
-    setRequestsLoading(false);
-  }, []);
+  // The persisted query cache (see app/_layout.tsx) means a returning visit to this tab
+  // paints last-known buddies/requests immediately -- isLoading is only true the very
+  // first time this has ever been fetched, not on every re-focus like the old
+  // useState+useFocusEffect version (which blanked the screen back to "loading" on
+  // every single visit, cache or not).
+  const buddiesQuery = useQuery({ queryKey: queryKeys.buddies, queryFn: loadBuddiesOrThrow });
+  const requestsQuery = useQuery({ queryKey: queryKeys.pendingRequests, queryFn: loadPendingRequestsOrThrow });
+  const buddies = buddiesQuery.data ?? [];
+  const buddiesLoading = buddiesQuery.isLoading;
+  const buddiesError = buddiesQuery.isError;
+  const requests = requestsQuery.data ?? [];
+  const requestsLoading = requestsQuery.isLoading;
+  const requestsError = requestsQuery.isError;
 
   useFocusEffect(
     useCallback(() => {
-      loadBuddies();
-      loadRequests();
-    }, [loadBuddies, loadRequests])
+      queryClient.invalidateQueries({ queryKey: queryKeys.buddies });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pendingRequests });
+    }, [queryClient])
   );
 
   async function handleReact(captureId: string) {
-    setBuddies((prev) => prev.map((b) => (b.todayCaptureId === captureId ? { ...b, reactedByMe: true } : b)));
+    queryClient.setQueryData(queryKeys.buddies, (prev: Buddy[] | undefined) =>
+      prev?.map((b) => (b.todayCaptureId === captureId ? { ...b, reactedByMe: true } : b))
+    );
     const { error } = await reactToCapture(captureId);
-    if (error) loadBuddies();
+    if (error) queryClient.invalidateQueries({ queryKey: queryKeys.buddies });
   }
 
   async function handleRespond(request: PendingRequest, accept: boolean) {
@@ -62,8 +72,10 @@ export default function BuddiesScreen() {
       Alert.alert(accept ? 'Could not accept' : 'Could not decline', error.message);
       return;
     }
-    setRequests((prev) => prev.filter((r) => r.requestId !== request.requestId));
-    if (accept) loadBuddies();
+    queryClient.setQueryData(queryKeys.pendingRequests, (prev: PendingRequest[] | undefined) =>
+      prev?.filter((r) => r.requestId !== request.requestId)
+    );
+    if (accept) queryClient.invalidateQueries({ queryKey: queryKeys.buddies });
   }
 
   return (

@@ -2,15 +2,14 @@ import { Component, useCallback, useEffect, useMemo, useRef, useState, type Reac
 import { FlatList, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { supabase } from '../../lib/supabase';
 import { MonthGrid } from '../../components/MonthGrid';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { Screen } from '../../components/Screen';
 import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
 import { TextLink } from '../../components/TextLink';
 import { deleteCapture } from '../../lib/deleteCapture';
-import { useQueries, useQueryClient } from '@tanstack/react-query';
-import { queryKeys, fetchTimelineMonth, invalidateCaptureQueries, type MonthData, type MonthDay } from '../../lib/captureQueries';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys, fetchTimelineMonth, fetchProfileCreatedAt, invalidateCaptureQueries, type MonthData, type MonthDay } from '../../lib/captureQueries';
 import { getSignedUrls } from '../../lib/signedUrlCache';
 import { colors, spacing, type } from '../../lib/theme';
 
@@ -38,8 +37,13 @@ function Timeline() {
   const now = new Date();
   const todayISO = toISODate(now.getFullYear(), now.getMonth() + 1, now.getDate());
 
-  const [createdAtISO, setCreatedAtISO] = useState<string | null>(null);
-  const [profileLoaded, setProfileLoaded] = useState(false);
+  // Prefetched at app boot in _layout.tsx right after sign-in resolves -- this useQuery
+  // just reads that cache, so by the time this tab mounts it's almost always already loaded.
+  const { data: createdAtISO = null, isFetched: profileLoaded } = useQuery({
+    queryKey: queryKeys.profileCreatedAt,
+    queryFn: fetchProfileCreatedAt,
+    staleTime: Infinity,
+  });
   const [monthKeys, setMonthKeys] = useState<MonthKey[]>([monthKey(now.getFullYear(), now.getMonth() + 1)]);
   // A near-empty current month (e.g. the 1st of the month, or a month with no
   // captures yet) renders content shorter than the viewport, so the inverted
@@ -62,26 +66,13 @@ function Timeline() {
   const reachedStartRef = useRef(false);
   const listRef = useRef<FlatList<MonthKey>>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data, error } = await supabase.from('profiles').select('created_at').single();
-        if (error) console.error('[timeline] profile fetch failed', error);
-        setCreatedAtISO(data?.created_at?.slice(0, 10) ?? null);
-      } catch (err) {
-        console.error('[timeline] profile fetch threw', err);
-      } finally {
-        setProfileLoaded(true);
-      }
-    })();
-  }, []);
-
   const monthQueries = useQueries({
     queries: monthKeys.map((key) => {
       const [y, m] = key.split('-').map(Number);
       return {
         queryKey: queryKeys.timelineMonth(y, m),
         queryFn: () => fetchTimelineMonth(y, m, todayISO, createdAtISO),
+        enabled: profileLoaded,
       };
     }),
   });
@@ -145,6 +136,18 @@ function Timeline() {
     });
     loadingRef.current = false;
   }
+
+  // Fires the previous month's fetch the moment the profile gate opens, in parallel
+  // with the current month's -- instead of waiting for the current month to resolve,
+  // render, get measured as near-empty, and only THEN kick off a second fetch for last
+  // month (the double sequential wait this was reported against). Current month is still
+  // rendered as soon as its own query lands; this only removes the second round-trip's
+  // added latency for the common case where it turns out to be needed.
+  useEffect(() => {
+    if (!profileLoaded) return;
+    loadOlderMonth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileLoaded]);
 
   // Keeps requesting older months while the rendered list is shorter than the
   // screen — see the viewportHeight/contentHeight comment above. Once content

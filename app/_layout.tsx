@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { AuthStateProvider } from '../lib/authState';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, queryPersister, QUERY_CACHE_BUSTER, QUERY_CACHE_MAX_AGE } from '../lib/queryClient';
+import { queryKeys, fetchProfileCreatedAt } from '../lib/captureQueries';
 import { colors } from '../lib/theme';
 
 // React Navigation's screen Background paints its theme's `colors.background`
@@ -52,6 +53,12 @@ export default function RootLayout() {
       setOnboarded(isOnboarded);
       setNeedsUsername(needsUsernameNext);
       setChecked(true);
+      // Warm this before any tab mounts -- timeline.tsx needs it to classify pre-account
+      // days correctly, and fetching it here (once, cached forever) means the tab never
+      // has to show its own separate loading wait for it.
+      if (isSignedIn) {
+        queryClient.prefetchQuery({ queryKey: queryKeys.profileCreatedAt, queryFn: fetchProfileCreatedAt, staleTime: Infinity });
+      }
     }
 
     getSession().then(resolve).catch(() => setChecked(true));
