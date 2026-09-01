@@ -119,9 +119,11 @@ export async function fetchBuddyPeek(today: string): Promise<{ data: BuddyPeek |
   } | undefined = data?.[0];
   if (!row) return { data: null, error: null };
 
-  const { data: signed, error: signError } = await supabase.storage
-    .from('captures')
-    .createSignedUrls([row.my_storage_path, row.buddy_storage_path], 3600);
+  // Deduped -- both roles can legitimately point at the same storage_path (e.g. a
+  // reused-photo test seed), and a duplicate path in one createSignedUrls call isn't
+  // guaranteed to come back as two result entries.
+  const paths = Array.from(new Set([row.my_storage_path, row.buddy_storage_path]));
+  const { data: signed, error: signError } = await supabase.storage.from('captures').createSignedUrls(paths, 3600);
   if (signError) return { data: null, error: new Error(signError.message) };
 
   const urlByPath = new Map<string, string>();
@@ -132,8 +134,12 @@ export async function fetchBuddyPeek(today: string): Promise<{ data: BuddyPeek |
   const buddyPhotoUrl = urlByPath.get(row.buddy_storage_path);
   // A failed sign on either side (e.g. a storage policy edge case) means the
   // moment can't be shown as a matched pair -- fail soft to "no peek today"
-  // rather than render half a match.
-  if (!myPhotoUrl || !buddyPhotoUrl) return { data: null, error: null };
+  // rather than render half a match, but log it -- this used to be silent,
+  // indistinguishable from "no match today" from the caller's side.
+  if (!myPhotoUrl || !buddyPhotoUrl) {
+    console.warn('[fetchBuddyPeek] signed url missing for one or both paths', paths, signed);
+    return { data: null, error: null };
+  }
 
   return {
     data: {

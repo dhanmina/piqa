@@ -31,51 +31,68 @@ export function BuddyPeekCard({
         <Text style={{ ...type.caption, color: colors.textMuted }}>{peek.label}</Text>
       </View>
 
-      <Pressable
-        onPress={onPress}
-        accessibilityRole="imagebutton"
-        accessibilityLabel={`Buddy Peek photos, you and ${displayName}, ${peek.label}`}
-        style={({ pressed }) => ({ flexDirection: 'row', gap: spacing.xs, opacity: pressed ? 0.85 : 1 })}
-      >
-        <NetworkImage
-          source={{ uri: peek.myPhotoUrl }}
-          cacheKey={peek.myCaptureId}
-          style={{ flex: 1, height: PHOTO_HEIGHT, borderRadius: radius.card }}
-          accessibilityLabel="Your photo"
-        />
-        <View style={{ flex: 1 }}>
+      <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+        <Pressable
+          onPress={onPress}
+          accessibilityRole="imagebutton"
+          accessibilityLabel={`Your photo, ${peek.label}`}
+          style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.85 : 1 })}
+        >
+          <NetworkImage
+            source={{ uri: peek.myPhotoUrl }}
+            cacheKey={peek.myCaptureId}
+            style={{ height: PHOTO_HEIGHT, borderRadius: radius.card }}
+            accessibilityLabel="Your photo"
+          />
+        </Pressable>
+        <Pressable
+          onPress={onPress}
+          accessibilityRole="imagebutton"
+          accessibilityLabel={`${displayName}'s photo, ${peek.label}`}
+          style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.85 : 1 })}
+        >
           <NetworkImage
             source={{ uri: peek.buddyPhotoUrl }}
             cacheKey={peek.buddyCaptureId}
             style={{ height: PHOTO_HEIGHT, borderRadius: radius.card }}
             accessibilityLabel={`${displayName}'s photo`}
           />
-          <Pressable
-            onPress={onReact}
-            disabled={peek.reactedByMe}
-            hitSlop={touchTarget.min / 2}
-            accessibilityRole="button"
-            accessibilityLabel={peek.reactedByMe ? 'Already reacted' : `React to ${displayName}'s photo`}
-            accessibilityState={{ disabled: peek.reactedByMe }}
-            style={{
-              position: 'absolute',
-              bottom: spacing.xs,
-              right: spacing.xs,
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              backgroundColor: 'rgba(0,0,0,0.45)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <SymbolView
-              name={peek.reactedByMe ? HEART_FILLED_ICON : HEART_ICON}
-              size={16}
-              tintColor={peek.reactedByMe ? colors.accent : colors.textPrimary}
-            />
-          </Pressable>
-        </View>
+        </Pressable>
+      </View>
+
+      {/* Its own row, not an overlay on the photo above -- an overlay button sitting
+          on top of a tap-to-view photo always fights that photo's own Pressable for
+          the touch (confirmed the hard way). A dedicated row below removes the
+          conflict at the layout level instead of patching it with zIndex. */}
+      <Pressable
+        onPress={onReact}
+        disabled={peek.reactedByMe}
+        accessibilityRole="button"
+        accessibilityLabel={peek.reactedByMe ? 'Already reacted' : `React to ${displayName}'s photo`}
+        accessibilityState={{ disabled: peek.reactedByMe }}
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          gap: spacing.xxs,
+          minHeight: touchTarget.min,
+          opacity: pressed && !peek.reactedByMe ? 0.6 : 1,
+        })}
+      >
+        <SymbolView
+          name={peek.reactedByMe ? HEART_FILLED_ICON : HEART_ICON}
+          size={18}
+          tintColor={peek.reactedByMe ? colors.accent : colors.textMuted}
+        />
+        <Text
+          style={{
+            ...type.caption,
+            color: peek.reactedByMe ? colors.textPrimary : colors.textMuted,
+            fontWeight: peek.reactedByMe ? '600' : '400',
+          }}
+        >
+          {peek.reactedByMe ? 'Reacted' : 'React'}
+        </Text>
       </Pressable>
     </Card>
   );
