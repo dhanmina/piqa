@@ -2,6 +2,8 @@ import {
   searchProfiles,
   sendBuddyRequest,
   respondToBuddyRequest,
+  cancelBuddyRequest,
+  removeBuddy,
   reactToCapture,
   fetchPendingRequests,
   fetchBuddies,
@@ -26,15 +28,24 @@ beforeEach(() => {
 describe('searchProfiles', () => {
   test('maps rows to camelCase', async () => {
     mockRpc.mockResolvedValue({
-      data: [{ id: 'u1', username: 'bob', display_name: 'Bob', avatar_url: null, relationship: 'none' }],
+      data: [{ id: 'u1', username: 'bob', display_name: 'Bob', avatar_url: null, relationship: 'none', request_id: null }],
       error: null,
     });
     const result = await searchProfiles('bob');
     expect(mockRpc).toHaveBeenCalledWith('search_profiles', { query: 'bob' });
     expect(result).toEqual({
-      data: [{ id: 'u1', username: 'bob', displayName: 'Bob', avatarUrl: null, relationship: 'none' }],
+      data: [{ id: 'u1', username: 'bob', displayName: 'Bob', avatarUrl: null, relationship: 'none', requestId: null }],
       error: null,
     });
+  });
+
+  test('carries the underlying request id for a pending_sent result', async () => {
+    mockRpc.mockResolvedValue({
+      data: [{ id: 'u1', username: 'bob', display_name: 'Bob', avatar_url: null, relationship: 'pending_sent', request_id: 'req-1' }],
+      error: null,
+    });
+    const result = await searchProfiles('bob');
+    expect(result.data[0].requestId).toBe('req-1');
   });
 
   test('returns an error instead of throwing when the RPC fails', async () => {
@@ -66,6 +77,36 @@ describe('respondToBuddyRequest', () => {
     const result = await respondToBuddyRequest('req-1', true);
     expect(mockRpc).toHaveBeenCalledWith('respond_buddy_request', { request_id: 'req-1', accept: true });
     expect(result.error).toBeNull();
+  });
+});
+
+describe('cancelBuddyRequest', () => {
+  test('calls cancel_buddy_request with request_id', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: null });
+    const result = await cancelBuddyRequest('req-1');
+    expect(mockRpc).toHaveBeenCalledWith('cancel_buddy_request', { request_id: 'req-1' });
+    expect(result.error).toBeNull();
+  });
+
+  test('surfaces the RPC error message', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'Request not found' } });
+    const result = await cancelBuddyRequest('req-1');
+    expect(result.error?.message).toBe('Request not found');
+  });
+});
+
+describe('removeBuddy', () => {
+  test('calls remove_buddy with buddy_id', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: null });
+    const result = await removeBuddy('buddy-1');
+    expect(mockRpc).toHaveBeenCalledWith('remove_buddy', { buddy_id: 'buddy-1' });
+    expect(result.error).toBeNull();
+  });
+
+  test('surfaces the RPC error message', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'Buddy not found' } });
+    const result = await removeBuddy('buddy-1');
+    expect(result.error?.message).toBe('Buddy not found');
   });
 });
 

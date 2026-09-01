@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { fetchProfile } from '../lib/profile';
-import { searchProfiles, sendBuddyRequest, type SearchResult } from '../lib/buddies';
+import { searchProfiles, sendBuddyRequest, cancelBuddyRequest, type SearchResult } from '../lib/buddies';
 import { Screen } from '../components/Screen';
 import { FilledField } from '../components/FilledField';
 import { Card } from '../components/Card';
@@ -62,7 +62,21 @@ export default function AddBuddy() {
       Alert.alert('Could not send request', error.message);
       return;
     }
-    setResults((prev) => prev.map((r) => (r.id === result.id ? { ...r, relationship: 'pending_sent' } : r)));
+    runSearch(query);
+  }
+
+  async function handleCancel(result: SearchResult) {
+    if (!result.requestId) return;
+    setSendingId(result.id);
+    const { error } = await cancelBuddyRequest(result.requestId);
+    setSendingId(null);
+    if (error) {
+      Alert.alert('Could not cancel request', error.message);
+      return;
+    }
+    setResults((prev) =>
+      prev.map((r) => (r.id === result.id ? { ...r, relationship: 'none', requestId: null } : r))
+    );
   }
 
   function handleShare() {
@@ -116,10 +130,25 @@ export default function AddBuddy() {
                 {r.displayName ?? r.username}
               </Text>
               <TextLink
-                label={sendingId === r.id ? 'Sending...' : relationshipLabel(r.relationship)}
-                disabled={r.relationship !== 'none' || sendingId === r.id}
-                accessibilityLabel={`${relationshipLabel(r.relationship)} ${r.displayName ?? r.username}`}
-                onPress={() => handleAdd(r)}
+                label={
+                  sendingId === r.id
+                    ? r.relationship === 'pending_sent'
+                      ? 'Cancelling...'
+                      : 'Sending...'
+                    : r.relationship === 'pending_sent'
+                      ? 'Cancel'
+                      : relationshipLabel(r.relationship)
+                }
+                disabled={
+                  sendingId === r.id ||
+                  (r.relationship !== 'none' && r.relationship !== 'pending_sent')
+                }
+                accessibilityLabel={
+                  r.relationship === 'pending_sent'
+                    ? `Cancel request to ${r.displayName ?? r.username}`
+                    : `${relationshipLabel(r.relationship)} ${r.displayName ?? r.username}`
+                }
+                onPress={() => (r.relationship === 'pending_sent' ? handleCancel(r) : handleAdd(r))}
               />
             </Card>
           ))

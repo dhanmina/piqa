@@ -8,6 +8,7 @@ import {
   fetchPendingRequests,
   reactToCapture,
   respondToBuddyRequest,
+  removeBuddy,
   type Buddy,
   type PendingRequest,
 } from '../../lib/buddies';
@@ -64,6 +65,27 @@ export default function BuddiesScreen() {
     if (error) queryClient.invalidateQueries({ queryKey: queryKeys.buddies });
   }
 
+  async function handleRemove(buddy: Buddy) {
+    const displayName = buddy.displayName ?? buddy.username;
+    Alert.alert(`Remove ${displayName}?`, 'You can send a new request later if you change your mind.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          queryClient.setQueryData(queryKeys.buddies, (prev: Buddy[] | undefined) =>
+            prev?.filter((b) => b.id !== buddy.id)
+          );
+          const { error } = await removeBuddy(buddy.id);
+          if (error) {
+            Alert.alert('Could not remove buddy', error.message);
+            queryClient.invalidateQueries({ queryKey: queryKeys.buddies });
+          }
+        },
+      },
+    ]);
+  }
+
   async function handleRespond(request: PendingRequest, accept: boolean) {
     setRespondingId(request.requestId);
     const { error } = await respondToBuddyRequest(request.requestId, accept);
@@ -118,7 +140,7 @@ export default function BuddiesScreen() {
         ) : buddies.length > 0 ? (
           <View style={{ gap: spacing.sm }}>
             {buddies.map((b) => (
-              <BuddyRow key={b.id} buddy={b} onReact={handleReact} />
+              <BuddyRow key={b.id} buddy={b} onReact={handleReact} onRemove={() => handleRemove(b)} />
             ))}
           </View>
         ) : (

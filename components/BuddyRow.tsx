@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { Avatar } from './Avatar';
 import { Card } from './Card';
+import { CloseIcon } from './Icons';
 import { colors, radius, spacing, touchTarget, type } from '../lib/theme';
 import type { Buddy } from '../lib/buddies';
 
@@ -23,7 +24,15 @@ function statusLabel(status: Buddy['status']): string {
   }
 }
 
-export function BuddyRow({ buddy, onReact }: { buddy: Buddy; onReact: (captureId: string) => void }) {
+export function BuddyRow({
+  buddy,
+  onReact,
+  onRemove,
+}: {
+  buddy: Buddy;
+  onReact: (captureId: string) => void;
+  onRemove: () => void;
+}) {
   const displayName = buddy.displayName ?? buddy.username;
 
   return (
@@ -64,6 +73,14 @@ export function BuddyRow({ buddy, onReact }: { buddy: Buddy; onReact: (captureId
           </Pressable>
         </View>
       ) : null}
+      <Pressable
+        onPress={onRemove}
+        hitSlop={touchTarget.min / 2}
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${displayName} as a buddy`}
+      >
+        <CloseIcon size={16} color={colors.textFaint} />
+      </Pressable>
     </Card>
   );
 }

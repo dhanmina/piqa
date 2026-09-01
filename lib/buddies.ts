@@ -9,6 +9,7 @@ export type SearchResult = {
   displayName: string | null;
   avatarUrl: string | null;
   relationship: BuddyRelationship;
+  requestId: string | null;
 };
 
 export type Buddy = {
@@ -34,9 +35,19 @@ export type PendingRequest = {
 export async function searchProfiles(query: string): Promise<{ data: SearchResult[]; error: Error | null }> {
   const { data, error } = await supabase.rpc('search_profiles', { query });
   if (error) return { data: [], error: new Error(error.message) };
-  const rows: { id: string; username: string; display_name: string | null; avatar_url: string | null; relationship: BuddyRelationship }[] = data ?? [];
+  const rows: {
+    id: string; username: string; display_name: string | null; avatar_url: string | null;
+    relationship: BuddyRelationship; request_id: string | null;
+  }[] = data ?? [];
   return {
-    data: rows.map((r) => ({ id: r.id, username: r.username, displayName: r.display_name, avatarUrl: r.avatar_url, relationship: r.relationship })),
+    data: rows.map((r) => ({
+      id: r.id,
+      username: r.username,
+      displayName: r.display_name,
+      avatarUrl: r.avatar_url,
+      relationship: r.relationship,
+      requestId: r.request_id,
+    })),
     error: null,
   };
 }
@@ -49,6 +60,18 @@ export async function sendBuddyRequest(username: string): Promise<{ error: Error
 
 export async function respondToBuddyRequest(requestId: string, accept: boolean): Promise<{ error: Error | null }> {
   const { error } = await supabase.rpc('respond_buddy_request', { request_id: requestId, accept });
+  if (error) return { error: new Error(error.message) };
+  return { error: null };
+}
+
+export async function cancelBuddyRequest(requestId: string): Promise<{ error: Error | null }> {
+  const { error } = await supabase.rpc('cancel_buddy_request', { request_id: requestId });
+  if (error) return { error: new Error(error.message) };
+  return { error: null };
+}
+
+export async function removeBuddy(buddyId: string): Promise<{ error: Error | null }> {
+  const { error } = await supabase.rpc('remove_buddy', { buddy_id: buddyId });
   if (error) return { error: new Error(error.message) };
   return { error: null };
 }
