@@ -111,7 +111,7 @@ export default function Today() {
       setState(row);
     });
 
-    supabase.rpc('get_peek_back').then(async ({ data }) => {
+    supabase.rpc('get_peek_back', { p_today: todayISO }).then(async ({ data }) => {
       const row = data?.[0];
       if (!row) return;
       // Skip re-signing the same photo on every focus — a fresh signed URL swaps
