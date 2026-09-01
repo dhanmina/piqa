@@ -1,40 +1,13 @@
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from './supabase';
 
-export type ProfileInfo = { username: string; display_name: string | null; avatar_url: string | null; created_at: string };
-export type Stats = { current_count: number; longest_count: number; freezes_remaining: number };
-export type MosaicPhoto = { url: string; capturedAt: string };
+export type ProfileInfo = { username: string; display_name: string | null; avatar_url: string | null };
 
 export async function fetchProfile(): Promise<{ data: ProfileInfo | null; error: Error | null }> {
-  const { data, error } = await supabase.from('profiles').select('username, display_name, avatar_url, created_at').single();
+  const { data, error } = await supabase.from('profiles').select('username, display_name, avatar_url').single();
   if (error) return { data: null, error: new Error(error.message) };
   return { data, error: null };
-}
-
-export async function fetchStats(): Promise<{ data: Stats | null; error: Error | null }> {
-  const { data, error } = await supabase.rpc('get_today_state');
-  if (error) return { data: null, error: new Error(error.message) };
-  return { data: data?.[0] ?? null, error: null };
-}
-
-export async function fetchArchiveMosaic(): Promise<{ data: MosaicPhoto[]; error: Error | null }> {
-  const { data, error } = await supabase.rpc('get_profile_mosaic');
-  if (error) return { data: [], error: new Error(error.message) };
-
-  const rows: { storage_path: string; captured_at: string }[] = data ?? [];
-  if (rows.length === 0) return { data: [], error: null };
-
-  const paths = rows.map((r) => r.storage_path);
-  const { data: signed, error: signError } = await supabase.storage.from('captures').createSignedUrls(paths, 3600);
-  if (signError) return { data: [], error: new Error(signError.message) };
-
-  const urlByPath = new Map<string, string>();
-  signed?.forEach((s) => {
-    if (s.signedUrl && s.path) urlByPath.set(s.path, s.signedUrl);
-  });
-  const mosaic = rows
-    .map((r) => ({ url: urlByPath.get(r.storage_path), capturedAt: r.captured_at }))
-    .filter((p): p is MosaicPhoto => !!p.url);
-  return { data: mosaic, error: null };
 }
 
 export async function checkUsernameAvailable(username: string): Promise<{ data: boolean | null; error: Error | null }> {
@@ -55,6 +28,37 @@ export async function setUsername(username: string): Promise<{ error: Error | nu
     .single();
   if (error) return { error: new Error(error.message) };
   return { error: null };
+}
+
+export async function uploadAvatar(localUri: string): Promise<{ url: string | null; error: Error | null }> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { url: null, error: new Error('Not signed in') };
+
+  const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: 'base64' });
+  // Fixed path (one avatar per user, overwritten in place) rather than a
+  // timestamped path per capture — an old avatar file never lingers as an
+  // orphan the way a stale streak-buddy avatar reference would.
+  const path = `${user.id}/avatar.jpg`;
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(path, decode(base64), { contentType: 'image/jpeg', upsert: true });
+  if (uploadError) return { url: null, error: new Error(uploadError.message) };
+
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+  // The path is fixed, so the CDN/image cache would otherwise keep serving the
+  // old bytes under the same URL after a re-upload — a version query busts it.
+  const url = `${data.publicUrl}?v=${Date.now()}`;
+
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ avatar_url: url })
+    .eq('id', user.id)
+    .select('id')
+    .single();
+  if (updateError) return { url: null, error: new Error(updateError.message) };
+  return { url, error: null };
 }
 
 export async function updateDisplayName(name: string): Promise<{ error: Error | null }> {

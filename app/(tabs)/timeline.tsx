@@ -104,7 +104,7 @@ function Timeline() {
   const queryClient = useQueryClient();
 
   // monthsData is fetched once per key and never invalidated by time passing, so a capture
-  // taken while this tab sits unmounted (it's captured from Today/camera-action, not from
+  // taken while this tab sits unmounted (it's captured via the floating camera FAB, not from
   // here) leaves the current month stale until this refetch on focus picks it up.
   useFocusEffect(
     useCallback(() => {

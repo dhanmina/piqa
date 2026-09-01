@@ -30,7 +30,6 @@ export const type = {
   caption: { fontSize: 13, fontWeight: '400' as const, lineHeight: 18 },
   // Data readouts — streak counts, dates, stamped labels, stat values.
   dataHero: { fontSize: 40, fontWeight: '600' as const, lineHeight: 44, fontFamily: MONOSPACE },
-  dataLg: { fontSize: 17, fontWeight: '500' as const, lineHeight: 22, fontFamily: MONOSPACE },
   data: { fontSize: 13, fontWeight: '400' as const, lineHeight: 18, fontFamily: MONOSPACE },
 };
 

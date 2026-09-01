@@ -1,4 +1,4 @@
-import { fetchProfile, fetchStats, fetchArchiveMosaic, updateDisplayName, checkUsernameAvailable } from '../../lib/profile';
+import { fetchProfile, updateDisplayName, checkUsernameAvailable } from '../../lib/profile';
 import { supabase } from '../../lib/supabase';
 
 jest.mock('../../lib/supabase', () => ({
@@ -27,7 +27,7 @@ describe('fetchProfile', () => {
     mockFrom.mockReturnValue({
       select: jest.fn().mockReturnValue({
         single: jest.fn().mockResolvedValue({
-          data: { username: 'dhan', display_name: 'Dhan', avatar_url: null, created_at: '2026-01-01' },
+          data: { username: 'dhan', display_name: 'Dhan', avatar_url: null },
           error: null,
         }),
       }),
@@ -35,7 +35,7 @@ describe('fetchProfile', () => {
     const result = await fetchProfile();
     expect(mockFrom).toHaveBeenCalledWith('profiles');
     expect(result).toEqual({
-      data: { username: 'dhan', display_name: 'Dhan', avatar_url: null, created_at: '2026-01-01' },
+      data: { username: 'dhan', display_name: 'Dhan', avatar_url: null },
       error: null,
     });
   });
@@ -50,62 +50,6 @@ describe('fetchProfile', () => {
     expect(result.data).toBeNull();
     expect(result.error).toBeInstanceOf(Error);
     expect(result.error?.message).toBe('network down');
-  });
-});
-
-describe('fetchStats', () => {
-  test('returns the first row from get_today_state', async () => {
-    mockRpc.mockResolvedValue({
-      data: [{ current_count: 5, longest_count: 12, freezes_remaining: 2 }],
-      error: null,
-    });
-    const result = await fetchStats();
-    expect(mockRpc).toHaveBeenCalledWith('get_today_state');
-    expect(result).toEqual({
-      data: { current_count: 5, longest_count: 12, freezes_remaining: 2 },
-      error: null,
-    });
-  });
-
-  test('returns an error instead of throwing when the RPC fails', async () => {
-    mockRpc.mockResolvedValue({ data: null, error: { message: 'network down' } });
-    const result = await fetchStats();
-    expect(result.data).toBeNull();
-    expect(result.error).toBeInstanceOf(Error);
-  });
-});
-
-describe('fetchArchiveMosaic', () => {
-  test('returns signed-url photos for each returned row', async () => {
-    mockRpc.mockResolvedValue({
-      data: [{ storage_path: 'a.jpg', captured_at: '2026-01-01' }],
-      error: null,
-    });
-    mockStorageFrom.mockReturnValue({
-      createSignedUrls: jest.fn().mockResolvedValue({
-        data: [{ path: 'a.jpg', signedUrl: 'https://signed/a.jpg' }],
-        error: null,
-      }),
-    });
-    const result = await fetchArchiveMosaic();
-    expect(result).toEqual({
-      data: [{ url: 'https://signed/a.jpg', capturedAt: '2026-01-01' }],
-      error: null,
-    });
-  });
-
-  test('returns an empty array without calling storage when there are no rows', async () => {
-    mockRpc.mockResolvedValue({ data: [], error: null });
-    const result = await fetchArchiveMosaic();
-    expect(mockStorageFrom).not.toHaveBeenCalled();
-    expect(result).toEqual({ data: [], error: null });
-  });
-
-  test('returns an error instead of throwing when the RPC fails', async () => {
-    mockRpc.mockResolvedValue({ data: null, error: { message: 'network down' } });
-    const result = await fetchArchiveMosaic();
-    expect(result.data).toEqual([]);
-    expect(result.error).toBeInstanceOf(Error);
   });
 });
 

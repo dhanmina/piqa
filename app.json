@@ -41,7 +41,13 @@
         }
       ],
       "expo-splash-screen",
-      "expo-image"
+      "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "piqa needs access to your photos to set your profile photo."
+        }
+      ]
     ],
     "extra": {
       "router": {},

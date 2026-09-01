@@ -4,10 +4,13 @@ import { SymbolView } from 'expo-symbols';
 import { router, useFocusEffect } from 'expo-router';
 import { signOut } from '../lib/auth';
 import { fetchAccountInfo, type AccountInfo } from '../lib/settings';
+import { fetchProfile, type ProfileInfo } from '../lib/profile';
 import { Screen } from '../components/Screen';
 import { Card } from '../components/Card';
 import { Divider } from '../components/Divider';
 import { TextLink } from '../components/TextLink';
+import { Button } from '../components/Button';
+import { Avatar } from '../components/Avatar';
 import { colors, spacing, touchTarget, type } from '../lib/theme';
 
 const BACK_ICON = { ios: 'chevron.left', android: 'arrow_back' } as const;
@@ -17,16 +20,26 @@ export default function Settings() {
   const [accountError, setAccountError] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
+  const [profileInfo, setProfileInfo] = useState<ProfileInfo | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
   const loadAccount = useCallback(async () => {
     const { data, error } = await fetchAccountInfo();
     setAccountError(!!error);
     if (!error) setAccount(data);
   }, []);
 
+  const loadProfile = useCallback(async () => {
+    const { data, error } = await fetchProfile();
+    if (!error) setProfileInfo(data);
+    setProfileLoading(false);
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadAccount();
-    }, [loadAccount])
+      loadProfile();
+    }, [loadAccount, loadProfile])
   );
 
   async function handleSignOut() {
@@ -64,6 +77,31 @@ export default function Settings() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ gap: spacing.lg }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+          <Avatar
+            url={profileInfo?.avatar_url}
+            name={profileInfo?.display_name}
+            size={56}
+            accessibilityLabel="Your profile photo"
+          />
+          <View style={{ gap: spacing.xxs, flexShrink: 1 }}>
+            <Text style={{ ...type.bodyBold, color: colors.textPrimary }} numberOfLines={1}>
+              {profileLoading ? ' ' : (profileInfo?.display_name ?? 'Your profile')}
+            </Text>
+            <TextLink
+              label="Edit profile"
+              inline
+              accessibilityLabel="Edit profile"
+              onPress={() =>
+                router.push({
+                  pathname: '/edit-profile',
+                  params: { displayName: profileInfo?.display_name ?? '', avatarUrl: profileInfo?.avatar_url ?? '' },
+                })
+              }
+            />
+          </View>
+        </View>
+
         <View style={{ gap: spacing.sm }}>
           <Text style={{ ...type.body, color: colors.textMuted }}>Account</Text>
           <Card style={{ gap: spacing.md }}>
@@ -91,6 +129,8 @@ export default function Settings() {
             )}
           </Card>
         </View>
+
+        <Button label="View your year" variant="secondary" onPress={() => router.push('/recap?range=year')} />
 
         <Divider />
 

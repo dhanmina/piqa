@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { requestWidgetUpdate } from 'react-native-android-widget';
@@ -8,6 +8,7 @@ import { getSignedUrl } from '../../lib/signedUrlCache';
 import { PeekBackCard } from '../../components/PeekBackCard';
 import { CapturedTodayCard } from '../../components/CapturedTodayCard';
 import { PhotoViewerModal } from '../../components/PhotoViewerModal';
+import { GearIcon } from '../../components/Icons';
 import { deleteCapture } from '../../lib/deleteCapture';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys, fetchTodayCaptures, invalidateCaptureQueries, type TodayCaptures } from '../../lib/captureQueries';
@@ -16,7 +17,7 @@ import { WeekStrip, type DayCell, type DayCellState } from '../../components/Wee
 import { Screen } from '../../components/Screen';
 import { StreakWidget } from '../../widgets/StreakWidget';
 import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
-import { colors, spacing, type } from '../../lib/theme';
+import { colors, spacing, touchTarget, type } from '../../lib/theme';
 
 type TodayState = { current_count: number; longest_count: number; freezes_remaining: number; captured_today: boolean };
 type Peek = { imageUrl: string; label: string } | null;
@@ -209,17 +210,28 @@ export default function Today() {
       >
         <Animated.View entering={FadeInUp.duration(220)} style={{ gap: spacing.lg }}>
           <View style={{ gap: spacing.xxs }}>
-            <Text
-              style={{
-                ...type.data,
-                fontSize: 11,
-                letterSpacing: 0.7,
-                textTransform: 'uppercase',
-                color: colors.textMuted,
-              }}
-            >
-              {todayDateLabel()}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text
+                style={{
+                  ...type.data,
+                  fontSize: 11,
+                  letterSpacing: 0.7,
+                  textTransform: 'uppercase',
+                  color: colors.textMuted,
+                }}
+              >
+                {todayDateLabel()}
+              </Text>
+              <Pressable
+                onPress={() => router.push('/settings')}
+                hitSlop={touchTarget.min}
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+                style={{ width: touchTarget.min, height: touchTarget.min, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <GearIcon size={22} color={colors.textPrimary} />
+              </Pressable>
+            </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }}>
               {state?.current_count ? (
                 <>
