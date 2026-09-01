@@ -24,7 +24,13 @@ beforeEach(() => {
 describe('fetchAccountInfo', () => {
   test('marks an email/password user as able to change password', async () => {
     mockGetUser.mockResolvedValue({
-      data: { user: { email: 'dhan@example.com', app_metadata: { provider: 'email' } } },
+      data: {
+        user: {
+          email: 'dhan@example.com',
+          app_metadata: { provider: 'email' },
+          identities: [{ provider: 'email' }],
+        },
+      },
       error: null,
     });
     const result = await fetchAccountInfo();
@@ -34,13 +40,34 @@ describe('fetchAccountInfo', () => {
     });
   });
 
-  test('marks a Google user as unable to change password', async () => {
+  test('marks a Google-only user as unable to change password', async () => {
     mockGetUser.mockResolvedValue({
-      data: { user: { email: 'dhan@example.com', app_metadata: { provider: 'google' } } },
+      data: {
+        user: {
+          email: 'dhan@example.com',
+          app_metadata: { provider: 'google' },
+          identities: [{ provider: 'google' }],
+        },
+      },
       error: null,
     });
     const result = await fetchAccountInfo();
     expect(result.data).toEqual({ email: 'dhan@example.com', canChangePassword: false });
+  });
+
+  test('checks every linked identity, not just the primary provider', async () => {
+    mockGetUser.mockResolvedValue({
+      data: {
+        user: {
+          email: 'dhan@example.com',
+          app_metadata: { provider: 'google' },
+          identities: [{ provider: 'google' }, { provider: 'email' }],
+        },
+      },
+      error: null,
+    });
+    const result = await fetchAccountInfo();
+    expect(result.data).toEqual({ email: 'dhan@example.com', canChangePassword: true });
   });
 
   test('returns an error instead of throwing when getUser fails', async () => {

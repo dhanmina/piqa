@@ -22,8 +22,15 @@ export async function fetchAccountInfo(): Promise<{ data: AccountInfo | null; er
   const user = data.user;
   if (!user || !user.email) return { data: null, error: new Error('Not signed in') };
 
+  // Checks every linked identity, not just app_metadata.provider (the *primary* one) --
+  // an account signed up via Google that later links email/password would otherwise be
+  // wrongly told it has no password to change. Latent today (this app has no
+  // identity-linking flow yet, so every account has exactly one identity), but wrong on
+  // its own terms and cheap to get right before linking ever ships.
+  const canChangePassword = (user.identities ?? []).some((identity) => identity.provider === 'email');
+
   return {
-    data: { email: user.email, canChangePassword: user.app_metadata?.provider === 'email' },
+    data: { email: user.email, canChangePassword },
     error: null,
   };
 }
