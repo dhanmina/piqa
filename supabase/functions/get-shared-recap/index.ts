@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
   const urlByPath = new Map((signedThumbs ?? []).map((s) => [s.path, s.signedUrl]));
 
   const missingPaths = capturedRows
-    .filter((_, i) => !urlByPath.has(thumbPaths[i]))
+    .filter((_, i) => !urlByPath.get(thumbPaths[i]))
     .map((r) => r.storage_path);
   if (missingPaths.length > 0) {
     const { data: signedFull, error: signedFullError } = await admin.storage
