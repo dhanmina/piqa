@@ -48,7 +48,12 @@ export async function getSignedUrl(path: string): Promise<string | null> {
   return null;
 }
 
-export async function getSignedUrls(paths: string[]): Promise<Map<string, string>> {
+// logErrors: false for a lookup the caller already expects to partially miss (e.g.
+// timeline resolving a thumbnail that may not exist for a capture predating thumbnails,
+// then falling back to the full-res path) -- an unresolved path there isn't a bug, so
+// logging it as [signedUrlCache] error would just be alarming noise on old data.
+export async function getSignedUrls(paths: string[], options?: { logErrors?: boolean }): Promise<Map<string, string>> {
+  const logErrors = options?.logErrors ?? true;
   const result = new Map<string, string>();
   const misses: string[] = [];
   await Promise.all(
@@ -61,17 +66,17 @@ export async function getSignedUrls(paths: string[]): Promise<Map<string, string
   if (misses.length > 0) {
     try {
       const { data, error } = await supabase.storage.from('captures').createSignedUrls(misses, TTL_SECONDS);
-      if (error) console.error('[signedUrlCache] createSignedUrls failed', misses, error);
+      if (error && logErrors) console.error('[signedUrlCache] createSignedUrls failed', misses, error);
       data?.forEach((s) => {
         if (s.signedUrl && s.path) {
           result.set(s.path, s.signedUrl);
           writeCached(s.path, s.signedUrl);
-        } else if (s.error) {
+        } else if (s.error && logErrors) {
           console.error('[signedUrlCache] entry failed', s.path, s.error);
         }
       });
     } catch (err) {
-      console.error('[signedUrlCache] createSignedUrls threw', misses, err);
+      if (logErrors) console.error('[signedUrlCache] createSignedUrls threw', misses, err);
     }
   }
   return result;

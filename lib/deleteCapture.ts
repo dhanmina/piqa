@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { toThumbPath } from './photoPaths';
 
 // The Supabase client has no request timeout configured, so a stalled connection
 // (dropped packet, flaky mobile network) leaves an awaited call pending forever --
@@ -27,8 +28,10 @@ export async function deleteCapture(captureId: string): Promise<{ error: Error |
 
   if (storagePath) {
     try {
+      // Thumbnail may not exist for captures uploaded before thumbnails shipped --
+      // remove() on a missing key is a no-op, not an error, so this is safe either way.
       const { error: storageError } = await withTimeout(
-        supabase.storage.from('captures').remove([storagePath]),
+        supabase.storage.from('captures').remove([storagePath, toThumbPath(storagePath)]),
         'storage remove'
       );
       // The DB row is already gone at this point -- an orphaned storage object here

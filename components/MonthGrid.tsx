@@ -8,7 +8,9 @@ import { NetworkImage } from './NetworkImage';
 export type MonthDay = {
   day: number;
   imageUrl: string | null;
-  imageUrls: string[];
+  imageCacheKey: string | null;
+  photoCount: number;
+  photoPaths: string[];
   captureIds: string[];
   state: DayCellState;
 };
@@ -30,7 +32,7 @@ function dayAccessibilityLabel(year: number, month: number, d: MonthDay): string
   });
   switch (d.state) {
     case 'captured':
-      return d.imageUrls.length > 1 ? `${dateStr}, captured, ${d.imageUrls.length} photos` : `${dateStr}, captured`;
+      return d.photoCount > 1 ? `${dateStr}, captured, ${d.photoCount} photos` : `${dateStr}, captured`;
     case 'frozen':
       return `${dateStr}, missed, covered by a freeze`;
     case 'today':
@@ -95,6 +97,7 @@ export function MonthGrid({
                   <NetworkImage
                     testID={`day-photo-${d.day}`}
                     source={{ uri: d.imageUrl }}
+                    cacheKey={d.imageCacheKey ?? undefined}
                     style={{ width: '100%', height: '100%', borderRadius: CELL_RADIUS }}
                     contentFit="cover"
                   />
@@ -112,7 +115,7 @@ export function MonthGrid({
                   >
                     <Text style={{ ...type.data, fontSize: 11, color: colors.textPrimary }}>{d.day}</Text>
                   </View>
-                  {d.imageUrls.length > 1 && (
+                  {d.photoCount > 1 && (
                     <View
                       testID={`multi-photo-icon-${d.day}`}
                       style={{

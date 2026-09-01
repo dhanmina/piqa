@@ -11,10 +11,12 @@ const HERO_HEIGHT = 260;
 export function CapturedTodayCard({
   onView,
   imageUrl,
+  imageCacheKey,
   count = 1,
 }: {
   onView: () => void;
   imageUrl?: string | null;
+  imageCacheKey?: string;
   count?: number;
 }) {
   const scale = useSharedValue(0.92);
@@ -31,7 +33,12 @@ export function CapturedTodayCard({
         <Card style={{ padding: 0, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
           <View style={{ width: '100%', height: HERO_HEIGHT }}>
             {imageUrl ? (
-              <NetworkImage source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+              <NetworkImage
+                source={{ uri: imageUrl }}
+                cacheKey={imageCacheKey}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+              />
             ) : (
               <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                 <ActivityIndicator color={colors.textMuted} />

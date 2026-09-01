@@ -3,7 +3,7 @@ import { Card } from './Card';
 import { NetworkImage } from './NetworkImage';
 import { colors, spacing, type } from '../lib/theme';
 
-type Peek = { imageUrl: string; label: string };
+type Peek = { imageUrl: string; label: string; path: string };
 
 const HERO_HEIGHT = 260;
 
@@ -18,6 +18,7 @@ export function PeekBackCard({ peek, onPress }: { peek: Peek; onPress?: () => vo
       <Card style={{ padding: 0, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
         <NetworkImage
           source={{ uri: peek.imageUrl }}
+          cacheKey={peek.path}
           style={{ width: '100%', height: HERO_HEIGHT }}
           contentFit="cover"
         />

@@ -5,7 +5,7 @@ import { NetworkImage } from './NetworkImage';
 
 const SLIDE_INTERVAL_MS = 1400;
 
-export function RecapSlideshow({ photos }: { photos: string[] }) {
+export function RecapSlideshow({ photos }: { photos: { url: string; path: string }[] }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -18,7 +18,13 @@ export function RecapSlideshow({ photos }: { photos: string[] }) {
 
   return (
     <View style={{ flex: 1, borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.surface }}>
-      <NetworkImage testID={`recap-image-${index}`} source={{ uri: photos[index] }} style={{ flex: 1 }} contentFit="cover" />
+      <NetworkImage
+        testID={`recap-image-${index}`}
+        source={{ uri: photos[index].url }}
+        cacheKey={photos[index].path}
+        style={{ flex: 1 }}
+        contentFit="cover"
+      />
     </View>
   );
 }

@@ -10,7 +10,8 @@ import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
 import { TextLink } from '../../components/TextLink';
 import { deleteCapture } from '../../lib/deleteCapture';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
-import { queryKeys, fetchTimelineMonth, invalidateCaptureQueries, type MonthData } from '../../lib/captureQueries';
+import { queryKeys, fetchTimelineMonth, invalidateCaptureQueries, type MonthData, type MonthDay } from '../../lib/captureQueries';
+import { getSignedUrls } from '../../lib/signedUrlCache';
 import { colors, spacing, type } from '../../lib/theme';
 
 const EMPTY_ICON = { ios: 'calendar', android: 'calendar_month' } as const;
@@ -50,11 +51,13 @@ function Timeline() {
   const [contentHeight, setContentHeight] = useState(0);
   const [viewer, setViewer] = useState<{
     urls: string[];
+    cacheKeys: string[];
     captureIds: string[];
     initialIndex: number;
     year: number;
     month: number;
   } | null>(null);
+  const [openingDay, setOpeningDay] = useState<number | null>(null);
   const loadingRef = useRef(false);
   const reachedStartRef = useRef(false);
   const listRef = useRef<FlatList<MonthKey>>(null);
@@ -161,10 +164,36 @@ function Timeline() {
     setViewer((prev) => {
       if (!prev) return prev;
       const urls = prev.urls.filter((_, i) => i !== index);
+      const cacheKeys = prev.cacheKeys.filter((_, i) => i !== index);
       const captureIds = prev.captureIds.filter((_, i) => i !== index);
-      return urls.length > 0 ? { ...prev, urls, captureIds } : null;
+      return urls.length > 0 ? { ...prev, urls, cacheKeys, captureIds } : null;
     });
     invalidateCaptureQueries(queryClient);
+  }
+
+  // The grid only ever holds a thumbnail for a day (see fetchTimelineMonth), so opening
+  // the fullscreen viewer resolves full-res signed urls for that day's photos on demand
+  // instead of the whole month having been eagerly pulled full-res when the grid loaded.
+  async function handlePressDay(data: MonthData, d: MonthDay) {
+    if (openingDay !== null) return;
+    setOpeningDay(d.day);
+    try {
+      const signedByPath = await getSignedUrls(d.photoPaths);
+      const pairs = d.photoPaths
+        .map((path, i) => ({ url: signedByPath.get(path), path, id: d.captureIds[i] }))
+        .filter((p): p is { url: string; path: string; id: string } => !!p.url);
+      if (pairs.length === 0) return;
+      setViewer({
+        urls: pairs.map((p) => p.url),
+        cacheKeys: pairs.map((p) => p.path),
+        captureIds: pairs.map((p) => p.id),
+        initialIndex: 0,
+        year: data.year,
+        month: data.month,
+      });
+    } finally {
+      setOpeningDay(null);
+    }
   }
 
   const firstMonth = monthsData[monthKeys[0]];
@@ -232,9 +261,7 @@ function Timeline() {
                 month={data.month}
                 leadingBlanks={data.leadingBlanks}
                 days={data.days}
-                onPressDay={(d) =>
-                  setViewer({ urls: d.imageUrls, captureIds: d.captureIds, initialIndex: 0, year: data.year, month: data.month })
-                }
+                onPressDay={(d) => handlePressDay(data, d)}
               />
             </View>
           );
@@ -243,6 +270,7 @@ function Timeline() {
 
       <PhotoViewerModal
         urls={viewer?.urls ?? []}
+        cacheKeys={viewer?.cacheKeys ?? []}
         initialIndex={viewer?.initialIndex ?? 0}
         visible={!!viewer}
         onClose={() => setViewer(null)}

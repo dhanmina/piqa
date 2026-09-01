@@ -2,7 +2,14 @@ import { render, screen } from '@testing-library/react-native';
 import { RecapSlideshow } from '../../components/RecapSlideshow';
 
 test('renders the first photo of the recap', async () => {
-  await render(<RecapSlideshow photos={['a.jpg', 'b.jpg']} />);
+  await render(
+    <RecapSlideshow
+      photos={[
+        { url: 'a.jpg', path: 'a.jpg' },
+        { url: 'b.jpg', path: 'b.jpg' },
+      ]}
+    />
+  );
   expect(screen.getByTestId('recap-image-0')).toBeTruthy();
 });
 

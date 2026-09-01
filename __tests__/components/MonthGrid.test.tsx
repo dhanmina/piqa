@@ -11,7 +11,9 @@ test('shows a photo for a captured day', async () => {
         {
           day: 1,
           imageUrl: 'https://example.com/x.jpg',
-          imageUrls: ['https://example.com/x.jpg'],
+          imageCacheKey: 'x.jpg',
+          photoCount: 1,
+          photoPaths: ['x.jpg'],
           captureIds: ['cap-1'],
           state: 'captured',
         },
@@ -31,7 +33,9 @@ test('shows a day-number badge over a captured photo, with no multi-photo icon f
         {
           day: 5,
           imageUrl: 'https://example.com/x.jpg',
-          imageUrls: ['https://example.com/x.jpg'],
+          imageCacheKey: 'x.jpg',
+          photoCount: 1,
+          photoPaths: ['x.jpg'],
           captureIds: ['cap-1'],
           state: 'captured',
         },
@@ -53,7 +57,9 @@ test('shows the multi-photo icon alongside the day number, in one badge, for mul
         {
           day: 7,
           imageUrl: 'https://example.com/y.jpg',
-          imageUrls: ['https://example.com/x.jpg', 'https://example.com/y.jpg'],
+          imageCacheKey: 'y.jpg',
+          photoCount: 2,
+          photoPaths: ['x.jpg', 'y.jpg'],
           captureIds: ['cap-1', 'cap-2'],
           state: 'captured',
         },
@@ -71,7 +77,7 @@ test('shows a frozen indicator on a frozen day', async () => {
       year={2026}
       month={8}
       leadingBlanks={0}
-      days={[{ day: 2, imageUrl: null, imageUrls: [], captureIds: [], state: 'frozen' }]}
+      days={[{ day: 2, imageUrl: null, imageCacheKey: null, photoCount: 0, photoPaths: [], captureIds: [], state: 'frozen' }]}
     />
   );
   expect(screen.getByTestId('frozen-icon-2')).toBeTruthy();
@@ -83,7 +89,7 @@ test('renders leading blank cells to align the first day by weekday', async () =
       year={2026}
       month={8}
       leadingBlanks={3}
-      days={[{ day: 1, imageUrl: null, imageUrls: [], captureIds: [], state: 'future' }]}
+      days={[{ day: 1, imageUrl: null, imageCacheKey: null, photoCount: 0, photoPaths: [], captureIds: [], state: 'future' }]}
     />
   );
   expect(screen.getByTestId('blank-cell-0')).toBeTruthy();

@@ -16,10 +16,11 @@ function pad(n: number) {
   return n < 10 ? `0${n}` : `${n}`;
 }
 
-const CarouselPhoto = memo(function CarouselPhoto({ uri }: { uri: string }) {
+const CarouselPhoto = memo(function CarouselPhoto({ uri, cacheKey }: { uri: string; cacheKey?: string }) {
   return (
     <NetworkImage
       source={{ uri }}
+      cacheKey={cacheKey}
       style={{ width: '100%', aspectRatio: PHOTO_ASPECT_RATIO }}
       contentFit="cover"
     />
@@ -37,6 +38,8 @@ const iconButtonStyle = {
 export function PhotoViewerModal({
   url,
   urls,
+  cacheKey,
+  cacheKeys,
   initialIndex = 0,
   visible,
   onClose,
@@ -45,6 +48,8 @@ export function PhotoViewerModal({
 }: {
   url?: string | null;
   urls?: string[];
+  cacheKey?: string;
+  cacheKeys?: string[];
   initialIndex?: number;
   visible?: boolean;
   onClose: () => void;
@@ -52,6 +57,7 @@ export function PhotoViewerModal({
   onDelete?: (index: number) => Promise<void>;
 }) {
   const images = urls && urls.length ? urls : url ? [url] : [];
+  const imageCacheKeys = cacheKeys && cacheKeys.length ? cacheKeys : cacheKey ? [cacheKey] : [];
   const isVisible = visible ?? images.length > 0;
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [deleting, setDeleting] = useState(false);
@@ -115,10 +121,10 @@ export function PhotoViewerModal({
                 renderWindowSize={3}
                 defaultIndex={Math.min(initialIndex, images.length - 1)}
                 onSnapToItem={setActiveIndex}
-                renderItem={({ item }) => <CarouselPhoto uri={item} />}
+                renderItem={({ item, index }) => <CarouselPhoto uri={item} cacheKey={imageCacheKeys[index]} />}
               />
             ) : images[0] ? (
-              <CarouselPhoto uri={images[0]} />
+              <CarouselPhoto uri={images[0]} cacheKey={imageCacheKeys[0]} />
             ) : null}
 
             <View

@@ -24,5 +24,5 @@ export const queryPersister = createAsyncStoragePersister({
 
 // Bump this if a cached shape ever changes incompatibly (e.g. MonthData gains
 // a required field) -- it invalidates every persisted cache on next launch.
-export const QUERY_CACHE_BUSTER = 'v1';
+export const QUERY_CACHE_BUSTER = 'v2';
 export const QUERY_CACHE_MAX_AGE = 1000 * 60 * 60 * 24 * 7; // 7 days

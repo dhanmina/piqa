@@ -20,7 +20,7 @@ import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
 import { colors, spacing, touchTarget, type } from '../../lib/theme';
 
 type TodayState = { current_count: number; longest_count: number; freezes_remaining: number; captured_today: boolean };
-type Peek = { imageUrl: string; label: string } | null;
+type Peek = { imageUrl: string; label: string; path: string } | null;
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -96,6 +96,7 @@ export default function Today() {
     enabled: !!state?.captured_today,
   });
   const todayPhotoUrls = todayCapturesQuery.data?.urls ?? [];
+  const todayPhotoPaths = todayCapturesQuery.data?.paths ?? [];
   const todayCaptureIds = todayCapturesQuery.data?.ids ?? [];
   const todayCaptureCount = todayCapturesQuery.data?.count ?? 0;
 
@@ -119,7 +120,7 @@ export default function Today() {
       const signedUrl = await getSignedUrl(row.storage_path);
       if (signedUrl) {
         peekStoragePathRef.current = row.storage_path;
-        setPeek({ imageUrl: signedUrl, label: row.label });
+        setPeek({ imageUrl: signedUrl, label: row.label, path: row.storage_path });
       }
     });
 
@@ -157,6 +158,11 @@ export default function Today() {
       queryClient.setQueryData(queryKeys.todayCaptures(todayISO), (prev: TodayCaptures | undefined) => ({
         ids: prev?.ids ?? [],
         urls: [...(prev?.urls ?? []), uri],
+        // A local file:// uri is stable on its own (never re-signed), so it needs no
+        // cacheKey -- empty string here is just a placeholder to keep this array's
+        // length aligned with ids/urls until the real upload lands and a refetch
+        // (via invalidateCaptureQueries) replaces it with the real storage path.
+        paths: [...(prev?.paths ?? []), ''],
         count: (prev?.count ?? 0) + 1,
       }));
     }
@@ -182,6 +188,7 @@ export default function Today() {
       return {
         ids: prev.ids.filter((_, i) => i !== index),
         urls: prev.urls.filter((_, i) => i !== index),
+        paths: prev.paths.filter((_, i) => i !== index),
         count: Math.max(prev.count - 1, 0),
       };
     });
@@ -284,6 +291,7 @@ export default function Today() {
           ) : (
             <CapturedTodayCard
               imageUrl={todayPhotoUrls[todayPhotoUrls.length - 1] ?? null}
+              imageCacheKey={todayPhotoPaths[todayPhotoPaths.length - 1] || undefined}
               count={todayCaptureCount}
               onView={() => setViewerOpen(true)}
             />
@@ -293,6 +301,7 @@ export default function Today() {
 
       <PhotoViewerModal
         urls={todayPhotoUrls}
+        cacheKeys={todayPhotoPaths}
         initialIndex={Math.max(todayPhotoUrls.length - 1, 0)}
         visible={viewerOpen}
         onClose={() => setViewerOpen(false)}
@@ -300,7 +309,12 @@ export default function Today() {
         onDelete={handleDeleteTodayCapture}
       />
 
-      <PhotoViewerModal url={peek?.imageUrl} visible={peekViewerOpen} onClose={() => setPeekViewerOpen(false)} />
+      <PhotoViewerModal
+        url={peek?.imageUrl}
+        cacheKey={peek?.path}
+        visible={peekViewerOpen}
+        onClose={() => setPeekViewerOpen(false)}
+      />
     </Screen>
   );
 }

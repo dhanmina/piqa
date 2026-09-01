@@ -1,9 +1,16 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import { ImageManipulator } from 'expo-image-manipulator';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from './supabase';
+import { toThumbPath } from './photoPaths';
 
 const QUEUE_DIR = FileSystem.documentDirectory + 'capture-queue/';
 const QUEUE_INDEX = QUEUE_DIR + 'index.json';
+// Grid/list views only ever render this size -- full-res is fetched on demand
+// only when a photo is actually opened in the fullscreen viewer (see
+// captureQueries.ts), so this is what most browsing actually downloads.
+const THUMB_WIDTH = 480;
+const THUMB_COMPRESS = 0.5;
 
 type QueueItem = { localPath: string; themeTag?: string; capturedAt: string };
 
@@ -46,6 +53,23 @@ export async function enqueueCapture(localUri: string, themeTag?: string): Promi
   return { error: null };
 }
 
+// Best-effort -- a missing thumbnail just means the grid falls back to the full-res
+// file for this one photo, not a lost capture, so failure here must never affect
+// the capture's own upload/insert or queue retry state.
+async function uploadThumbnail(localPath: string, storagePath: string): Promise<void> {
+  try {
+    const manipulated = await ImageManipulator.manipulate(localPath).resize({ width: THUMB_WIDTH }).renderAsync();
+    const thumb = await manipulated.saveAsync({ compress: THUMB_COMPRESS });
+    const thumbBase64 = await FileSystem.readAsStringAsync(thumb.uri, { encoding: 'base64' });
+    const { error } = await supabase.storage
+      .from('captures')
+      .upload(toThumbPath(storagePath), decode(thumbBase64), { contentType: 'image/jpeg' });
+    if (error) console.error('[captureQueue] thumbnail upload failed', storagePath, error);
+  } catch (error) {
+    console.error('[captureQueue] thumbnail generation failed', storagePath, error);
+  }
+}
+
 // Best-effort background sync — never throws, so a transient session/network failure
 // here can't take down whatever called it (enqueueCapture, or a future app-foreground resync).
 export async function processQueue(): Promise<void> {
@@ -61,6 +85,7 @@ export async function processQueue(): Promise<void> {
         .from('captures')
         .upload(storagePath, decode(base64), { contentType: 'image/jpeg' });
       if (uploadError) { remaining.push(item); continue; }
+      await uploadThumbnail(item.localPath, storagePath);
       const { error: insertError } = await supabase.from('captures').insert({
         user_id: user.id,
         storage_path: storagePath,

@@ -17,7 +17,9 @@ jest.mock('../../lib/signedUrlCache', () => ({
   getSignedUrls: jest.fn(),
 }));
 
-jest.mock('expo-image', () => ({ Image: { prefetch: jest.fn() } }));
+jest.mock('expo-image', () => ({
+  Image: { prefetch: jest.fn(), writeToCacheAsync: jest.fn().mockResolvedValue(undefined) },
+}));
 
 function mockCapturesQuery(resultsByCall: { data: { id: string; storage_path: string }[] }[]) {
   let call = 0;
@@ -59,6 +61,7 @@ test('fetchTodayCaptures resolves signed urls for the rows returned', async () =
   expect(result).toEqual({
     ids: ['c1', 'c2'],
     urls: ['https://signed/p1', 'https://signed/p2'],
+    paths: ['p1', 'p2'],
     count: 2,
   });
 });
@@ -69,7 +72,7 @@ test('fetchTodayCaptures drops rows whose signed url failed to resolve, but keep
 
   const result = await fetchTodayCaptures('2026-09-01');
 
-  expect(result).toEqual({ ids: ['c1'], urls: ['https://signed/p1'], count: 2 });
+  expect(result).toEqual({ ids: ['c1'], urls: ['https://signed/p1'], paths: ['p1'], count: 2 });
 });
 
 test('fetchTodayCaptures retries when the row has not landed yet, then returns it once it has', async () => {
@@ -81,7 +84,7 @@ test('fetchTodayCaptures retries when the row has not landed yet, then returns i
   await jest.advanceTimersByTimeAsync(1500);
   const result = await promise;
 
-  expect(result).toEqual({ ids: ['c1'], urls: ['https://signed/p1'], count: 1 });
+  expect(result).toEqual({ ids: ['c1'], urls: ['https://signed/p1'], paths: ['p1'], count: 1 });
   jest.useRealTimers();
 });
 
@@ -94,7 +97,7 @@ test('fetchTodayCaptures gives up after 3 empty attempts', async () => {
   await jest.advanceTimersByTimeAsync(1500);
   const result = await promise;
 
-  expect(result).toEqual({ ids: [], urls: [], count: 0 });
+  expect(result).toEqual({ ids: [], urls: [], paths: [], count: 0 });
   jest.useRealTimers();
 });
 
@@ -129,9 +132,17 @@ test('fetchTimelineMonth maps rows to days, resolving signed urls and per-day st
   expect(result.year).toBe(2026);
   expect(result.month).toBe(9);
   expect(result.days).toEqual([
-    { day: 1, imageUrl: 'https://signed/p1', imageUrls: ['https://signed/p1'], captureIds: ['c1'], state: 'captured' },
-    { day: 2, imageUrl: null, imageUrls: [], captureIds: [], state: 'frozen' },
-    { day: 3, imageUrl: null, imageUrls: [], captureIds: [], state: 'today' },
+    {
+      day: 1,
+      imageUrl: 'https://signed/p1',
+      imageCacheKey: 'p1',
+      photoCount: 1,
+      photoPaths: ['p1'],
+      captureIds: ['c1'],
+      state: 'captured',
+    },
+    { day: 2, imageUrl: null, imageCacheKey: null, photoCount: 0, photoPaths: [], captureIds: [], state: 'frozen' },
+    { day: 3, imageUrl: null, imageCacheKey: null, photoCount: 0, photoPaths: [], captureIds: [], state: 'today' },
   ]);
 });
 
@@ -158,7 +169,7 @@ test('fetchRecapPhotos calls get_weekly_recap for "week" and resolves signed url
   const result = await fetchRecapPhotos('week');
 
   expect(supabase.rpc).toHaveBeenCalledWith('get_weekly_recap');
-  expect(result).toEqual(['https://signed/p1']);
+  expect(result).toEqual([{ url: 'https://signed/p1', path: 'p1' }]);
 });
 
 test('fetchRecapPhotos calls get_grand_recap for "year"', async () => {
