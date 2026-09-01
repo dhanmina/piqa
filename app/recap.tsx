@@ -26,13 +26,19 @@ export default function Recap() {
 
   async function handleShare() {
     setSharing(true);
-    const { data, error } = await createRecapShare(kind);
-    setSharing(false);
-    if (error || !data) {
+    try {
+      const { data, error } = await createRecapShare(kind);
+      setSharing(false);
+      if (error || !data) {
+        Alert.alert('Could not create link', 'Try again in a moment.');
+        return;
+      }
+      await Share.share({ message: recapShareUrl(data.id) });
+    } catch (err) {
+      setSharing(false);
+      console.error('[recap] handleShare failed', err);
       Alert.alert('Could not create link', 'Try again in a moment.');
-      return;
     }
-    Share.share({ message: recapShareUrl(data.id) });
   }
 
   const header = (
@@ -41,7 +47,6 @@ export default function Recap() {
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
         {photos.length > 0 && (
           <Pressable
-            hitSlop={touchTarget.min}
             disabled={sharing}
             onPress={handleShare}
             accessibilityRole="button"
@@ -60,7 +65,6 @@ export default function Recap() {
           </Pressable>
         )}
         <Pressable
-          hitSlop={touchTarget.min}
           onPress={() => router.back()}
           style={{
             width: touchTarget.min,
