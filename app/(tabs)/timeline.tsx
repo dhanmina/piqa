@@ -86,6 +86,11 @@ function Timeline() {
   // effect below depends on this reference to know when new month data actually arrived --
   // React Query gives each query result a stable `data` reference across renders where the
   // content hasn't changed (structural sharing), so this only recomputes on a real change.
+  // A fixed-length dep (dataUpdatedAt timestamps joined into one string) instead of
+  // spreading monthQueries.map(q => q.data) directly -- that array grows every time
+  // loadOlderMonth adds a month, and useMemo's deps array must stay a constant length
+  // across renders or React throws.
+  const monthsDataDepsKey = monthKeys.join(',') + '|' + monthQueries.map((q) => q.dataUpdatedAt).join(',');
   const monthsData: Record<MonthKey, MonthData> = useMemo(() => {
     const next: Record<MonthKey, MonthData> = {};
     monthKeys.forEach((key, i) => {
@@ -94,7 +99,7 @@ function Timeline() {
     });
     return next;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthKeys, ...monthQueries.map((q) => q.data)]);
+  }, [monthsDataDepsKey]);
 
   const queryClient = useQueryClient();
 
