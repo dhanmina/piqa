@@ -5,7 +5,15 @@ import { colors, spacing, radius, type, touchTarget } from '../lib/theme';
 
 const PRESS_SPRING = { damping: 18, stiffness: 400 };
 
-export function SelectableRow({ label, onPress }: { label: string; onPress: () => void }) {
+export function SelectableRow({
+  label,
+  onPress,
+  selected = false,
+}: {
+  label: string;
+  onPress: () => void;
+  selected?: boolean;
+}) {
   const [pressed, setPressed] = useState(false);
   const scale = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -34,8 +42,8 @@ export function SelectableRow({ label, onPress }: { label: string; onPress: () =
             justifyContent: 'center',
             backgroundColor: pressed ? colors.pressedOverlay : colors.surface,
             borderRadius: radius.button,
-            borderWidth: 1,
-            borderColor: pressed ? colors.textMuted : colors.border,
+            borderWidth: selected ? 1.5 : 1,
+            borderColor: selected ? colors.textPrimary : pressed ? colors.textMuted : colors.border,
             minHeight: touchTarget.min,
             paddingHorizontal: spacing.lg,
           },

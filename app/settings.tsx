@@ -1,21 +1,31 @@
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
-import { SymbolView } from 'expo-symbols';
+import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/captureQueries';
 import { signOut } from '../lib/auth';
-import { fetchAccountInfo, type AccountInfo } from '../lib/settings';
+import { fetchAccountInfo, deleteOwnAccount, type AccountInfo } from '../lib/settings';
 import { fetchProfile, type ProfileInfo } from '../lib/profile';
+import {
+  getNotificationPermission,
+  getReminderPrefs,
+  requestNotificationPermission,
+  setReminderEnabled,
+  setReminderTime,
+  REMINDER_TIME_PRESETS,
+  type ReminderTime,
+  type PermissionState,
+} from '../lib/reminder';
 import { Screen } from '../components/Screen';
 import { Card } from '../components/Card';
 import { Divider } from '../components/Divider';
 import { TextLink } from '../components/TextLink';
 import { Button } from '../components/Button';
 import { Avatar } from '../components/Avatar';
+import { SelectableRow } from '../components/SelectableRow';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { BackIcon } from '../components/Icons';
 import { colors, spacing, touchTarget, type } from '../lib/theme';
-
-const BACK_ICON = { ios: 'chevron.left', android: 'arrow_back' } as const;
 
 async function loadAccountOrThrow(): Promise<AccountInfo | null> {
   const { data, error } = await fetchAccountInfo();
@@ -29,9 +39,21 @@ async function loadProfileOrThrow(): Promise<ProfileInfo | null> {
   return data;
 }
 
+function sameTime(a: ReminderTime, b: ReminderTime): boolean {
+  return a.hour === b.hour && a.minute === b.minute;
+}
+
 export default function Settings() {
   const queryClient = useQueryClient();
   const [signingOut, setSigningOut] = useState(false);
+
+  const [notifPermission, setNotifPermission] = useState<PermissionState | null>(null);
+  const [reminderEnabled, setReminderEnabledState] = useState(false);
+  const [reminderTime, setReminderTimeState] = useState<ReminderTime>(REMINDER_TIME_PRESETS[2].time);
+  const [reminderBusy, setReminderBusy] = useState(false);
+
+  const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Persisted cache (app/_layout.tsx) paints last-known account/profile immediately on
   // reopen instead of blanking the screen every time -- see the same fix in buddies.tsx.
@@ -46,6 +68,16 @@ export default function Settings() {
     useCallback(() => {
       queryClient.invalidateQueries({ queryKey: queryKeys.accountInfo });
       queryClient.invalidateQueries({ queryKey: queryKeys.profileInfo });
+
+      // Permission can change from outside the app (system settings), and
+      // onboarding can enable the reminder just before landing here for the
+      // first time -- both re-read on every visit, not just on mount.
+      (async () => {
+        const [permission, prefs] = await Promise.all([getNotificationPermission(), getReminderPrefs()]);
+        setNotifPermission(permission);
+        setReminderEnabledState(prefs.enabled);
+        setReminderTimeState(prefs.time);
+      })();
     }, [queryClient])
   );
 
@@ -68,6 +100,37 @@ export default function Settings() {
     ]);
   }
 
+  async function handleToggleReminder(next: boolean) {
+    let permission = notifPermission;
+    if (next && permission !== 'granted') {
+      permission = await requestNotificationPermission();
+      setNotifPermission(permission);
+      if (permission !== 'granted') return;
+    }
+    setReminderBusy(true);
+    await setReminderEnabled(next, reminderTime);
+    setReminderEnabledState(next);
+    setReminderBusy(false);
+  }
+
+  async function handleSelectTime(time: ReminderTime) {
+    setReminderTimeState(time);
+    await setReminderTime(time);
+  }
+
+  async function handleDeleteAccount() {
+    setDeletingAccount(true);
+    const { error } = await deleteOwnAccount();
+    if (error) {
+      setDeletingAccount(false);
+      setConfirmDeleteVisible(false);
+      Alert.alert('Could not delete account', 'Check your connection and try again.');
+      return;
+    }
+    await signOut();
+    // No navigation call needed — same RootLayout auth-state redirect as sign-out.
+  }
+
   return (
     <Screen style={{ gap: spacing.lg }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
@@ -78,7 +141,7 @@ export default function Settings() {
           accessibilityLabel="Back"
           style={{ width: touchTarget.min, height: touchTarget.min, alignItems: 'center', justifyContent: 'center' }}
         >
-          <SymbolView name={BACK_ICON} size={22} tintColor={colors.textPrimary} />
+          <BackIcon size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={{ ...type.title, color: colors.textPrimary }}>Settings</Text>
       </View>
@@ -107,6 +170,62 @@ export default function Settings() {
               }
             />
           </View>
+        </View>
+
+        <View style={{ gap: spacing.sm }}>
+          <Text style={{ ...type.body, color: colors.textMuted }}>Reminders</Text>
+          <Card style={{ gap: spacing.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flex: 1, gap: spacing.xxs, marginRight: spacing.md }}>
+                <Text style={{ ...type.bodyBold, color: colors.textPrimary }}>Daily reminder</Text>
+                <Text style={{ ...type.caption, color: colors.textMuted }}>
+                  One nudge a day if you haven't captured yet.
+                </Text>
+              </View>
+              <Switch
+                value={reminderEnabled}
+                onValueChange={handleToggleReminder}
+                disabled={reminderBusy || notifPermission === 'denied'}
+                trackColor={{ false: colors.border, true: colors.accent }}
+                thumbColor={colors.textPrimary}
+                accessibilityLabel="Daily reminder"
+                accessibilityState={{ disabled: reminderBusy || notifPermission === 'denied' }}
+              />
+            </View>
+
+            {notifPermission === 'denied' && (
+              <>
+                <View style={{ height: 1, backgroundColor: colors.border }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ ...type.caption, color: colors.textMuted, flex: 1, marginRight: spacing.md }}>
+                    Notifications are off in system settings.
+                  </Text>
+                  <TextLink
+                    label="Turn on"
+                    inline
+                    accessibilityLabel="Open system notification settings"
+                    onPress={() => Linking.openSettings()}
+                  />
+                </View>
+              </>
+            )}
+
+            {reminderEnabled && notifPermission !== 'denied' && (
+              <>
+                <View style={{ height: 1, backgroundColor: colors.border }} />
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+                  {REMINDER_TIME_PRESETS.map((preset) => (
+                    <SelectableRow
+                      key={preset.label}
+                      label={preset.label}
+                      selected={sameTime(preset.time, reminderTime)}
+                      onPress={() => handleSelectTime(preset.time)}
+                    />
+                  ))}
+                </View>
+              </>
+            )}
+          </Card>
         </View>
 
         <View style={{ gap: spacing.sm }}>
@@ -148,7 +267,31 @@ export default function Settings() {
           accessibilityLabel={signingOut ? 'Signing out' : 'Sign out'}
           onPress={confirmSignOut}
         />
+
+        <View style={{ gap: spacing.xxs }}>
+          <TextLink
+            label="Delete account"
+            variant="muted"
+            disabled={deletingAccount}
+            accessibilityLabel="Delete account"
+            onPress={() => setConfirmDeleteVisible(true)}
+          />
+          <Text style={{ ...type.caption, color: colors.textFaint, textAlign: 'center' }}>
+            Permanently removes your account, photos, and streak. This can't be undone.
+          </Text>
+        </View>
       </ScrollView>
+
+      <ConfirmDialog
+        visible={confirmDeleteVisible}
+        title="Delete your account?"
+        message="Every photo, your streak, and your profile are permanently removed. This cannot be undone."
+        confirmLabel="Delete account"
+        confirmLoadingLabel="Deleting..."
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setConfirmDeleteVisible(false)}
+        loading={deletingAccount}
+      />
     </Screen>
   );
 }

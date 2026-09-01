@@ -1,19 +1,18 @@
 import { useState } from 'react';
 import { Text, View, Pressable, Linking } from 'react-native';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
-import { SymbolView } from 'expo-symbols';
 import { router } from 'expo-router';
 import { useCameraPermission } from 'react-native-vision-camera';
 import * as Notifications from 'expo-notifications';
 import { markOnboardingComplete } from '../../lib/onboarding';
+import { setReminderEnabled } from '../../lib/reminder';
 import { useAuthState } from '../../lib/authState';
 import { colors, spacing, touchTarget, type } from '../../lib/theme';
 import { Screen } from '../../components/Screen';
 import { Button } from '../../components/Button';
 import { FieldError } from '../../components/FieldError';
 import { OnboardingProgress } from '../../components/OnboardingProgress';
-
-const BACK_ICON = { ios: 'chevron.left', android: 'arrow_back' } as const;
+import { BackIcon } from '../../components/Icons';
 
 export default function Permissions() {
   const [requesting, setRequesting] = useState(false);
@@ -40,6 +39,10 @@ export default function Permissions() {
     const notifOk = notif.status === 'granted';
     setCameraDenied(!cameraOk);
     setNotifDenied(!notifOk);
+    // Fulfills the promise made two lines above ("off anytime you want" lives
+    // in Settings, see settings.tsx) -- granting permission here should
+    // actually turn the nudge on, not just unlock the ability to turn it on.
+    if (notifOk) await setReminderEnabled(true);
     if (cameraOk && notifOk) await finish();
   }
 
@@ -53,7 +56,7 @@ export default function Permissions() {
           accessibilityLabel="Back"
           style={{ width: touchTarget.min, height: touchTarget.min, alignItems: 'center', justifyContent: 'center' }}
         >
-          <SymbolView name={BACK_ICON} size={22} tintColor={colors.textPrimary} />
+          <BackIcon size={22} color={colors.textPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <OnboardingProgress step={3} total={3} />
