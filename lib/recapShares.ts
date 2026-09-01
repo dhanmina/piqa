@@ -9,13 +9,21 @@ function mapRow(row: { id: string; kind: string; created_at: string; revoked_at:
 // Frozen at creation, same -6/-365 day windows get_weekly_recap/get_grand_recap
 // use (supabase/migrations/0007_recap.sql, 0009_grand_recap.sql) -- see
 // supabase/migrations/0040_recap_shares.sql for why this doesn't re-derive
-// from "today" on every view.
+// from "today" on every view. Uses local dates, not UTC, matching how
+// captures.captured_at itself is stamped (see lib/captureQueue.ts and
+// app/(tabs)/today.tsx's toISODate) -- toISOString() would convert to UTC and
+// could land range_end a day behind local "today" for timezones ahead of UTC.
 function rangeFor(kind: 'week' | 'year'): { rangeStart: string; rangeEnd: string } {
   const days = kind === 'year' ? 365 : 6;
   const end = new Date();
   const start = new Date(end);
   start.setDate(start.getDate() - days);
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const iso = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
   return { rangeStart: iso(start), rangeEnd: iso(end) };
 }
 
@@ -53,5 +61,6 @@ export async function revokeRecapShare(id: string): Promise<{ error: Error | nul
 }
 
 export function recapShareUrl(id: string): string {
-  return `https://piqa.app/r/${id}`;
+  const base = process.env.EXPO_PUBLIC_SHARE_BASE_URL ?? 'https://joinpiqa.com';
+  return `${base}/r/${id}`;
 }

@@ -20,12 +20,14 @@ function kindLabel(kind: RecapShare['kind']): string {
 export default function SharedLinks() {
   const [shares, setShares] = useState<RecapShare[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await listRecapShares();
+    const { data, error } = await listRecapShares();
     setShares(data);
+    setLoadError(!!error);
     setLoading(false);
   }, []);
 
@@ -66,7 +68,11 @@ export default function SharedLinks() {
         </Pressable>
       </View>
 
-      {!loading && shares.length === 0 ? (
+      {!loading && loadError ? (
+        <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
+          Couldn't load your shared links. Try again in a moment.
+        </Text>
+      ) : !loading && shares.length === 0 ? (
         <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
           No shared links yet.
         </Text>

@@ -19,7 +19,8 @@ function toThumbPath(path: string): string {
 }
 
 function formatRange(start: string, end: string): string {
-  const fmt = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const fmt = (d: string) =>
+    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   return start === end ? fmt(start) : `${fmt(start)} - ${fmt(end)}`;
 }
 
@@ -53,6 +54,7 @@ Deno.serve(async (req) => {
     .single();
 
   if (shareError || !share || share.revoked_at) {
+    if (shareError) console.error('[get-shared-recap] recap_shares lookup failed', shareError);
     return json({ error: 'This link is no longer available.' }, 404);
   }
 
@@ -66,12 +68,38 @@ Deno.serve(async (req) => {
 
   if (capturesError) return json({ error: 'Could not load this recap.' }, 500);
 
-  const thumbPaths = (rows ?? []).map((r) => toThumbPath(r.storage_path));
-  const { data: signed } = await admin.storage.from('captures').createSignedUrls(thumbPaths, SIGNED_URL_TTL_SECONDS);
-  const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
+  // Same thumb-first, full-res-fallback resolution as lib/captureQueries.ts's
+  // fetchRecapPhotos: older captures uploaded before thumbnails existed simply
+  // have none (see lib/photoPaths.ts's toThumbPath comment), so a signed-url miss
+  // on the thumb path falls back to signing the original storage_path instead of
+  // silently dropping the photo.
+  const capturedRows = rows ?? [];
+  const thumbPaths = capturedRows.map((r) => toThumbPath(r.storage_path));
+  const { data: signedThumbs, error: signedThumbsError } = await admin.storage
+    .from('captures')
+    .createSignedUrls(thumbPaths, SIGNED_URL_TTL_SECONDS);
+  if (signedThumbsError) {
+    console.error('[get-shared-recap] signing thumb urls failed', signedThumbsError);
+    return json({ error: 'Could not load this recap.' }, 500);
+  }
+  const urlByPath = new Map((signedThumbs ?? []).map((s) => [s.path, s.signedUrl]));
 
-  const photos = (rows ?? []).flatMap((r, i) => {
-    const url = urlByPath.get(thumbPaths[i]);
+  const missingPaths = capturedRows
+    .filter((_, i) => !urlByPath.has(thumbPaths[i]))
+    .map((r) => r.storage_path);
+  if (missingPaths.length > 0) {
+    const { data: signedFull, error: signedFullError } = await admin.storage
+      .from('captures')
+      .createSignedUrls(missingPaths, SIGNED_URL_TTL_SECONDS);
+    if (signedFullError) {
+      console.error('[get-shared-recap] signing fallback full-res urls failed', signedFullError);
+      return json({ error: 'Could not load this recap.' }, 500);
+    }
+    for (const s of signedFull ?? []) urlByPath.set(s.path, s.signedUrl);
+  }
+
+  const photos = capturedRows.flatMap((r) => {
+    const url = urlByPath.get(toThumbPath(r.storage_path)) ?? urlByPath.get(r.storage_path);
     return url ? [{ url, capturedAt: r.captured_at }] : [];
   });
 

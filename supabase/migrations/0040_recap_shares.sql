@@ -7,8 +7,12 @@
 -- it was shared. No anon/public RLS policy is added on purpose -- the only way
 -- an unauthenticated caller can ever read a share is through the get-shared-recap
 -- Edge Function, which uses the service-role key to bypass RLS after validating
--- the share itself (not revoked). Keeping this table owner-only avoids leaking
--- user_id or existence of a share id to anyone who isn't the app's own client.
+-- the share itself (not revoked). Keeping this table owner-only means recap_shares
+-- itself has no anon access -- but note the signed photo URLs a valid share
+-- resolves to (via Supabase Storage) still expose the owner's storage prefix
+-- (their auth uid) and raw capture timestamps in the URL path to anyone who opens
+-- the link. That's a low-severity, accepted tradeoff of using Storage's own
+-- signed-URL scheme, not something this table design avoids.
 create table public.recap_shares (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,

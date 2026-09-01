@@ -11,7 +11,7 @@ beforeEach(() => {
 });
 
 test('recapShareUrl builds a public link from a share id', () => {
-  expect(recapShareUrl('abc-123')).toBe('https://piqa.app/r/abc-123');
+  expect(recapShareUrl('abc-123')).toBe('https://joinpiqa.com/r/abc-123');
 });
 
 test('createRecapShare inserts a row scoped to the current user and week range', async () => {
@@ -32,6 +32,36 @@ test('createRecapShare inserts a row scoped to the current user and week range',
   expect(insert).toHaveBeenCalledWith(
     expect.objectContaining({ user_id: 'u1', kind: 'week' })
   );
+});
+
+test('createRecapShare freezes range_start/range_end using local dates, not UTC', async () => {
+  const originalTZ = process.env.TZ;
+  // A timezone ahead of UTC, frozen at a local early-morning moment where the
+  // UTC calendar date is still "yesterday" -- this is exactly the case that
+  // toISOString()-based range computation gets wrong (see 187168c and the
+  // rangeFor() comment in lib/recapShares.ts).
+  process.env.TZ = 'Asia/Manila';
+  jest.useFakeTimers().setSystemTime(new Date('2026-09-01T17:30:00Z')); // local: 2026-09-02 01:30
+
+  try {
+    (supabase.auth.getUser as jest.Mock).mockResolvedValue({ data: { user: { id: 'u1' } } });
+    const insert = jest.fn().mockReturnThis();
+    const select = jest.fn().mockReturnThis();
+    const single = jest.fn().mockResolvedValue({
+      data: { id: 's1', kind: 'week', created_at: '2026-09-02T00:00:00Z', revoked_at: null },
+      error: null,
+    });
+    (supabase.from as jest.Mock).mockReturnValue({ insert, select, single });
+
+    await createRecapShare('week');
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({ range_start: '2026-08-27', range_end: '2026-09-02' })
+    );
+  } finally {
+    jest.useRealTimers();
+    process.env.TZ = originalTZ;
+  }
 });
 
 test('createRecapShare surfaces an insert error', async () => {
