@@ -1,4 +1,12 @@
-import { signInWithGoogle, signInWithEmail, signUpWithEmail, signOut } from '../../lib/auth';
+import {
+  signInWithGoogle,
+  signInWithEmail,
+  signUpWithEmail,
+  signOut,
+  requestPasswordReset,
+  completePasswordReset,
+  verifyPasswordResetCode,
+} from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -10,6 +18,8 @@ jest.mock('../../lib/supabase', () => ({
       signInWithPassword: jest.fn().mockResolvedValue({ error: null }),
       signUp: jest.fn().mockResolvedValue({ error: null }),
       signOut: jest.fn().mockResolvedValue({ error: null }),
+      resetPasswordForEmail: jest.fn().mockResolvedValue({ error: null }),
+      verifyOtp: jest.fn().mockResolvedValue({ error: null }),
     },
   },
 }));
@@ -72,5 +82,49 @@ test('signUpWithEmail calls signUp with the given credentials and username', asy
 test('signOut calls supabase signOut', async () => {
   const result = await signOut();
   expect(supabase.auth.signOut).toHaveBeenCalled();
+  expect(result.error).toBeNull();
+});
+
+test('requestPasswordReset calls resetPasswordForEmail with a piqa:// redirect', async () => {
+  const result = await requestPasswordReset('user@example.com');
+  expect(supabase.auth.resetPasswordForEmail).toHaveBeenCalledWith('user@example.com', {
+    redirectTo: 'piqa:///',
+  });
+  expect(result.error).toBeNull();
+});
+
+test('completePasswordReset extracts tokens from the recovery link and sets the session', async () => {
+  const result = await completePasswordReset('piqa://reset-password#access_token=tok123&refresh_token=ref456&type=recovery');
+  expect(supabase.auth.setSession).toHaveBeenCalledWith({
+    access_token: 'tok123',
+    refresh_token: 'ref456',
+  });
+  expect(result.error).toBeNull();
+});
+
+test('completePasswordReset surfaces the link error instead of calling setSession', async () => {
+  (supabase.auth.setSession as jest.Mock).mockClear();
+  const result = await completePasswordReset(
+    'piqa://reset-password#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired'
+  );
+  expect(result.error).toBeInstanceOf(Error);
+  expect(result.error?.message).toBe('Email link is invalid or has expired');
+  expect(supabase.auth.setSession).not.toHaveBeenCalled();
+});
+
+test('completePasswordReset rejects a link with no tokens', async () => {
+  (supabase.auth.setSession as jest.Mock).mockClear();
+  const result = await completePasswordReset('piqa://reset-password');
+  expect(result.error).toBeInstanceOf(Error);
+  expect(supabase.auth.setSession).not.toHaveBeenCalled();
+});
+
+test('verifyPasswordResetCode calls verifyOtp with the emailed code', async () => {
+  const result = await verifyPasswordResetCode('user@example.com', '123456');
+  expect(supabase.auth.verifyOtp).toHaveBeenCalledWith({
+    email: 'user@example.com',
+    token: '123456',
+    type: 'recovery',
+  });
   expect(result.error).toBeNull();
 });

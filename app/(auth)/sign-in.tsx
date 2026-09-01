@@ -11,6 +11,7 @@ import { FilledField } from '../../components/FilledField';
 import { FieldError } from '../../components/FieldError';
 import { Button } from '../../components/Button';
 import { Divider } from '../../components/Divider';
+import { TextLink } from '../../components/TextLink';
 
 type FieldErrors = { email?: string; password?: string };
 
@@ -111,7 +112,11 @@ export default function SignIn() {
           </View>
         </View>
 
-        <View style={{ marginTop: spacing.sm }}>
+        <View style={{ alignItems: 'flex-end' }}>
+          <TextLink label="Forgot password?" inline onPress={() => router.push('/(auth)/forgot-password')} />
+        </View>
+
+        <View style={{ marginTop: spacing.xs }}>
           <Button label="Sign in" loadingLabel="Signing in…" onPress={handleEmailSignIn} disabled={!canSubmit} loading={loading} />
         </View>
 

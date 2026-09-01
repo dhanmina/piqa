@@ -91,6 +91,10 @@ export default function RootLayout() {
         <ThemeProvider value={navigationTheme}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
+            {/* Reached only via the recovery email's deep link, before a session exists --
+                deliberately outside every Stack.Protected block below (see reset-password.tsx's
+                own top-of-file comment for why gating this on signedIn would race the guard). */}
+            <Stack.Screen name="reset-password" options={{ presentation: 'modal' }} />
             <Stack.Protected guard={!signedIn}>
               <Stack.Screen name="(auth)" />
             </Stack.Protected>

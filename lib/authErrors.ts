@@ -21,6 +21,8 @@ export function mapAuthError(error: AuthLikeError): FormError {
       return { message: 'Password must be at least 8 characters.', field: 'password' };
     case 'email_address_invalid':
       return { message: 'Enter a valid email address.', field: 'email' };
+    case 'otp_expired':
+      return { message: 'This code has expired. Request a new one.' };
     default:
       return { message: error.message };
   }

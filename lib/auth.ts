@@ -55,6 +55,38 @@ export async function signOut() {
   return { error };
 }
 
+export async function requestPasswordReset(email: string) {
+  const redirectTo = Linking.createURL('reset-password');
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  return { error };
+}
+
+// The hosted project's recovery email sends a 6-digit code ({{ .Token }} in the
+// dashboard template), not a working deep link -- verifyOtp exchanges it for a real
+// session directly, no redirect-URL allowlist or deep-link handling needed at all.
+export async function verifyPasswordResetCode(email: string, code: string) {
+  const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'recovery' });
+  return { error };
+}
+
+// Called from app/reset-password.tsx with whatever URL the recovery email link opened
+// the app with (cold Linking.getInitialURL() or a warm 'url' event) — same manual
+// token-extraction as signInWithGoogle above, since RN has no window.location for
+// supabase-js's web-only detectSessionInUrl to read off of automatically.
+//
+// Checks params.error directly rather than QueryParams' own `errorCode` return value —
+// that only ever reads a literal `errorCode` query param, which doesn't match GoTrue's
+// actual `error`/`error_code`/`error_description` redirect format (an expired or
+// already-used recovery link redirects with those, e.g. `#error=access_denied&error_code=otp_expired`).
+export async function completePasswordReset(url: string) {
+  const { params } = QueryParams.getQueryParams(url);
+  if (params.error) return { error: new Error(params.error_description || params.error) };
+  const { access_token, refresh_token } = params;
+  if (!access_token || !refresh_token) return { error: new Error('Invalid or expired reset link.') };
+  const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+  return { error };
+}
+
 export async function getSession(): Promise<Session | null> {
   const { data } = await supabase.auth.getSession();
   return data.session;

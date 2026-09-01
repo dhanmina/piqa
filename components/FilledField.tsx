@@ -13,7 +13,8 @@ export const FilledField = forwardRef<TextInput, {
   onChangeText: (v: string) => void;
   secureTextEntry?: boolean;
   revealable?: boolean;
-  keyboardType?: 'email-address';
+  keyboardType?: TextInputProps['keyboardType'];
+  maxLength?: number;
   error?: boolean;
   editable?: boolean;
   returnKeyType?: ReturnKeyTypeOptions;
@@ -29,6 +30,7 @@ export const FilledField = forwardRef<TextInput, {
     secureTextEntry,
     revealable,
     keyboardType,
+    maxLength,
     error,
     editable,
     returnKeyType,
@@ -53,6 +55,7 @@ export const FilledField = forwardRef<TextInput, {
         autoCapitalize="none"
         editable={editable}
         keyboardType={keyboardType}
+        maxLength={maxLength}
         returnKeyType={returnKeyType}
         onSubmitEditing={onSubmitEditing}
         onBlur={onBlur}
