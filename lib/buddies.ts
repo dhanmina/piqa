@@ -92,6 +92,66 @@ export async function fetchPendingRequests(): Promise<{ data: PendingRequest[]; 
   };
 }
 
+export type BuddyPeek = {
+  buddyId: string;
+  buddyUsername: string;
+  buddyDisplayName: string | null;
+  buddyAvatarUrl: string | null;
+  myCaptureId: string;
+  myPhotoUrl: string;
+  buddyCaptureId: string;
+  buddyPhotoUrl: string;
+  label: string;
+  reactedByMe: boolean;
+};
+
+// today: the caller's local date (YYYY-MM-DD), same reason get_today_state/
+// get_peek_back take one -- current_date server-side is UTC and disagrees with
+// captures.captured_at near local midnight.
+export async function fetchBuddyPeek(today: string): Promise<{ data: BuddyPeek | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('get_buddy_peek', { p_today: today });
+  if (error) return { data: null, error: new Error(error.message) };
+
+  const row: {
+    buddy_id: string; buddy_username: string; buddy_display_name: string | null; buddy_avatar_url: string | null;
+    my_capture_id: string; my_storage_path: string; buddy_capture_id: string; buddy_storage_path: string;
+    captured_at: string; label: string; reacted_by_me: boolean;
+  } | undefined = data?.[0];
+  if (!row) return { data: null, error: null };
+
+  const { data: signed, error: signError } = await supabase.storage
+    .from('captures')
+    .createSignedUrls([row.my_storage_path, row.buddy_storage_path], 3600);
+  if (signError) return { data: null, error: new Error(signError.message) };
+
+  const urlByPath = new Map<string, string>();
+  signed?.forEach((s) => {
+    if (s.signedUrl && s.path) urlByPath.set(s.path, s.signedUrl);
+  });
+  const myPhotoUrl = urlByPath.get(row.my_storage_path);
+  const buddyPhotoUrl = urlByPath.get(row.buddy_storage_path);
+  // A failed sign on either side (e.g. a storage policy edge case) means the
+  // moment can't be shown as a matched pair -- fail soft to "no peek today"
+  // rather than render half a match.
+  if (!myPhotoUrl || !buddyPhotoUrl) return { data: null, error: null };
+
+  return {
+    data: {
+      buddyId: row.buddy_id,
+      buddyUsername: row.buddy_username,
+      buddyDisplayName: row.buddy_display_name,
+      buddyAvatarUrl: row.buddy_avatar_url,
+      myCaptureId: row.my_capture_id,
+      myPhotoUrl,
+      buddyCaptureId: row.buddy_capture_id,
+      buddyPhotoUrl,
+      label: row.label,
+      reactedByMe: row.reacted_by_me,
+    },
+    error: null,
+  };
+}
+
 export async function fetchBuddies(): Promise<{ data: Buddy[]; error: Error | null }> {
   const { data, error } = await supabase.rpc('get_buddies');
   if (error) return { data: [], error: new Error(error.message) };

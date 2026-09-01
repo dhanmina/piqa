@@ -43,8 +43,8 @@ select is(
 
 select throws_ok(
   $$ select react_to_capture('aaaaaaaa-0000-0000-0000-000000000002') $$,
-  'Can only react to today''s capture',
-  'cannot react to a capture that is not from today'
+  'Can only react to today''s capture or a shared Buddy Peek moment',
+  'cannot react to a capture that is not from today and not a reciprocal Buddy Peek match'
 );
 
 select throws_ok(

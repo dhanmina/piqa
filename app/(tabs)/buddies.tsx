@@ -6,19 +6,33 @@ import { queryKeys } from '../../lib/captureQueries';
 import {
   fetchBuddies,
   fetchPendingRequests,
+  fetchBuddyPeek,
   reactToCapture,
   respondToBuddyRequest,
   removeBuddy,
   type Buddy,
+  type BuddyPeek,
   type PendingRequest,
 } from '../../lib/buddies';
 import { BuddyRow } from '../../components/BuddyRow';
+import { BuddyPeekCard } from '../../components/BuddyPeekCard';
 import { PendingRequestRow } from '../../components/PendingRequestRow';
+import { PhotoViewerModal } from '../../components/PhotoViewerModal';
 import { Button } from '../../components/Button';
 import { Divider } from '../../components/Divider';
 import { Screen } from '../../components/Screen';
 import { TAB_BAR_CLEARANCE } from '../../components/TabBar';
 import { colors, spacing, type } from '../../lib/theme';
+
+// Local date, not toISOString() -- same reason today.tsx's own copy of this exists:
+// toISOString() converts to UTC, which lands the day boundary at UTC midnight
+// instead of the device's local midnight.
+function toISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 async function loadBuddiesOrThrow(): Promise<Buddy[]> {
   const { data, error } = await fetchBuddies();
@@ -35,6 +49,8 @@ async function loadPendingRequestsOrThrow(): Promise<PendingRequest[]> {
 export default function BuddiesScreen() {
   const queryClient = useQueryClient();
   const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [peekViewerOpen, setPeekViewerOpen] = useState(false);
+  const todayISO = toISODate(new Date());
 
   // The persisted query cache (see app/_layout.tsx) means a returning visit to this tab
   // paints last-known buddies/requests immediately -- isLoading is only true the very
@@ -43,19 +59,38 @@ export default function BuddiesScreen() {
   // every single visit, cache or not).
   const buddiesQuery = useQuery({ queryKey: queryKeys.buddies, queryFn: loadBuddiesOrThrow });
   const requestsQuery = useQuery({ queryKey: queryKeys.pendingRequests, queryFn: loadPendingRequestsOrThrow });
+  const peekQuery = useQuery({
+    queryKey: queryKeys.buddyPeek(todayISO),
+    queryFn: async () => {
+      const { data, error } = await fetchBuddyPeek(todayISO);
+      if (error) throw error;
+      return data;
+    },
+  });
   const buddies = buddiesQuery.data ?? [];
   const buddiesLoading = buddiesQuery.isLoading;
   const buddiesError = buddiesQuery.isError;
   const requests = requestsQuery.data ?? [];
   const requestsLoading = requestsQuery.isLoading;
   const requestsError = requestsQuery.isError;
+  const peek = peekQuery.data ?? null;
 
   useFocusEffect(
     useCallback(() => {
       queryClient.invalidateQueries({ queryKey: queryKeys.buddies });
       queryClient.invalidateQueries({ queryKey: queryKeys.pendingRequests });
-    }, [queryClient])
+      queryClient.invalidateQueries({ queryKey: queryKeys.buddyPeek(todayISO) });
+    }, [queryClient, todayISO])
   );
+
+  async function handleReactToPeek() {
+    if (!peek) return;
+    queryClient.setQueryData(queryKeys.buddyPeek(todayISO), (prev: BuddyPeek | null | undefined) =>
+      prev ? { ...prev, reactedByMe: true } : prev
+    );
+    const { error } = await reactToCapture(peek.buddyCaptureId);
+    if (error) queryClient.invalidateQueries({ queryKey: queryKeys.buddyPeek(todayISO) });
+  }
 
   async function handleReact(captureId: string) {
     queryClient.setQueryData(queryKeys.buddies, (prev: Buddy[] | undefined) =>
@@ -131,7 +166,9 @@ export default function BuddiesScreen() {
           </View>
         )}
 
-        {requests.length > 0 && buddies.length > 0 && <Divider />}
+        {peek && <BuddyPeekCard peek={peek} onPress={() => setPeekViewerOpen(true)} onReact={handleReactToPeek} />}
+
+        {(requests.length > 0 || peek) && buddies.length > 0 && <Divider />}
 
         {buddiesLoading ? null : buddiesError ? (
           <Text style={{ ...type.caption, color: colors.textMuted }}>
@@ -149,6 +186,15 @@ export default function BuddiesScreen() {
           </Text>
         )}
       </ScrollView>
+
+      {peek && (
+        <PhotoViewerModal
+          urls={[peek.myPhotoUrl, peek.buddyPhotoUrl]}
+          cacheKeys={[peek.myCaptureId, peek.buddyCaptureId]}
+          visible={peekViewerOpen}
+          onClose={() => setPeekViewerOpen(false)}
+        />
+      )}
     </Screen>
   );
 }

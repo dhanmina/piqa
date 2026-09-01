@@ -12,6 +12,7 @@ export const queryKeys = {
   profileCreatedAt: ['profileCreatedAt'] as const,
   buddies: ['buddies'] as const,
   pendingRequests: ['pendingRequests'] as const,
+  buddyPeek: (dateISO: string) => ['buddyPeek', dateISO] as const,
   profileInfo: ['profileInfo'] as const,
   accountInfo: ['accountInfo'] as const,
 };

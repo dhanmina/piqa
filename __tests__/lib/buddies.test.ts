@@ -7,6 +7,7 @@ import {
   reactToCapture,
   fetchPendingRequests,
   fetchBuddies,
+  fetchBuddyPeek,
 } from '../../lib/buddies';
 import { supabase } from '../../lib/supabase';
 
@@ -129,6 +130,56 @@ describe('fetchPendingRequests', () => {
     expect(result.data).toEqual([
       { requestId: 'req-1', requesterId: 'u1', username: 'bob', displayName: 'Bob', avatarUrl: null },
     ]);
+  });
+});
+
+describe('fetchBuddyPeek', () => {
+  test('maps a match to camelCase and resolves both signed urls', async () => {
+    mockRpc.mockResolvedValue({
+      data: [{
+        buddy_id: 'u1', buddy_username: 'bob', buddy_display_name: 'Bob', buddy_avatar_url: null,
+        my_capture_id: 'cap-mine', my_storage_path: 'me/week.jpg',
+        buddy_capture_id: 'cap-bob', buddy_storage_path: 'bob/week.jpg',
+        captured_at: '2026-08-26', label: 'last week', reacted_by_me: false,
+      }],
+      error: null,
+    });
+    mockStorageFrom.mockReturnValue({
+      createSignedUrls: jest.fn().mockResolvedValue({
+        data: [
+          { path: 'me/week.jpg', signedUrl: 'https://signed/me-week.jpg' },
+          { path: 'bob/week.jpg', signedUrl: 'https://signed/bob-week.jpg' },
+        ],
+        error: null,
+      }),
+    });
+
+    const result = await fetchBuddyPeek('2026-09-02');
+
+    expect(mockRpc).toHaveBeenCalledWith('get_buddy_peek', { p_today: '2026-09-02' });
+    expect(result).toEqual({
+      data: {
+        buddyId: 'u1', buddyUsername: 'bob', buddyDisplayName: 'Bob', buddyAvatarUrl: null,
+        myCaptureId: 'cap-mine', myPhotoUrl: 'https://signed/me-week.jpg',
+        buddyCaptureId: 'cap-bob', buddyPhotoUrl: 'https://signed/bob-week.jpg',
+        label: 'last week', reactedByMe: false,
+      },
+      error: null,
+    });
+  });
+
+  test('returns null data (not an error) when there is no match today', async () => {
+    mockRpc.mockResolvedValue({ data: [], error: null });
+    const result = await fetchBuddyPeek('2026-09-02');
+    expect(result).toEqual({ data: null, error: null });
+    expect(mockStorageFrom).not.toHaveBeenCalled();
+  });
+
+  test('returns an error instead of throwing when the RPC fails', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'network down' } });
+    const result = await fetchBuddyPeek('2026-09-02');
+    expect(result.data).toBeNull();
+    expect(result.error).toBeInstanceOf(Error);
   });
 });
 
