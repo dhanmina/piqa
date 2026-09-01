@@ -21,14 +21,9 @@ export default function Intent() {
         entering={FadeInUp.duration(220)}
         style={{ flex: 1, justifyContent: 'center', gap: spacing.xl }}
       >
-        <View style={{ gap: spacing.xs }}>
-          <Text style={{ ...type.screenTitle, color: colors.textPrimary, textAlign: 'center' }}>
-            What are you capturing?
-          </Text>
-          <Text style={{ ...type.body, color: colors.textMuted, textAlign: 'center' }}>
-            You can change this anytime in your profile.
-          </Text>
-        </View>
+        <Text style={{ ...type.screenTitle, color: colors.textPrimary, textAlign: 'center' }}>
+          What are you capturing?
+        </Text>
         <View style={{ gap: spacing.sm, alignItems: 'center' }}>
           {SUGGESTED.map((t) => (
             <SelectableRow key={t} label={t} onPress={() => choose(t)} />
