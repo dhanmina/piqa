@@ -37,7 +37,7 @@ function sleep(ms: number): Promise<void> {
 // Warms the disk cache under the storage path (not the signed url, which rotates)
 // so a later render with the same cacheKey never re-downloads. Best-effort --
 // a failed warm just means the first render pays for the download instead.
-function warmCache(pairs: { url: string; path: string }[]): void {
+export function warmCache(pairs: { url: string; path: string }[]): void {
   Promise.all(pairs.map((p) => Image.writeToCacheAsync(p.url, p.path))).catch(() => {});
 }
 
@@ -146,17 +146,38 @@ export async function fetchTimelineMonth(
   return { year, month, leadingBlanks: new Date(year, month - 1, 1).getDay(), days };
 }
 
-export type RecapPhoto = { url: string; path: string };
+export type RecapPhoto = { url: string; path: string; capturedAt: string };
 
 export async function fetchRecapPhotos(kind: 'week' | 'year'): Promise<RecapPhoto[]> {
   const rpc = kind === 'year' ? 'get_grand_recap' : 'get_weekly_recap';
   const { data } = await supabase.rpc(rpc);
-  const paths: string[] = (data ?? []).map((r: any) => r.storage_path);
-  if (paths.length === 0) return [];
-  const signedByPath = await getSignedUrls(paths);
-  return paths
-    .filter((p) => signedByPath.has(p))
-    .map((p) => ({ url: signedByPath.get(p)!, path: p }));
+  const rows: { storage_path: string; captured_at: string }[] = data ?? [];
+  if (rows.length === 0) return [];
+  // Same thumb-first, full-res-fallback resolution as the timeline month grid: a
+  // recap photo is on screen for ~2s at a time, so the 480px thumb is plenty, and
+  // fetching it instead of the full original is what keeps fast tapping from
+  // outrunning the download and flashing NetworkImage's spinner.
+  const thumbPaths = rows.map((r) => toThumbPath(r.storage_path));
+  let thumbByPath = new Map<string, string>();
+  let fallbackFullByPath = new Map<string, string>();
+  try {
+    thumbByPath = await getSignedUrls(thumbPaths, { logErrors: false });
+    const missing = rows.filter((_, i) => !thumbByPath.has(thumbPaths[i])).map((r) => r.storage_path);
+    if (missing.length > 0) fallbackFullByPath = await getSignedUrls(missing);
+  } catch (err) {
+    console.error('[recap] resolving thumbnails failed', err);
+  }
+  // Signing every url here is cheap (one batched call); actually downloading each
+  // image is not, so warming is left to the slideshow, which only warms the
+  // (possibly sampled) subset it's actually going to show -- see RecapSlideshow.
+  return rows.flatMap((r, i): RecapPhoto[] => {
+    const thumbPath = thumbPaths[i];
+    if (thumbByPath.has(thumbPath)) return [{ url: thumbByPath.get(thumbPath)!, path: thumbPath, capturedAt: r.captured_at }];
+    if (fallbackFullByPath.has(r.storage_path)) {
+      return [{ url: fallbackFullByPath.get(r.storage_path)!, path: r.storage_path, capturedAt: r.captured_at }];
+    }
+    return [];
+  });
 }
 
 // Every screen that shows a capture list calls this after a successful delete, so a
