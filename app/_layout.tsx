@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
+import { ThemeProvider, DarkTheme } from 'expo-router/react-navigation';
 import type { Session } from '@supabase/supabase-js';
 import { getSession } from '../lib/auth';
 import { getOnboardingStatus, getNeedsUsername } from '../lib/onboarding';
@@ -7,6 +8,17 @@ import { supabase } from '../lib/supabase';
 import { AuthStateProvider } from '../lib/authState';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../lib/queryClient';
+import { colors } from '../lib/theme';
+
+// React Navigation's screen Background paints its theme's `colors.background`
+// behind every screen -- unset, that defaults to the light theme (near-white),
+// which is what flashed on every Android tab switch (native Fragment
+// detach/reattach exposes it for a frame). Router never supplied a theme, so
+// it fell through to that light default regardless of the app's own dark UI.
+const navigationTheme = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, background: colors.background, card: colors.surface, text: colors.textPrimary, border: colors.border },
+};
 
 /**
  * DIRECTION CONTRACT — seed key 9a4f58ae
@@ -66,26 +78,28 @@ export default function RootLayout() {
           markUsernameSet: () => setNeedsUsername(false),
         }}
       >
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Protected guard={!signedIn}>
-            <Stack.Screen name="(auth)" />
-          </Stack.Protected>
-          <Stack.Protected guard={signedIn && !onboarded}>
-            <Stack.Screen name="(onboarding)" />
-          </Stack.Protected>
-          <Stack.Protected guard={signedIn && onboarded}>
-            <Stack.Screen name="(tabs)" />
-          </Stack.Protected>
-          <Stack.Protected guard={signedIn}>
-            <Stack.Screen name="capture" options={{ presentation: 'fullScreenModal' }} />
-            <Stack.Screen name="recap" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="add-buddy" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="change-password" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="settings" />
-          </Stack.Protected>
-        </Stack>
+        <ThemeProvider value={navigationTheme}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Protected guard={!signedIn}>
+              <Stack.Screen name="(auth)" />
+            </Stack.Protected>
+            <Stack.Protected guard={signedIn && !onboarded}>
+              <Stack.Screen name="(onboarding)" />
+            </Stack.Protected>
+            <Stack.Protected guard={signedIn && onboarded}>
+              <Stack.Screen name="(tabs)" />
+            </Stack.Protected>
+            <Stack.Protected guard={signedIn}>
+              <Stack.Screen name="capture" options={{ presentation: 'fullScreenModal' }} />
+              <Stack.Screen name="recap" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="add-buddy" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="change-password" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="settings" />
+            </Stack.Protected>
+          </Stack>
+        </ThemeProvider>
       </AuthStateProvider>
     </QueryClientProvider>
   );

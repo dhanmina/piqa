@@ -23,6 +23,7 @@
       "expo-router",
       "expo-web-browser",
       "./plugins/withIncreasedGradleMemory",
+      "./plugins/withAndroidWindowBackground",
       [
         "react-native-android-widget",
         {
