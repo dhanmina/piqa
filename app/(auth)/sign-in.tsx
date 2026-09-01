@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Text, Pressable, TextInput } from 'react-native';
+import { Text, View, Pressable, TextInput } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { signInWithGoogle, signInWithEmail } from '../../lib/auth';
@@ -12,34 +12,51 @@ import { FieldError } from '../../components/FieldError';
 import { Button } from '../../components/Button';
 import { Divider } from '../../components/Divider';
 
+type FieldErrors = { email?: string; password?: string };
+
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
   const canSubmit = email.length > 0 && password.length > 0 && !loading;
   const passwordRef = useRef<TextInput>(null);
 
+  function clearErrors() {
+    setFormError(null);
+    setFieldErrors({});
+  }
+
   async function handleEmailSignIn() {
-    setError(null);
+    clearErrors();
     setLoading(true);
     const { error } = await signInWithEmail(email, password);
     setLoading(false);
-    if (error) setError(mapAuthError(error).message);
+    if (error) {
+      const mapped = mapAuthError(error);
+      if (mapped.field === 'email' || mapped.field === 'password') {
+        setFieldErrors({ [mapped.field]: mapped.message });
+      } else {
+        setFormError(mapped.message);
+      }
+    }
   }
 
   async function handleGoogleSignIn() {
-    setError(null);
+    clearErrors();
     setLoading(true);
     const { error } = await signInWithGoogle();
     setLoading(false);
-    if (error) setError(mapAuthError(error).message);
+    if (error) setFormError(mapAuthError(error).message);
   }
 
   return (
     <Screen>
-      <Animated.View entering={FadeInUp.duration(220)} style={{ flex: 1, justifyContent: 'center', gap: spacing.md }}>
-        <AuthHero tagline="Capture daily. Keep your streak. Peek into your past." />
+      <Animated.View entering={FadeInUp.duration(220)} style={{ flex: 1, justifyContent: 'center' }}>
+        <View style={{ marginBottom: spacing.xxl }}>
+          <AuthHero tagline="Capture daily. Keep your streak. Peek into your past." />
+        </View>
 
         <Button
           label="Continue with Google"
@@ -52,42 +69,56 @@ export default function SignIn() {
 
         <Divider label="or" />
 
-        <FilledField
-          placeholder="Email"
-          value={email}
-          onChangeText={(v) => {
-            setEmail(v);
-            setError(null);
-          }}
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          autoComplete="email"
-          returnKeyType="next"
-          onSubmitEditing={() => passwordRef.current?.focus()}
-        />
-        <FilledField
-          ref={passwordRef}
-          placeholder="Password"
-          value={password}
-          onChangeText={(v) => {
-            setPassword(v);
-            setError(null);
-          }}
-          secureTextEntry
-          revealable
-          textContentType="password"
-          autoComplete="current-password"
-          returnKeyType="done"
-          onSubmitEditing={handleEmailSignIn}
-        />
+        <View style={{ gap: spacing.sm }}>
+          <View style={{ gap: spacing.xs }}>
+            <FilledField
+              placeholder="Email"
+              value={email}
+              onChangeText={(v) => {
+                setEmail(v);
+                setFieldErrors((f) => ({ ...f, email: undefined }));
+                setFormError(null);
+              }}
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              autoComplete="email"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              error={!!fieldErrors.email}
+            />
+            <FieldError message={fieldErrors.email ?? null} />
+          </View>
 
-        <FieldError message={error} />
+          <View style={{ gap: spacing.xs }}>
+            <FilledField
+              ref={passwordRef}
+              placeholder="Password"
+              value={password}
+              onChangeText={(v) => {
+                setPassword(v);
+                setFieldErrors((f) => ({ ...f, password: undefined }));
+                setFormError(null);
+              }}
+              secureTextEntry
+              revealable
+              error={!!fieldErrors.password}
+              textContentType="password"
+              autoComplete="current-password"
+              returnKeyType="done"
+              onSubmitEditing={handleEmailSignIn}
+            />
+            <FieldError message={fieldErrors.password ?? formError} />
+          </View>
+        </View>
 
-        <Button label="Sign in" loadingLabel="Signing in…" onPress={handleEmailSignIn} disabled={!canSubmit} loading={loading} />
+        <View style={{ marginTop: spacing.sm }}>
+          <Button label="Sign in" loadingLabel="Signing in…" onPress={handleEmailSignIn} disabled={!canSubmit} loading={loading} />
+        </View>
 
         <Pressable
           onPress={() => router.push('/(auth)/sign-up')}
-          style={{ minHeight: touchTarget.min, justifyContent: 'center' }}
+          hitSlop={spacing.sm}
+          style={{ minHeight: touchTarget.min, justifyContent: 'center', marginTop: spacing.lg }}
         >
           <Text style={{ ...type.caption, color: colors.textMuted, textAlign: 'center' }}>
             Don't have an account? <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Sign up</Text>
