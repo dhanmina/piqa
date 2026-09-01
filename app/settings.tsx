@@ -107,9 +107,13 @@ export default function Settings() {
       setNotifPermission(permission);
       if (permission !== 'granted') return;
     }
-    setReminderBusy(true);
-    await setReminderEnabled(next, reminderTime);
     setReminderEnabledState(next);
+    setReminderBusy(true);
+    try {
+      await setReminderEnabled(next, reminderTime);
+    } catch {
+      setReminderEnabledState(!next);
+    }
     setReminderBusy(false);
   }
 
