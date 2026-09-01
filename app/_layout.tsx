@@ -110,6 +110,7 @@ export default function RootLayout() {
               <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
               <Stack.Screen name="add-buddy" options={{ presentation: 'modal' }} />
               <Stack.Screen name="change-password" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="shared-links" options={{ presentation: 'modal' }} />
               <Stack.Screen name="settings" />
             </Stack.Protected>
           </Stack>
