@@ -6,8 +6,8 @@ import { getSession } from '../lib/auth';
 import { getOnboardingStatus, getNeedsUsername } from '../lib/onboarding';
 import { supabase } from '../lib/supabase';
 import { AuthStateProvider } from '../lib/authState';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '../lib/queryClient';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { queryClient, queryPersister, QUERY_CACHE_BUSTER, QUERY_CACHE_MAX_AGE } from '../lib/queryClient';
 import { colors } from '../lib/theme';
 
 // React Navigation's screen Background paints its theme's `colors.background`
@@ -68,7 +68,10 @@ export default function RootLayout() {
   // boot (e.g. `piqa:///`) requests. That still needs a real app/index.tsx,
   // which redirects into whichever group below is actually active.
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister: queryPersister, maxAge: QUERY_CACHE_MAX_AGE, buster: QUERY_CACHE_BUSTER }}
+    >
       <AuthStateProvider
         value={{
           signedIn,
@@ -101,6 +104,6 @@ export default function RootLayout() {
           </Stack>
         </ThemeProvider>
       </AuthStateProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

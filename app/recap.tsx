@@ -13,6 +13,11 @@ export default function Recap() {
   const { data: photos = [] } = useQuery({
     queryKey: queryKeys.recap(kind),
     queryFn: () => fetchRecapPhotos(kind),
+    // Opened deliberately and rarely (not a background tab) -- unlike
+    // timeline/today, nothing invalidates this key when a new capture lands,
+    // so it must refetch every time it's opened rather than trust the
+    // Infinity default in queryClient.ts.
+    staleTime: 0,
   });
 
   return (
