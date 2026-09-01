@@ -51,8 +51,10 @@ function durationFor(slide: RecapSlide): number {
 // A quiet Stories-style viewer for the year/week's captures: tap right/left to
 // step, hold to pause, a trace-segmented progress row instead of a generic
 // bar. An opening stat card and a closing card stand in for the highlight-reel
-// stat pile and share card a Wrapped-style recap would use -- this product has
-// no sharing and no gamified chrome, so the beats stay data, not celebration.
+// stat pile and share card a Wrapped-style recap would use -- sharing exists
+// (see lib/recapShares.ts) but stays a plain link-out from the header, not a
+// generated share-card slide, so the beats inside the slideshow itself stay
+// data, not celebration.
 export function RecapSlideshow({
   photos,
   kind,

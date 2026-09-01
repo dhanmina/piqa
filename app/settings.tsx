@@ -262,6 +262,8 @@ export default function Settings() {
 
         <Button label="View your year" variant="secondary" onPress={() => router.push('/recap?range=year')} />
 
+        <TextLink label="Manage shared links" onPress={() => router.push('/shared-links')} />
+
         <Divider />
 
         <TextLink
