@@ -33,7 +33,10 @@ export default function AddBuddy() {
   const [sendingId, setSendingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProfile().then(({ data }) => setOwnUsername(data?.username ?? null));
+    fetchProfile().then(({ data, error }) => {
+      console.log('[add-buddy] fetchProfile result', { data, error });
+      setOwnUsername(data?.username ?? null);
+    });
   }, []);
 
   const runSearch = useCallback(async (q: string) => {
